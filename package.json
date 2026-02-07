@@ -48,6 +48,8 @@
     "debug": "^4.4.3",
     "deep-is": "^0.1.4",
     "escape-string-regexp": "^4.0.0",
+    "eslint-config-react": "^1.1.7",
+    "eslint-plugin-airbnb": "^0.0.1-security",
     "eslint-scope": "^8.4.0",
     "eslint-visitor-keys": "^4.2.1",
     "espree": "^10.4.0",
@@ -64,6 +66,7 @@
     "flatted": "^3.3.3",
     "glob-parent": "^6.0.2",
     "has-flag": "^4.0.0",
+    "husky": "^9.1.7",
     "ignore": "^5.3.2",
     "import-fresh": "^3.3.1",
     "imurmurhash": "^0.1.4",
@@ -76,6 +79,7 @@
     "json-stable-stringify-without-jsonify": "^1.0.1",
     "keyv": "^4.5.4",
     "levn": "^0.4.1",
+    "lint-staged": "^16.2.7",
     "locate-path": "^6.0.0",
     "lodash.merge": "^4.6.2",
     "minimatch": "^3.1.2",
@@ -99,5 +103,16 @@
     "which": "^2.0.2",
     "word-wrap": "^1.2.5",
     "yocto-queue": "^0.1.0"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx,json,css,scssmd": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

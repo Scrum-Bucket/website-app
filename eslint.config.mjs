@@ -1,10 +1,13 @@
-import js from '@eslint/js';
-import globals from 'globals';
-import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import js from "@eslint/js";
+import globals from "globals";
+import eslintConfigPrettier from "eslint-config-prettier/flat";
 
 export default [
+  {
+    rules: {},
+  },
   // folders/files to ignore
-  { ignores: ['node_modules/**', 'dist/**', 'build/**', 'coverage/**'] },
+  { ignores: ["node_modules/**", "dist/**", "build/**", "coverage/**"] },
 
   // base recommended rules
   js.configs.recommended,
