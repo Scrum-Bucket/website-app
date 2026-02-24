@@ -1,5 +1,9 @@
 {
   "name": "website-app",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -27,6 +31,7 @@
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.2.0",
+    "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0"
