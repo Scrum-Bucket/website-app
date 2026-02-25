@@ -13,19 +13,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f6f7fb;
+  background: lightblue;
 }
 
 .floating {
   animation: floatY 6s ease-in-out infinite;
-  background: gold;
   padding: 24px;
   border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  
   min-width: 420px;
   transform-origin: center;
   will-change: transform;
   font-family: "Blackbeard", "Times New Roman", serif;
+  background: url("./assets/leaflet.png") center / cover no-repeat;
 }
 
 @keyframes floatY {
@@ -48,17 +48,18 @@
 
 .row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 12px;
+  justify-content: center;
 }
 
 .row input {
-  flex: 1;
-  padding: 12px 14px;
+  width: 140px;
+  padding: 6px 8px;
   border: 1px solid #d8dbe2;
   border-radius: 10px;
   outline: none;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .row input:focus {
@@ -67,8 +68,10 @@
 }
 
 .login-button {
-  width: 100%;
-  padding: 12px 14px;
+  width: 180px;
+  display: block;
+  margin: 0 auto;
+  padding: 10px;
   border: none;
   border-radius: 10px;
   background: #1d1d1d;
@@ -81,3 +84,4 @@
 .login-button:hover {
   background: #000000;
 }
+
