@@ -1,0 +1,226 @@
+.room-page {
+  min-height: 100vh;
+  background: #efefef;
+  padding: 12px;
+}
+
+.room-title {
+  margin: 0 0 8px 6px;
+  font-size: 34px;
+  color: #9f9f9f;
+}
+
+.room-window {
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  background: #43a3e8;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.room-top-row {
+  display: grid;
+  grid-template-columns: 74px 1fr 42px;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.room-logo {
+  width: 66px;
+  height: 66px;
+  background: linear-gradient(160deg, #ff603a, #f7b244);
+  border: 2px solid #0f66b8;
+  display: grid;
+  place-items: center;
+  font-size: 34px;
+}
+
+.room-id-bar {
+  height: 74px;
+  background: #2f50bd;
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 70px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.room-id-label {
+  height: 56px;
+  display: grid;
+  place-items: center;
+  background: #42a4e8;
+  color: #e7f4ff;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+.room-qr-btn {
+  width: 70px;
+  height: 56px;
+  border: none;
+  background: #2f50bd;
+  color: #d8ebff;
+  font-size: 12px;
+  line-height: 1.15;
+  cursor: pointer;
+}
+
+.room-menu-btn {
+  width: 42px;
+  height: 38px;
+  border: 1px solid #bcbcbc;
+  background: #f5f5f5;
+  color: #8a8a8a;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.room-content {
+  display: grid;
+  grid-template-columns: 230px 1fr;
+  gap: 24px;
+}
+
+.room-side-panel {
+  background: #2f50bd;
+  min-height: 920px;
+  border-radius: 0 0 0 8px;
+}
+
+.room-main-panel {
+  padding: 0 18px 24px 0;
+}
+
+.room-now-playing {
+  background: #3e58dd;
+  border-radius: 4px;
+  padding: 22px 20px 14px;
+  margin-bottom: 14px;
+}
+
+.room-now-art {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  margin: 0 auto 18px;
+  border: 4px solid #cfd8de;
+  background:
+    radial-gradient(circle at 35% 35%, #8ec5e5 0 16%, transparent 17%),
+    radial-gradient(circle at 70% 60%, #262626 0 16%, transparent 17%),
+    linear-gradient(145deg, #215b7d 0%, #8ac4e5 45%, #476680 100%);
+}
+
+.room-now-bars {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.room-now-bars span {
+  display: block;
+  height: 14px;
+  background: #cbd1d6;
+}
+
+.room-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-song-row {
+  background: #3e58dd;
+  min-height: 106px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr 190px;
+  gap: 8px;
+  padding: 8px;
+}
+
+.room-album-cover {
+  background: #c7c7c7;
+  display: grid;
+  place-items: center;
+  color: #4b4b4b;
+  font-size: 19px;
+}
+
+.room-song-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.room-song-meta span {
+  background: #d2d9d8;
+  color: #252525;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.room-votes {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+}
+
+.room-upvote-btn,
+.room-downvote-btn {
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.room-upvote-btn {
+  background: #19be35;
+}
+
+.room-downvote-btn {
+  background: #ba1818;
+}
+
+.room-add-btn {
+  display: block;
+  margin: 24px auto 0;
+  width: 180px;
+  height: 46px;
+  border: none;
+  background: #d3d3d3;
+  color: #6b6b6b;
+  font-size: 38px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (max-width: 980px) {
+  .room-content {
+    grid-template-columns: 1fr;
+  }
+
+  .room-side-panel {
+    min-height: 60px;
+  }
+
+  .room-main-panel {
+    padding-right: 0;
+  }
+
+  .room-song-row {
+    grid-template-columns: 1fr;
+  }
+
+  .room-album-cover {
+    min-height: 92px;
+  }
+
+  .room-votes {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+  }
+}
