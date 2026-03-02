@@ -1,19 +1,21 @@
 {
-  "name": "backend",
+  "name": "express-backend",
+  "_comment": "The above feild Name was changes from packges to exp...end",
   "version": "1.0.0",
   "description": "",
-  "license": "ISC",
-  "author": "",
-  "type": "module",
-  "main": "index.js",
+  "main": "backend.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "npx nodemon backend.js",
     "start": "node backend.js"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
   "dependencies": {
-    "cors": "^2.8.5",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
-    "mongoose": "^9.1.6"
+    "mongoose": "^9.2.2"
   }
 }
