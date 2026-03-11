@@ -2,15 +2,6 @@ import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
   {
-    // i think its best to just use mongo 
-    /*
-    userID: {
-      type: Number,
-      required: true,
-      unique: true,
-      index: true,
-    },
-    */
     userName: {
       type: String,
       required: true,
@@ -19,6 +10,11 @@ const UserSchema = new mongoose.Schema(
       maxlength: 32,
       unique: true,
       index: true,
+    },
+    // 0 = logged out, 1 = logged in, 2 = timed out
+    status: {
+      type: Number,
+      default: 0,
     },
     favorites: {
       type: [Number], // SongIDs

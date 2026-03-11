@@ -40,7 +40,13 @@ function removeOneCharacter(index, id) {
     useEffect(() => {
         fetchUsers()
             .then((res) => res.json())
+
+            // I would use this
+            //.then((json) => setCharacters(json))
+
+            // below may not work
             .then((json) => setCharacters(json["users_list"]))
+
             .catch((error) => { console.log(error); });
     }, [] );
 
