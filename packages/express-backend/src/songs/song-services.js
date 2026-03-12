@@ -4,11 +4,13 @@ import song from "./song.js";
 
 mongoose.set("debug", true);
 
+//only need this in user services
+/*
 mongoose
   // change to atlas DB link later
   .connect("mongodb://localhost:27017/songs")
   .catch((error) => console.log(error));
-
+*/
 
 function getSongs(songLink) {
   if (!songLink) return song.find();
