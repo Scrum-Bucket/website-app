@@ -1,7 +1,9 @@
+//user.js
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
   {
+    // user id just use mongoDB _id 
     userName: {
       type: String,
       required: true,
