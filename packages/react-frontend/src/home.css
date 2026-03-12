@@ -40,6 +40,13 @@
   cursor: pointer;
 }
 
+.home-username {
+  margin: -12px 0 0;
+  color: #ffffff;
+  font-size: 28px;
+  font-family: "Blackbeard", serif;
+}
+
 .home-cards-row {
   display: flex;
   justify-content: space-between;

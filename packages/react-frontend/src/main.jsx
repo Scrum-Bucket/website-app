@@ -7,6 +7,7 @@ import Home from "./Home";
 import Join from "./Join";
 import Code from "./Code";
 import Room from "./Room";
+import Playlist from "./Playlist";
 
 import "./login.css";
 
@@ -15,19 +16,28 @@ const root = ReactDOMClient.createRoot(container);
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState("");
 
   if (!isLoggedIn) {
-    return <MyApp onLogin={() => setIsLoggedIn(true)} />;
+    return (
+      <MyApp
+        onLogin={(loggedInUsername) => {
+          setUsername(loggedInUsername);
+          setIsLoggedIn(true);
+        }}
+      />
+    );
   }
 
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
-        <Route path="/home" element={<Home />} />
+        <Route path="/home" element={<Home username={username} />} />
         <Route path="/home/join" element={<Join />} />
         <Route path="/home/code" element={<Code />} />
         <Route path="/home/room" element={<Room />} />
+        <Route path="/home/playlist" element={<Playlist />} />
       </Routes>
     </BrowserRouter>
   );

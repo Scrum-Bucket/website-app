@@ -85,3 +85,19 @@
   background: #000000;
 }
 
+.auth-error {
+  margin: 8px auto 0;
+  width: 180px;
+  text-align: center;
+  color: #a11f1f;
+  font-size: 12px;
+}
+
+.demo-accounts {
+  margin: 8px auto 0;
+  width: 220px;
+  text-align: center;
+  color: #1d1d1d;
+  font-size: 12px;
+}
+

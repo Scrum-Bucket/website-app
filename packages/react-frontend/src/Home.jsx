@@ -6,7 +6,7 @@ import wifiImage from "./assets/wifi.png";
 import roomImage from "./assets/room.png";
 import musicNoteImage from "./assets/musicnote.png";
 
-function Home() {
+function Home({ username }) {
   const navigate = useNavigate();
 
   return (
@@ -18,6 +18,8 @@ function Home() {
             &#9776;
           </button>
         </div>
+
+        <p className="home-username">Welcome, {username}</p>
 
         <div className="home-cards-row">
           <div className="home-card">
@@ -34,7 +36,9 @@ function Home() {
 
           <div className="home-card">
             <img src={musicNoteImage} alt="music note" />
-            <button type="button">Playlist</button>
+            <button type="button" onClick={() => navigate("/home/playlist")}>
+              Playlist
+            </button>
           </div>
         </div>
       </div>
