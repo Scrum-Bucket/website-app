@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import userModel from "./user.js"; 
+import userModel from "./user.js";
 
 mongoose.set("debug", true);
 
@@ -10,9 +10,6 @@ mongoose
 // REMOVE this block from services (it belongs in backend.js)
 // app.get("/users", ...)
 
-function getUsers() {
-  return userModel.find({});
-  
 function getUsers(name, job) {
   let promise;
   if (name === undefined && job === undefined) {
