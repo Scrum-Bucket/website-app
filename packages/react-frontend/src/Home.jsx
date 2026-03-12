@@ -1,16 +1,19 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./home.css";
+import logoImage from "./assets/logo.png";
+import wifiImage from "./assets/wifi.png";
+import roomImage from "./assets/room.png";
+import musicNoteImage from "./assets/musicnote.png";
 
-function Home({ onJoinRoom }) {
+function Home() {
+  const navigate = useNavigate();
+
   return (
     <div className="home-page">
       <div className="home-window">
         <div className="home-top-row">
-          <img
-            className="home-logo"
-            src="https://via.placeholder.com/90"
-            alt="logo"
-          />
+          <img className="home-logo" src={logoImage} alt="logo" />
           <button className="menu-btn" aria-label="menu">
             &#9776;
           </button>
@@ -18,17 +21,19 @@ function Home({ onJoinRoom }) {
 
         <div className="home-cards-row">
           <div className="home-card">
-            <img src="https://via.placeholder.com/120" alt="Host" />
+            <img src={wifiImage} alt="wifi" />
             <button type="button">Host</button>
           </div>
 
           <div className="home-card">
-            <img src="https://via.placeholder.com/120" alt="Join Room" />
-            <button type="button" onClick={onJoinRoom}>Join Room</button>
+            <img src={roomImage} alt="room" />
+            <button type="button" onClick={() => navigate("/home/join")}>
+              Join Room
+            </button>
           </div>
 
           <div className="home-card">
-            <img src="https://via.placeholder.com/120" alt="Playlist" />
+            <img src={musicNoteImage} alt="music note" />
             <button type="button">Playlist</button>
           </div>
         </div>

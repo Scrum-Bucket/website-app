@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./room.css";
 
 const queueSongs = [
@@ -8,7 +9,9 @@ const queueSongs = [
   { id: 4, name: "Song Name", artist: "Artist Name", album: "Album Name" },
 ];
 
-function Room({ onBackHome }) {
+function Room() {
+  const navigate = useNavigate();
+
   return (
     <div className="room-page">
       <p className="room-title">Room</p>
@@ -28,7 +31,12 @@ function Room({ onBackHome }) {
             </button>
           </div>
 
-          <button className="room-menu-btn" type="button" aria-label="back home" onClick={onBackHome}>
+          <button
+            className="room-menu-btn"
+            type="button"
+            aria-label="back home"
+            onClick={() => navigate("/home")}
+          >
             |||
           </button>
         </header>

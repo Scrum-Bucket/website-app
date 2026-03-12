@@ -1,7 +1,10 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import "./code.css";
 
-function Code({ onBackHome, onJoinCode, onBrowsePublic }) {
+function Code() {
+  const navigate = useNavigate();
+
   return (
     <div className="code-page">
       <p className="code-title">Join by Code or Public</p>
@@ -13,18 +16,30 @@ function Code({ onBackHome, onJoinCode, onBrowsePublic }) {
 
         <section className="code-join-box">
           <span className="code-id">A1B2C3</span>
-          <button className="code-join-btn" type="button" onClick={onJoinCode}>
+          <button
+            className="code-join-btn"
+            type="button"
+            onClick={() => navigate("/home/room")}
+          >
             Join by
             <br />
             code
           </button>
         </section>
 
-        <button className="code-browse-btn" type="button" onClick={onBrowsePublic}>
+        <button
+          className="code-browse-btn"
+          type="button"
+          onClick={() => navigate("/home/join")}
+        >
           Browse public rooms
         </button>
 
-        <button className="code-browse-btn" type="button" onClick={onBackHome}>
+        <button
+          className="code-browse-btn"
+          type="button"
+          onClick={() => navigate("/home")}
+        >
           Back to Home
         </button>
       </div>
