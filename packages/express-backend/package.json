@@ -15,6 +15,7 @@
   "type": "module",
   "dependencies": {
     "cors": "^2.8.6",
+    "ee-first": "^1.1.1",
     "dunder-proto": "^1.0.1",
     "express": "^5.2.1",
     "mongoose": "^9.2.2"
