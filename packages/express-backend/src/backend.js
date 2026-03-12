@@ -1,7 +1,8 @@
 //backend.js
 import express from "express";
 import cors from "cors"; //frontend to backend
-import userServices from "./user-services.js";
+import userServices from "./user/user-services.js";
+import songServices from "./song/song-services.js";
 
 const app = express();
 const port = 8000;
@@ -78,4 +79,49 @@ app.get("/", (req, res) => {
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
+});
+
+
+//song functions below!
+
+// get all songs or filter by songLink
+app.get("/songs", (req, res) => {
+  const { songLink } = req.query;
+  songServices.getSongs(songLink)
+    .then((songs) => res.json(songs))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// search by keyword in details must be before /songs/:id
+app.get("/songs/search", (req, res) => {
+  const { keyword } = req.query;
+  songServices.searchSong(keyword)
+    .then((songs) => res.json(songs))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.get("/songs/:id", (req, res) => {
+  songServices.findSongById(req.params.id)
+    .then((song) => {
+      if (!song) return res.status(404).send("Song not found.");
+      res.json(song);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// addSong send { songLink, details } in body
+app.post("/songs", (req, res) => {
+  const { songLink, details } = req.body;
+  songServices.addSong(songLink, details)
+    .then((created) => res.status(201).json(created))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.delete("/songs/:id", (req, res) => {
+  songServices.deleteSong(req.params.id)
+    .then((deleted) => {
+      if (!deleted) return res.status(404).send("Song not found.");
+      res.status(204).send();
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
 });
