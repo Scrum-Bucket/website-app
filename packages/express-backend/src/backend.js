@@ -2,7 +2,7 @@
 import express from "express";
 import cors from "cors"; //frontend to backend
 import userServices from "./user/user-services.js";
-import songServices from "./song/song-services.js";
+import songServices from "./songs/song-services.js";
 
 const app = express();
 const port = 8000;
