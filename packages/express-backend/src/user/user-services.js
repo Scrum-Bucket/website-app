@@ -1,6 +1,6 @@
 //user-services.js
 import mongoose from "mongoose";
-import user from "./user.js";
+import userModel from "./user.js";
 
 mongoose.set("debug", true);
 
@@ -11,23 +11,23 @@ mongoose
 
   //allows get all
 function getUsers(userName) {
-  if (!userName) return user.find(); //if no users return all
-  return user.find({ userName }); 
+  if (!userName) return userModel.find(); //if no users return all
+  return userModel.find({ userName }); 
 }
 
 function findUserById(id) {
-  return user.findById(id);
+  return userModel.findById(id);
 }
 
 // defaults defined in schema
 function createUser(userName) {
-  const newUser = new user({ userName });
+  const newUser = new userModel({ userName });
   return newUser.save();
 }
 
 // nukes it
 function deleteUser(id) {
-  return user.findByIdAndDelete(id);
+  return userModel.findByIdAndDelete(id);
 }
 
 //if not async youd check status b4 mongoDB fetches it
