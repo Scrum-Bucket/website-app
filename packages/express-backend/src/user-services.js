@@ -1,4 +1,19 @@
 //user-services.js
+
+//Find the database file in the config folder and load the link
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({
+  path: path.resolve(__dirname, '../../../config/database.env'),
+});
+//Specific variable needed
+const database = process.env.MONGODB_URI;
+
 import mongoose from "mongoose";
 import user from "./user.js";
 
@@ -6,7 +21,7 @@ mongoose.set("debug", true);
 
 mongoose
   //changes this to atlas DB link later
-  .connect("mongodb://localhost:27017/users")
+  .connect(database)
   .catch((error) => console.log(error));
 
   //allows get all
