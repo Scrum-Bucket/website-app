@@ -4,12 +4,17 @@ const userModel = require("./user.js");
 
 mongoose.set("debug", true);
 
-mongoose
-  //changes this to atlas DB link later
-  .connect("mongodb://localhost:27017/users")
-  .catch((error) => console.log(error));
+let conn;
+function setDataBaseConn(c){
+  conn = c;
+}
 
-  //allows get all
+// mongoose
+//   //changes this to atlas DB link later
+//   .connect("mongodb://localhost:27017/users")
+//   .catch((error) => console.log(error));
+
+//allows get all
 function getUsers(userName) {
   if (!userName) return userModel.find(); //if no users return all
   return userModel.find({ userName }); 

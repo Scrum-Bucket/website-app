@@ -10,6 +10,10 @@ const port = 8000;
 app.use(cors());
 app.use(express.json());
 
+function setDatabaseConn(conn) {
+  userServices.setDatabaseConn(conn);
+}
+
 app.get("/users/:id", (req, res) => {
   userServices.findUserById(req.params.id)
     .then((user) => {
@@ -113,4 +117,4 @@ app.delete("/songs/:id", (req, res) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 });
 
-module.exports = app;
+module.exports = {app, setDatabaseConn};
