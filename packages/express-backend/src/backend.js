@@ -70,7 +70,7 @@ app.patch("/users/:id/prefs", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("Backend running.");
+  res.status(200).send("Backend running.");
 });
 
 //song functions below!
