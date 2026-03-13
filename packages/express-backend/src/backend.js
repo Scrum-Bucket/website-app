@@ -1,22 +1,14 @@
 //backend.js
-import express from "express";
-import cors from "cors"; //frontend to backend
-import userServices from "./user/user-services.js";
-import songServices from "./songs/song-services.js";
+const express = require("express");
+const cors = require("cors");//frontend to backend
+const userServices = require("./user/user-services.js");
+const songServices = require("./songs/song-services.js");
 
 const app = express();
 const port = 8000;
 
 app.use(cors());
 app.use(express.json());
-
-// get all users or filter by userName
-app.get("/users", (req, res) => {
-  const { userName } = req.query;
-  userServices.getUsers(userName)
-    .then((users) => res.json(users))
-    .catch((err) => res.status(500).json({ error: err.message }));
-});
 
 app.get("/users/:id", (req, res) => {
   userServices.findUserById(req.params.id)
@@ -77,11 +69,6 @@ app.get("/", (req, res) => {
   res.send("Backend running.");
 });
 
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
-
-
 //song functions below!
 
 // get all songs or filter by songLink
@@ -125,3 +112,5 @@ app.delete("/songs/:id", (req, res) => {
     })
     .catch((err) => res.status(500).json({ error: err.message }));
 });
+
+module.exports = app;

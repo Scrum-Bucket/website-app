@@ -1,6 +1,6 @@
 //user-services.js
-import mongoose from "mongoose";
-import userModel from "./user.js";
+const mongoose = require("mongoose");
+const userModel = require("./user.js");
 
 mongoose.set("debug", true);
 
@@ -66,7 +66,7 @@ async function changePrefs(id, { favorites, crab }) {
   return user.findByIdAndUpdate(id, update, { new: true });
 }
 
-export default {
+module.exports = {
   getUsers,
   findUserById,
   createUser,
@@ -74,5 +74,5 @@ export default {
   loginUser,
   logoutUser,
   timeoutUser,
-  changePrefs,
+  changePrefs,  
 };

@@ -1,6 +1,6 @@
 //song-services.js
-import mongoose from "mongoose";
-import song from "./song.js";
+const mongoose = require("mongoose");
+const song = require("./song.js");
 
 mongoose.set("debug", true);
 
@@ -36,7 +36,7 @@ function searchSong(keyword) {
   return song.find({ details: { $elemMatch: { $regex: keyword, $options: "i" } } });
 }
 
-export default {
+module.exports = {
   getSongs,
   findSongById,
   addSong,
