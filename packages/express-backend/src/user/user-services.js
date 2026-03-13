@@ -5,7 +5,7 @@ const userModel = require("./user.js");
 mongoose.set("debug", true);
 
 let conn;
-function setDataBaseConn(c){
+function setDatabaseConn(c){
   conn = c;
 }
 
@@ -80,4 +80,5 @@ module.exports = {
   logoutUser,
   timeoutUser,
   changePrefs,  
+  setDatabaseConn,
 };
