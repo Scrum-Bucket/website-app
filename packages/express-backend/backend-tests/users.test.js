@@ -45,6 +45,26 @@ test("get all users", async () => {
   expect(userModel.find).toHaveBeenCalledWith();
 });
 
+test("get songs", async () => {
+    const dummySongs = [
+        {
+            songLink: "1234",
+            details: ["John Doe"],
+        },
+    ];
+    songModel = songsSchema;
+    songModel.find = jest.fn().mockResolvedValue(dummySongs);
+
+    const foundSongs = await songsServices.getSongs("1234");
+    expect(foundSongs).toBeDefined();
+    expect(foundSongs).toHaveLength(1);
+    expect(foundSongs[0].songLink).toBe(dummySongs[0].songLink);
+    expect(foundSongs[0].details).toStrictEqual(dummySongs[0].details);
+
+    expect(songModel.find.mock.calls.length).toBe(1);
+    expect(songModel.find).toHaveBeenCalledWith({ songLink: "1234" });
+});
+
 test("get users by name", async() => {
     const result = [
         {
@@ -165,7 +185,7 @@ test("login test", async () => {
 
     expect(updatedUser).toBeDefined();
     expect(updatedUser.status).toBe(1);    
-})
+});
 
 test("login fail - user timed out", async () => {
     const dummyUser = {
@@ -193,9 +213,149 @@ test("login fail - user timed out", async () => {
 })
 
 test("login fail - user not found", async () => {
+    const dummyUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 2,
+        favorites: [],
+        crab: [],
+    };
+    
     userModel.findById = jest.fn().mockResolvedValue(null);
 
-    const foundUser = await userServices.findUserById("1234");
-
-    await expect(userServices.loginUser(dummyUser._id)).rejects.toThrow("User is timed out");
+    await expect(userServices.loginUser(dummyUser._id)).rejects.toThrow("User not found");
 })
+
+test("logout test", async () => {
+    const dummyUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 1,
+        favorites: [],
+        crab: [],
+    };
+    userModel.findById = jest.fn().mockResolvedValue(dummyUser);
+
+    const foundUser = await userServices.findUserById("1234");
+    expect(foundUser.status).toBe(dummyUser.status);
+
+    const expectedUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 0,
+        favorites: [],
+        crab: [],
+    };
+    userModel.findByIdAndUpdate = jest.fn().mockResolvedValue(expectedUser);
+
+    const updatedUser = await userServices.logoutUser(dummyUser._id);
+
+    expect(updatedUser).toBeDefined();
+    expect(updatedUser.status).toBe(0);    
+})
+
+test("logout fail - user not found", async () => {
+    const dummyUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 1,
+        favorites: [],
+        crab: [],
+    };
+    
+    userModel.findById = jest.fn().mockResolvedValue(null);
+
+    await expect(userServices.logoutUser(dummyUser._id)).rejects.toThrow("User not found");
+})
+
+test("timeout test", async () => {
+    const dummyUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 1,
+        favorites: [],
+        crab: [],
+    };
+    userModel.findById = jest.fn().mockResolvedValue(dummyUser);
+
+    const foundUser = await userServices.findUserById("1234");
+    expect(foundUser.status).toBe(dummyUser.status);
+
+    const expectedUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 2,
+        favorites: [],
+        crab: [],
+    };
+    userModel.findByIdAndUpdate = jest.fn().mockResolvedValue(expectedUser);
+
+    const updatedUser = await userServices.timeoutUser(dummyUser._id);
+
+    expect(updatedUser).toBeDefined();
+    expect(updatedUser.status).toBe(2);    
+})
+
+test("timeout fail - user not found", async () => {
+    const dummyUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 1,
+        favorites: [],
+        crab: [],
+    };
+    
+    userModel.findById = jest.fn().mockResolvedValue(null);
+
+    await expect(userServices.timeoutUser(dummyUser._id)).rejects.toThrow("User not found");
+})
+
+test("change preferences test", async () => {
+    const dummyUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 1,
+        favorites: [],
+        crab: [],
+    };
+    userModel.findById = jest.fn().mockResolvedValue(dummyUser);
+
+    const foundUser = await userServices.findUserById("1234");
+    expect(foundUser.status).toBe(dummyUser.status);
+
+    const expectedUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 1,
+        favorites: ["Viva La Vida"],
+        crab: ["crab 1"],
+    };
+    userModel.findByIdAndUpdate = jest.fn().mockResolvedValue(expectedUser);
+
+    const result = await userServices.changePrefs(dummyUser._id, {
+        favorites: ["Viva La Vida"],
+        crab: ["crab 1"],
+    });
+
+    expect(result).toBeDefined();
+  expect(result.favorites).toStrictEqual(["Viva La Vida"]);
+  expect(result.crab).toStrictEqual(["crab 1"]);   
+})
+
+test("change preferences fail - user not found", async () => {
+    const dummyUser = {
+        _id: "1234",
+        userName: "John Doe",
+        status: 1,
+        favorites: [],
+        crab: [],
+    };
+    
+    userModel.findById = jest.fn().mockResolvedValue(null);
+
+    await expect(userServices.changePrefs(dummyUser._id, {})).rejects.toThrow("User not found");
+})
+
+test("set database conenction", async () => {
+    await userServices.setDatabaseConn(0);
+});
