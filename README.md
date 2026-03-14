@@ -14,6 +14,28 @@ Run ```npm run dev``` in a terminal in the following directories:
 1. packages/express-backend
 2. packages/react-frontend
 
+## Code Coverage
+```
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   99.24 |     86.2 |     100 |     100 |                   
+ src               |     100 |      100 |     100 |     100 |                   
+  backend.js       |     100 |      100 |     100 |     100 |                   
+ src/songs         |   94.11 |       60 |     100 |     100 |                   
+  song-services.js |   92.85 |       60 |     100 |     100 | 24-35
+  song.js          |     100 |      100 |     100 |     100 | 
+ src/user          |     100 |     87.5 |     100 |     100 | 
+  user-services.js |     100 |     87.5 |     100 |     100 | 68-69
+  user.js          |     100 |      100 |     100 |     100 | 
+-------------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 2 passed, 2 total
+Tests:       50 passed, 50 total
+Snapshots:   0 total
+Time:        1.819 s
+```
+
 ## Documentation
 
 - [Product Specification](https://docs.google.com/document/d/1mHLF9VbAohl15Izfi-5ZskFS4eX-vD1d_WkiqiE46fQ/edit?tab=t.0)
