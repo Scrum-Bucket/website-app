@@ -17,4 +17,6 @@ Run ```npm run dev``` in a terminal in the following directories:
 ## Documentation
 
 - [Product Specification](https://docs.google.com/document/d/1mHLF9VbAohl15Izfi-5ZskFS4eX-vD1d_WkiqiE46fQ/edit?tab=t.0)
-- [Project Wiki](https://github.com/Scrum-Bucket/website-app/wiki) 
+- [Project Wiki](https://github.com/Scrum-Bucket/website-app/wiki)
+- ## Demo
+- [Watch the Demo Video](https://drive.google.com/file/d/1uAM1H02-eCvunkPq36HE16gq0xVT5WIq/view?usp=sharing)
