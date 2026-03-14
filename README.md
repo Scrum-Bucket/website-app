@@ -1,5 +1,7 @@
 # website-app
 
+To test api endpoints, install supertest: ```npm install supertest```
+
 Style: JS Style Guide
 
 To initialize the packages:

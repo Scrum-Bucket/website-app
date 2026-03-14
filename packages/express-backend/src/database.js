@@ -7,7 +7,7 @@ require("dotenv").config({
 let conn; //variable for connection
 
 async function connect(){
-    conn = await mongoose.createConnection(process.env.MONGODB_URI, {});
+    conn = await mongoose.createConnection("mongodb://localhost:27017/users", {});
     console.log("Connected to db");
     return conn;
 }
