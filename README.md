@@ -12,5 +12,7 @@ Run ```npm run dev``` in a terminal in the following directories:
 1. packages/express-backend
 2. packages/react-frontend
 
-Product Specifications:
-https://docs.google.com/document/d/1mHLF9VbAohl15Izfi-5ZskFS4eX-vD1d_WkiqiE46fQ/edit?tab=t.0
+## Documentation
+
+- [Product Specification](https://docs.google.com/document/d/1mHLF9VbAohl15Izfi-5ZskFS4eX-vD1d_WkiqiE46fQ/edit?tab=t.0)
+- [Project Wiki](https://github.com/Scrum-Bucket/website-app/wiki) 
