@@ -1,20 +1,20 @@
 //user-services.js
 
 //Find the database file in the config folder and load the link
-import dotenv from 'dotenv';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({
-  path: path.resolve(__dirname, '../../../config/database.env'),
+  path: path.resolve(__dirname, "../../../config/database.env"),
 });
 //Specific variable needed
 //const database = process.env.MONGODB_URI;
-//^for now we use local database until cloud DB works 
-const database = 'mongodb://localhost:27017/users';
+//^for now we use local database until cloud DB works
+const database = "mongodb://localhost:27017/users";
 
 import mongoose from "mongoose";
 import user from "./user.js";
@@ -26,10 +26,10 @@ mongoose
   .connect(database)
   .catch((error) => console.log(error));
 
-  //allows get all
+//allows get all
 function getUsers(userName) {
   if (!userName) return user.find(); //if no users return all
-  return user.find({ userName }); 
+  return user.find({ userName });
 }
 
 function findUserById(id) {

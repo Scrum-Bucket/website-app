@@ -46,7 +46,10 @@ function Room() {
 
           <main className="room-main-panel">
             <section className="room-now-playing">
-              <div className="room-now-art" aria-label="Now playing album art" />
+              <div
+                className="room-now-art"
+                aria-label="Now playing album art"
+              />
               <div className="room-now-bars">
                 <span />
                 <span />
@@ -77,7 +80,11 @@ function Room() {
               ))}
             </section>
 
-            <button className="room-add-btn" type="button" aria-label="add song">
+            <button
+              className="room-add-btn"
+              type="button"
+              aria-label="add song"
+            >
               +
             </button>
           </main>

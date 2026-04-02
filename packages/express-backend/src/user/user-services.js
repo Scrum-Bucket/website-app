@@ -5,7 +5,7 @@ const userModel = require("./user.js");
 mongoose.set("debug", true);
 
 let conn;
-function setDatabaseConn(c){
+function setDatabaseConn(c) {
   conn = c;
 }
 
@@ -17,7 +17,7 @@ function setDatabaseConn(c){
 //allows get all
 function getUsers(userName) {
   if (!userName) return userModel.find(); //if no users return all
-  return userModel.find({ userName }); 
+  return userModel.find({ userName });
 }
 
 function findUserById(id) {
@@ -79,6 +79,6 @@ module.exports = {
   loginUser,
   logoutUser,
   timeoutUser,
-  changePrefs,  
+  changePrefs,
   setDatabaseConn,
 };

@@ -9,12 +9,12 @@ beforeEach(() => {
   mockingoose.resetAll();
 });
 
-test("test app runs", async() => {
-    const result = await supertest(backend.app).get("/").expect(200);
-    expect(result.text).toBe("Backend running.");
+test("test app runs", async () => {
+  const result = await supertest(backend.app).get("/").expect(200);
+  expect(result.text).toBe("Backend running.");
 });
 
-test(' get /users ', async () => {
+test(" get /users ", async () => {
   const mockedUsers = [
     {
       _id: "1234",
@@ -35,12 +35,12 @@ test(' get /users ', async () => {
   expect(result.body[0].favorites).toStrictEqual([1, 2]);
 });
 
-test("get /users fail - database error", async () =>{
+test("get /users fail - database error", async () => {
   mockingoose(userModel).toReturn(new Error("Database failed"), "find");
 
   const result = await supertest(backend.app).get("/users").expect(500);
   expect(result.body.error).toBe("Database failed");
-})
+});
 
 test(" get /users by id fail - database error", async () => {
   mockingoose(userModel).toReturn(new Error("Database failed"), "findOne");
@@ -52,7 +52,7 @@ test(" get /users by id fail - database error", async () => {
   expect(result.body.error).toBe("Database failed");
 });
 
-test(' get /users by id', async () => {
+test(" get /users by id", async () => {
   const mockedUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "Joe",
@@ -71,7 +71,7 @@ test(' get /users by id', async () => {
   expect(result.body.favorites).toStrictEqual([1, 2]);
 });
 
-test(' get /users by id fail - user not found', async () => {
+test(" get /users by id fail - user not found", async () => {
   const mockedUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "Joe",
@@ -86,14 +86,14 @@ test(' get /users by id fail - user not found', async () => {
   expect(result.status).toBe(404);
 });
 
-test(' get /users by id fail - database error', async () => {
+test(" get /users by id fail - database error", async () => {
   mockingoose(userModel).toReturn(new Error("Database failed"), "findOne");
 
   const result = await supertest(backend.app).get("/users/1234").expect(500);
   expect(result.body.error).toBe("Database failed");
 });
 
-test('create user', async () => {
+test("create user", async () => {
   const mockedUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "Joe",
@@ -127,7 +127,7 @@ test("create user fail - bad request", async () => {
   expect(result.body.error).toBe("Validation failed");
 });
 
-test('delete user', async () => {
+test("delete user", async () => {
   const dummyUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "Joe",
@@ -139,7 +139,8 @@ test('delete user', async () => {
   userModel.findByIdAndDelete = jest.fn().mockResolvedValue(dummyUser);
 
   const result = await supertest(backend.app)
-    .delete("/users/507f1f77bcf86cd799439011").expect(204);
+    .delete("/users/507f1f77bcf86cd799439011")
+    .expect(204);
 });
 
 test("delete user fail - user not found", async () => {
@@ -153,13 +154,14 @@ test("delete user fail - user not found", async () => {
 });
 
 test("delete user fail - database error", async () => {
-  userModel.findByIdAndDelete = jest.fn().mockRejectedValue(new Error("Database failed"));
+  userModel.findByIdAndDelete = jest
+    .fn()
+    .mockRejectedValue(new Error("Database failed"));
 
   const result = await supertest(backend.app)
     .delete("/users/507f1f77bcf86cd799439011")
     .expect(500);
 });
-
 
 test("login test", async () => {
   const existingUser = {
@@ -464,7 +466,9 @@ test("delete song fail - not found", async () => {
 });
 
 test("delete song fail - database error", async () => {
-  songModel.findByIdAndDelete = jest.fn().mockRejectedValue(new Error("Database failed"));
+  songModel.findByIdAndDelete = jest
+    .fn()
+    .mockRejectedValue(new Error("Database failed"));
 
   const result = await supertest(backend.app)
     .delete("/songs/507f1f77bcf86cd799439021")
@@ -473,6 +477,6 @@ test("delete song fail - database error", async () => {
   expect(result.body.error).toBe("Database failed");
 });
 
-test("set database", async () =>{
+test("set database", async () => {
   backend.setDatabaseConn(0);
-})
+});

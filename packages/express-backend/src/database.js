@@ -6,14 +6,14 @@ require("dotenv").config({
 
 let conn; //variable for connection
 
-async function connect(){
-    conn = await mongoose.createConnection("mongodb://localhost:27017/users", {});
-    console.log("Connected to db");
-    return conn;
+async function connect() {
+  conn = await mongoose.createConnection("mongodb://localhost:27017/users", {});
+  console.log("Connected to db");
+  return conn;
 }
 
-async function disconnect(){
-    await conn.close();
+async function disconnect() {
+  await conn.close();
 }
 
-module.exports = {connect, disconnect};
+module.exports = { connect, disconnect };
