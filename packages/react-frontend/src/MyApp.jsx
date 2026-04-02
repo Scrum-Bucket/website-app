@@ -16,7 +16,7 @@ function MyApp({ onLogin }) {
 
     const matchingAccount = DUMMY_ACCOUNTS.find(
       (account) =>
-        account.userName === trimmedUsername && account.password === password
+        account.userName === trimmedUsername && account.password === password,
     );
 
     if (!matchingAccount) {

@@ -5,7 +5,6 @@
   src: url("./BlackBeard Regular.otf") format("opentype");
   font-weight: normal;
   font-style: normal;
-
 }
 
 html,
@@ -28,7 +27,7 @@ body,
   animation: floatY 6s ease-in-out infinite;
   padding: 24px;
   border-radius: 16px;
-  
+
   min-width: 420px;
   transform-origin: center;
   will-change: transform;
@@ -37,7 +36,8 @@ body,
 }
 
 @keyframes floatY {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-5px, -5px) rotate(-0.6deg) scale(1);
   }
 
@@ -108,4 +108,3 @@ body,
   color: #1d1d1d;
   font-size: 12px;
 }
-

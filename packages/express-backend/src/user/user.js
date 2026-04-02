@@ -1,9 +1,9 @@
 //user.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema(
   {
-    // user id just use mongoDB _id 
+    // user id just use mongoDB _id
     userName: {
       type: String,
       required: true,
@@ -30,7 +30,7 @@ const UserSchema = new mongoose.Schema(
   {
     collection: "users",
     timestamps: true,
-  }
+  },
 );
 
-export default mongoose.model("User", UserSchema);
+module.exports = mongoose.model("User", UserSchema);

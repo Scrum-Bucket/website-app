@@ -1,9 +1,8 @@
 // song.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const SongSchema = new mongoose.Schema(
   {
-
     songLink: {
       type: String,
       required: true,
@@ -18,7 +17,7 @@ const SongSchema = new mongoose.Schema(
   {
     collection: "songs",
     timestamps: true,
-  }
+  },
 );
 
-export default mongoose.model("Song", SongSchema);
+module.exports = mongoose.model("Song", SongSchema);
