@@ -33,7 +33,9 @@ function deleteSong(id) {
 // searchSong two search by a keyword in details array
 function searchSong(keyword) {
   if (!keyword) return song.find();
-  return song.find({ details: { $elemMatch: { $regex: keyword, $options: "i" } } });
+  return song.find({
+    details: { $elemMatch: { $regex: keyword, $options: "i" } },
+  });
 }
 
 module.exports = {
