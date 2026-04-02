@@ -1,22 +1,33 @@
-/* Home layout */
 .home-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f1f1;
   padding: 24px;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+}
+
+.bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
 }
 
 .home-window {
-  width: min(980px, 100%);
+  width: min(1000px, 100%);
+  min-height: 400px;
   background: #3fa2e8;
-  border: 3px solid #8d2cff;
-  border-radius: 10px;
   padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 28px;
+  position: relative;
+  z-index: 1;
 }
 
 .home-top-row {
@@ -59,7 +70,7 @@
   border-radius: 8px;
   padding: 22px;
   width: 240px;
-  min-height: 320px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
   align-items: center;

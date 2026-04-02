@@ -5,12 +5,14 @@ import logoImage from "./assets/logo.png";
 import wifiImage from "./assets/wifi.png";
 import roomImage from "./assets/room.png";
 import musicNoteImage from "./assets/musicnote.png";
+import Background from "../animationFiles/home-background.jsx";
 
 function Home({ username }) {
   const navigate = useNavigate();
 
   return (
     <div className="home-page">
+       <Background />
       <div className="home-window">
         <div className="home-top-row">
           <img className="home-logo" src={logoImage} alt="logo" />
