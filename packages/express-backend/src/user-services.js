@@ -12,9 +12,7 @@ dotenv.config({
   path: path.resolve(__dirname, '../../../config/database.env'),
 });
 //Specific variable needed
-//const database = process.env.MONGODB_URI;
-//^for now we use local database until cloud DB works 
-const database = 'mongodb://localhost:27017/users';
+const database = process.env.MONGODB_URI;
 
 import mongoose from "mongoose";
 import user from "./user.js";
