@@ -45,9 +45,7 @@ test("get /users fail - database error", async () => {
 test(" get /users by id fail - database error", async () => {
   mockingoose(userModel).toReturn(new Error("Database failed"), "findOne");
 
-  const result = await supertest(backend.app)
-    .get("/users/507f1f77bcf86cd799439011")
-    .expect(500);
+  const result = await supertest(backend.app).get("/users/507f1f77bcf86cd799439011").expect(500);
 
   expect(result.body.error).toBe("Database failed");
 });
@@ -72,14 +70,6 @@ test(" get /users by id", async () => {
 });
 
 test(" get /users by id fail - user not found", async () => {
-  const mockedUser = {
-    _id: "507f1f77bcf86cd799439011",
-    userName: "Joe",
-    status: 0,
-    favorites: [1, 2],
-    crab: [],
-  };
-
   mockingoose(userModel).toReturn(undefined);
 
   const result = await supertest(backend.app).get("/users/1234").expect(404);
@@ -104,10 +94,7 @@ test("create user", async () => {
 
   mockingoose(userModel).toReturn(mockedUser, "save");
 
-  const result = await supertest(backend.app)
-    .post("/users")
-    .send({ userName: "Joe" })
-    .expect(201);
+  const result = await supertest(backend.app).post("/users").send({ userName: "Joe" }).expect(201);
 
   expect(result.body._id).toBe("507f1f77bcf86cd799439011");
   expect(result.body.userName).toBe("Joe");
@@ -119,10 +106,7 @@ test("create user", async () => {
 test("create user fail - bad request", async () => {
   mockingoose(userModel).toReturn(new Error("Validation failed"), "save");
 
-  const result = await supertest(backend.app)
-    .post("/users")
-    .send({ userName: "Joe" })
-    .expect(400);
+  const result = await supertest(backend.app).post("/users").send({ userName: "Joe" }).expect(400);
 
   expect(result.body.error).toBe("Validation failed");
 });
@@ -138,29 +122,21 @@ test("delete user", async () => {
 
   userModel.findByIdAndDelete = jest.fn().mockResolvedValue(dummyUser);
 
-  const result = await supertest(backend.app)
-    .delete("/users/507f1f77bcf86cd799439011")
-    .expect(204);
+  await supertest(backend.app).delete("/users/507f1f77bcf86cd799439011").expect(204);
 });
 
 test("delete user fail - user not found", async () => {
   userModel.findByIdAndDelete = jest.fn().mockResolvedValue(null);
 
-  const result = await supertest(backend.app)
-    .delete("/users/507f1f77bcf86cd799439011")
-    .expect(404);
+  const result = await supertest(backend.app).delete("/users/507f1f77bcf86cd799439011").expect(404);
 
   expect(result.text).toBe("User not found.");
 });
 
 test("delete user fail - database error", async () => {
-  userModel.findByIdAndDelete = jest
-    .fn()
-    .mockRejectedValue(new Error("Database failed"));
+  userModel.findByIdAndDelete = jest.fn().mockRejectedValue(new Error("Database failed"));
 
-  const result = await supertest(backend.app)
-    .delete("/users/507f1f77bcf86cd799439011")
-    .expect(500);
+  await supertest(backend.app).delete("/users/507f1f77bcf86cd799439011").expect(500);
 });
 
 test("login test", async () => {
@@ -358,9 +334,7 @@ test("get /songs/search", async () => {
 
   mockingoose(songModel).toReturn(mockedSongs, "find");
 
-  const result = await supertest(backend.app)
-    .get("/songs/search?keyword=rap")
-    .expect(200);
+  const result = await supertest(backend.app).get("/songs/search?keyword=rap").expect(200);
 
   expect(result.body).toHaveLength(1);
   expect(result.body[0].details).toStrictEqual(["chill rap"]);
@@ -369,9 +343,7 @@ test("get /songs/search", async () => {
 test("get /songs/search fail - database error", async () => {
   mockingoose(songModel).toReturn(new Error("Database failed"), "find");
 
-  const result = await supertest(backend.app)
-    .get("/songs/search?keyword=rap")
-    .expect(500);
+  const result = await supertest(backend.app).get("/songs/search?keyword=rap").expect(500);
 
   expect(result.body.error).toBe("Database failed");
 });
@@ -385,9 +357,7 @@ test("get /songs by id", async () => {
 
   mockingoose(songModel).toReturn(mockedSong, "findOne");
 
-  const result = await supertest(backend.app)
-    .get("/songs/507f1f77bcf86cd799439021")
-    .expect(200);
+  const result = await supertest(backend.app).get("/songs/507f1f77bcf86cd799439021").expect(200);
 
   expect(result.body._id).toBe("507f1f77bcf86cd799439021");
   expect(result.body.songLink).toBe("https://youtube.com/watch?v=abc");
@@ -397,9 +367,7 @@ test("get /songs by id", async () => {
 test("get /songs by id fail - not found", async () => {
   mockingoose(songModel).toReturn(undefined, "findOne");
 
-  const result = await supertest(backend.app)
-    .get("/songs/507f1f77bcf86cd799439021")
-    .expect(404);
+  const result = await supertest(backend.app).get("/songs/507f1f77bcf86cd799439021").expect(404);
 
   expect(result.text).toBe("Song not found.");
 });
@@ -407,9 +375,7 @@ test("get /songs by id fail - not found", async () => {
 test("get /songs by id fail - database error", async () => {
   mockingoose(songModel).toReturn(new Error("Database failed"), "findOne");
 
-  const result = await supertest(backend.app)
-    .get("/songs/507f1f77bcf86cd799439021")
-    .expect(500);
+  const result = await supertest(backend.app).get("/songs/507f1f77bcf86cd799439021").expect(500);
 
   expect(result.body.error).toBe("Database failed");
 });
@@ -450,29 +416,21 @@ test("delete song", async () => {
     details: ["pop"],
   });
 
-  await supertest(backend.app)
-    .delete("/songs/507f1f77bcf86cd799439021")
-    .expect(204);
+  await supertest(backend.app).delete("/songs/507f1f77bcf86cd799439021").expect(204);
 });
 
 test("delete song fail - not found", async () => {
   songModel.findByIdAndDelete = jest.fn().mockResolvedValue(null);
 
-  const result = await supertest(backend.app)
-    .delete("/songs/507f1f77bcf86cd799439021")
-    .expect(404);
+  const result = await supertest(backend.app).delete("/songs/507f1f77bcf86cd799439021").expect(404);
 
   expect(result.text).toBe("Song not found.");
 });
 
 test("delete song fail - database error", async () => {
-  songModel.findByIdAndDelete = jest
-    .fn()
-    .mockRejectedValue(new Error("Database failed"));
+  songModel.findByIdAndDelete = jest.fn().mockRejectedValue(new Error("Database failed"));
 
-  const result = await supertest(backend.app)
-    .delete("/songs/507f1f77bcf86cd799439021")
-    .expect(500);
+  const result = await supertest(backend.app).delete("/songs/507f1f77bcf86cd799439021").expect(500);
 
   expect(result.body.error).toBe("Database failed");
 });

@@ -12,7 +12,7 @@ function Home({ username }) {
 
   return (
     <div className="home-page">
-       <Background />
+      <Background />
       <div className="home-window">
         <div className="home-top-row">
           <img className="home-logo" src={logoImage} alt="logo" />

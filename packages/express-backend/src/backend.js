@@ -5,7 +5,6 @@ const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
 
 const app = express();
-const port = 8000;
 
 app.use(cors());
 app.use(express.json());

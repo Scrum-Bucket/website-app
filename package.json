@@ -60,6 +60,7 @@
     "dunder-proto": "^1.0.1",
     "ee-first": "^1.1.1",
     "escape-string-regexp": "^4.0.0",
+    "ESLint": "npm:eslint@^9.39.4",
     "eslint-config-react": "^1.1.7",
     "eslint-plugin-airbnb": "^0.0.1-security",
     "eslint-scope": "^8.4.0",

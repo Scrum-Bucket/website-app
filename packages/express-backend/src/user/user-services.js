@@ -7,6 +7,7 @@ mongoose.set("debug", true);
 let conn;
 function setDatabaseConn(c) {
   conn = c;
+  console.log(conn.status);
 }
 
 // mongoose

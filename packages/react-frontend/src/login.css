@@ -22,7 +22,6 @@ body,
   background: #8ed6ff url("./assets/login background.png") center / cover no-repeat;
 }
 
-
 .floating {
   animation: floatY 6s ease-in-out infinite;
   padding: 24px;

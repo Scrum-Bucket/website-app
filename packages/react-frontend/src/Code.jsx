@@ -16,30 +16,18 @@ function Code() {
 
         <section className="code-join-box">
           <span className="code-id">A1B2C3</span>
-          <button
-            className="code-join-btn"
-            type="button"
-            onClick={() => navigate("/home/room")}
-          >
+          <button className="code-join-btn" type="button" onClick={() => navigate("/home/room")}>
             Join by
             <br />
             code
           </button>
         </section>
 
-        <button
-          className="code-browse-btn"
-          type="button"
-          onClick={() => navigate("/home/join")}
-        >
+        <button className="code-browse-btn" type="button" onClick={() => navigate("/home/join")}>
           Browse public rooms
         </button>
 
-        <button
-          className="code-browse-btn"
-          type="button"
-          onClick={() => navigate("/home")}
-        >
+        <button className="code-browse-btn" type="button" onClick={() => navigate("/home")}>
           Back to Home
         </button>
       </div>
