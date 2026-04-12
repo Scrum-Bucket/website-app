@@ -2,22 +2,17 @@
 const mongoose = require("mongoose");
 const userModel = require("./user.js");
 
-mongoose.set("debug", true);
-
-let conn;
-function setDatabaseConn(c) {
-  conn = c;
-}
-
-// mongoose
-//   //changes this to atlas DB link later
-//   .connect("mongodb://localhost:27017/users")
-//   .catch((error) => console.log(error));
-
 //allows get all
-function getUsers(userName) {
-  if (!userName) return userModel.find(); //if no users return all
-  return userModel.find({ userName });
+async function getUsers(userName) {
+  console.log("Getting users with userName:", userName);
+  if (!userName) {
+    console.log("No userName provided, returning all users");
+    const allUsers = await userModel.find();
+    console.log("Found users: ", allUsers);
+
+    return allUsers;
+  }
+  return await userModel.find({ userName });
 }
 
 function findUserById(id) {
@@ -80,5 +75,4 @@ module.exports = {
   logoutUser,
   timeoutUser,
   changePrefs,
-  setDatabaseConn,
 };

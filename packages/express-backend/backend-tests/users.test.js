@@ -367,7 +367,3 @@ test("change preferences fail - user not found", async () => {
     "User not found",
   );
 });
-
-test("set database conenction", async () => {
-  await userServices.setDatabaseConn(0);
-});

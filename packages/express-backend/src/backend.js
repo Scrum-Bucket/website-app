@@ -10,10 +10,6 @@ const port = 8000;
 app.use(cors());
 app.use(express.json());
 
-function setDatabaseConn(conn) {
-  userServices.setDatabaseConn(conn);
-}
-
 // get all users or filter by userName
 app.get("/users", async (req, res) => {
   const { userName } = req.query;
@@ -35,6 +31,7 @@ app.get("/users/:id", async (req, res) => {
 
 // createUser
 app.post("/users", async (req, res) => {
+  console.log("Received create user request with body:", req.body);
   const { userName } = req.body;
   await userServices
     .createUser(userName)
@@ -138,4 +135,4 @@ app.delete("/songs/:id", async (req, res) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 });
 
-module.exports = { app, setDatabaseConn };
+module.exports = { app };
