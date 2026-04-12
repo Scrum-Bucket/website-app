@@ -31,11 +31,7 @@ function Join() {
         <section className="join-search-wrap">
           <div className="join-search-bar">
             <input type="text" placeholder="Search for Room Name" />
-            <button
-              aria-label="join by code"
-              onClick={() => navigate("/home/code")}
-              type="button"
-            >
+            <button aria-label="join by code" onClick={() => navigate("/home/code")} type="button">
               =
             </button>
           </div>
@@ -43,11 +39,7 @@ function Join() {
 
         <section className="join-list">
           {songs.map((song) => (
-            <article
-              className="join-song-row"
-              key={song.id}
-              onClick={() => navigate("/home/room")}
-            >
+            <article className="join-song-row" key={song.id} onClick={() => navigate("/home/room")}>
               <div className="join-album-cover">Album Cover</div>
               <div className="join-song-meta">
                 <span>{song.name}</span>

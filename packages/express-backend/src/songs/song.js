@@ -17,7 +17,7 @@ const SongSchema = new mongoose.Schema(
   {
     collection: "songs",
     timestamps: true,
-  },
+  }
 );
 
 module.exports = mongoose.model("Song", SongSchema);

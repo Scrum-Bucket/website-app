@@ -1,15 +1,12 @@
-const backend = require("../src/backend.js");
 const userSchema = require("../src/user/user.js");
 const userServices = require("../src/user/user-services.js");
 const songsSchema = require("../src/songs/song.js");
 const songsServices = require("../src/songs/song-services.js");
-const mongoose = require("mongoose");
 const mockingoose = require("mockingoose").default;
 
-//initialize database models and mongo server
+//initialize database models
 let userModel;
 let songModel;
-let mongoServer;
 
 beforeAll(async () => {
   userModel = userSchema;
@@ -83,7 +80,7 @@ test("get users by name", async () => {
   expect(users.length).toBeGreaterThan(0);
   users.forEach(
     //check if returned collection is as expected
-    (user) => expect(user.userName).toBe(userName),
+    (user) => expect(user.userName).toBe(userName)
   );
 
   //Mock assertions
@@ -211,9 +208,7 @@ test("login fail - user timed out", async () => {
   };
   userModel.findById = jest.fn().mockResolvedValue(expectedUser);
 
-  await expect(userServices.loginUser(dummyUser._id)).rejects.toThrow(
-    "User is timed out",
-  );
+  await expect(userServices.loginUser(dummyUser._id)).rejects.toThrow("User is timed out");
 });
 
 test("login fail - user not found", async () => {
@@ -227,9 +222,7 @@ test("login fail - user not found", async () => {
 
   userModel.findById = jest.fn().mockResolvedValue(null);
 
-  await expect(userServices.loginUser(dummyUser._id)).rejects.toThrow(
-    "User not found",
-  );
+  await expect(userServices.loginUser(dummyUser._id)).rejects.toThrow("User not found");
 });
 
 test("logout test", async () => {
@@ -271,9 +264,7 @@ test("logout fail - user not found", async () => {
 
   userModel.findById = jest.fn().mockResolvedValue(null);
 
-  await expect(userServices.logoutUser(dummyUser._id)).rejects.toThrow(
-    "User not found",
-  );
+  await expect(userServices.logoutUser(dummyUser._id)).rejects.toThrow("User not found");
 });
 
 test("timeout test", async () => {
@@ -315,9 +306,7 @@ test("timeout fail - user not found", async () => {
 
   userModel.findById = jest.fn().mockResolvedValue(null);
 
-  await expect(userServices.timeoutUser(dummyUser._id)).rejects.toThrow(
-    "User not found",
-  );
+  await expect(userServices.timeoutUser(dummyUser._id)).rejects.toThrow("User not found");
 });
 
 test("change preferences test", async () => {
@@ -363,7 +352,5 @@ test("change preferences fail - user not found", async () => {
 
   userModel.findById = jest.fn().mockResolvedValue(null);
 
-  await expect(userServices.changePrefs(dummyUser._id, {})).rejects.toThrow(
-    "User not found",
-  );
+  await expect(userServices.changePrefs(dummyUser._id, {})).rejects.toThrow("User not found");
 });
