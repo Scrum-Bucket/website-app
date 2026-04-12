@@ -10,13 +10,13 @@ let conn; //variable for connection
 
 async function connect() {
   console.log("Connecting to db...");
-  console.log("MONGO_URI:", process.env.MONGO_URI);
+  console.log("MONGODB_URI:", process.env.MONGODB_URI);
 
-  if (!process.env.MONGO_URI) {
-    throw new Error("MONGO_URI not found in database.env");
+  if (!process.env.MONGODB_URI) {
+    throw new Error("MONGODB_URI not found in database.env");
   }
 
-  conn = await mongoose.connect(process.env.MONGO_URI);
+  conn = await mongoose.connect(process.env.MONGODB_URI);
 
   console.log("Connected to db");
   return conn;
