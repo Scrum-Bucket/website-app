@@ -1,0 +1,13 @@
+node_modules
+dist
+build
+coverage
+README.node_modules
+.editorconfig
+.gitignore
+dist-ser
+*.local
+*.log
+.idea
+.vscode
+.DB_Store

@@ -4,6 +4,7 @@ import ReactDOMClient from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import MyApp from "./app/MyApp";
 import Home from "./pages/Home/Home";
+import Host from "./pages/host/host";
 import Join from "./pages/Join/Join";
 import Code from "./pages/Code/Code";
 import Room from "./pages/Room/Room";
@@ -34,6 +35,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<Home username={username} />} />
+        <Route path="/home/host" element={<Host />} />
         <Route path="/home/join" element={<Join />} />
         <Route path="/home/code" element={<Code />} />
         <Route path="/home/room" element={<Room />} />

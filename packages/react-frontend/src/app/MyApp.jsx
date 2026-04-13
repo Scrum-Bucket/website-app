@@ -15,8 +15,7 @@ function MyApp({ onLogin }) {
     const trimmedUsername = username.trim();
 
     const matchingAccount = DUMMY_ACCOUNTS.find(
-      (account) =>
-        account.userName === trimmedUsername && account.password === password,
+      (account) => account.userName === trimmedUsername && account.password === password
     );
 
     if (!matchingAccount) {
@@ -49,9 +48,7 @@ function MyApp({ onLogin }) {
           Log In
         </button>
         {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
-        <p className="demo-accounts">
-          Demo accounts: nick/music123 or demo/password1
-        </p>
+        <p className="demo-accounts">Demo accounts: nick/music123 or demo/password1</p>
       </div>
     </div>
   );
