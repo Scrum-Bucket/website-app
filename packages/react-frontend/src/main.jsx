@@ -2,12 +2,12 @@
 import React, { useState } from "react";
 import ReactDOMClient from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import MyApp from "./MyApp";
-import Home from "./Home";
-import Join from "./Join";
-import Code from "./Code";
-import Room from "./Room";
-import Playlist from "./Playlist";
+import MyApp from "./app/MyApp";
+import Home from "./pages/Home/Home";
+import Join from "./pages/Join/Join";
+import Code from "./pages/Code/Code";
+import Room from "./pages/Room/Room";
+import Playlist from "./pages/Playlist/Playlist";
 
 import "./login.css";
 
