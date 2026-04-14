@@ -14,9 +14,20 @@ function MyApp({ onLogin }) {
   function handleLogin() {
     const trimmedUsername = username.trim();
 
+    //replace with login API call to backend
     const matchingAccount = DUMMY_ACCOUNTS.find(
       (account) => account.userName === trimmedUsername && account.password === password
     );
+
+    const promise = fetch(`http://localhost:8000/users`, {
+      method: "POST"
+    }).then(async (response) => {
+      if (!response.ok){
+        setErrorMessage(`Error: ${response.status}`)
+      }
+
+    }).catch((error) => console.log(error));
+
 
     if (!matchingAccount) {
       setErrorMessage("Invalid username or password.");

@@ -13,6 +13,15 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    passWord: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 8,
+      maxlength: 32,
+      unique: false,
+      index: true
+    },
     // 0 = logged out, 1 = logged in, 2 = timed out
     status: {
       type: Number,

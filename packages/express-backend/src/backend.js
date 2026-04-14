@@ -31,7 +31,8 @@ app.get("/users/:id", async (req, res) => {
 // createUser
 app.post("/users", async (req, res) => {
   console.log("Received create user request with body:", req.body);
-  const { userName } = req.body;
+  const userName  = req.body.username;
+  //const password = req.body.password;
   await userServices
     .createUser(userName)
     .then((created) => res.status(201).json(created))
