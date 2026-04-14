@@ -1,5 +1,4 @@
 //user-services.js
-const mongoose = require("mongoose");
 const userModel = require("./user.js");
 
 //allows get all
