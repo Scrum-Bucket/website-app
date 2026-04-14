@@ -32,9 +32,10 @@ app.get("/users/:id", async (req, res) => {
 app.post("/users", async (req, res) => {
   console.log("Received create user request with body:", req.body);
   const userName  = req.body.username;
-  //const password = req.body.password;
+  const passWord = req.body.password;
+  
   await userServices
-    .createUser(userName)
+    .createUser(userName, passWord)
     .then((created) => res.status(201).json(created))
     .catch((err) => res.status(400).json({ error: err.message }));
 });

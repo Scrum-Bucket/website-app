@@ -19,8 +19,8 @@ async function findUserById(id) {
 }
 
 // defaults defined in schema
-async function createUser(userName) {
-  const newUser = new userModel({ userName });
+async function createUser(userName, passWord) {
+  const newUser = new userModel({ userName, passWord });
   return await newUser.save();
 }
 
