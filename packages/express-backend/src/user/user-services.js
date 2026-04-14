@@ -14,19 +14,19 @@ async function getUsers(userName) {
   return await userModel.find({ userName });
 }
 
-function findUserById(id) {
-  return userModel.findById(id);
+async function findUserById(id) {
+  return await userModel.findById(id);
 }
 
 // defaults defined in schema
-function createUser(userName) {
+async function createUser(userName) {
   const newUser = new userModel({ userName });
-  return newUser.save();
+  return await newUser.save();
 }
 
 // nukes it
-function deleteUser(id) {
-  return userModel.findByIdAndDelete(id);
+async function deleteUser(id) {
+  return await userModel.findByIdAndDelete(id);
 }
 
 //if not async youd check status b4 mongoDB fetches it
@@ -35,7 +35,7 @@ async function loginUser(id) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   if (user.status === 2) throw new Error("User is timed out");
-  return userModel.findByIdAndUpdate(id, { status: 1 }, { new: true });
+  return await userModel.findByIdAndUpdate(id, { status: 1 }, { new: true });
 }
 
 // logoutUser: set status back to 0
@@ -43,14 +43,14 @@ async function logoutUser(id) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   //new:true means return user after its updated
-  return userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
 }
 
 // timeoutUser: status 2 basically soft ban
 async function timeoutUser(id) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
-  return userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
+  return await userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
 }
 
 // changePrefs: update favorites and/or crab lists
@@ -62,7 +62,7 @@ async function changePrefs(id, { favorites, crab }) {
   if (favorites !== undefined) update.favorites = favorites;
   if (crab !== undefined) update.crab = crab;
 
-  return userModel.findByIdAndUpdate(id, update, { new: true });
+  return await userModel.findByIdAndUpdate(id, update, { new: true });
 }
 
 module.exports = {
