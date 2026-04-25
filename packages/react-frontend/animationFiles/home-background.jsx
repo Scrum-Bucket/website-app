@@ -1,4 +1,13 @@
 import { useEffect, useRef } from "react";
+import bloodAngelImage from "./animationAssets/blood-angel.png";
+import cuttlefishImage from "./animationAssets/cuttlefish.png";
+import swordfishImage from "./animationAssets/swordfish.png";
+
+const FISH_IMAGE_SOURCES = [
+  bloodAngelImage,
+  cuttlefishImage,
+  swordfishImage,
+];
 
 export default function HomeBackground() {
   const canvasRef = useRef(null);
@@ -12,16 +21,37 @@ export default function HomeBackground() {
     let fish = [];
     let crabs = [];
     let animationFrameId;
+    let fishImages = [];
+
+    function loadFishImages() {
+      return Promise.all(
+        FISH_IMAGE_SOURCES.map(
+          (src) =>
+            new Promise((resolve, reject) => {
+              const image = new Image();
+              image.src = src;
+              image.onload = () => resolve(image);
+              image.onerror = reject;
+            }),
+        ),
+      );
+    }
 
     function createFish() {
       const sandHeight = height * 0.03;
       const waterBottom = height - sandHeight;
+      const image = fishImages[Math.floor(Math.random() * fishImages.length)];
+      const scale = 0.18 + Math.random() * 0.2;
+      const drawWidth = 1000 * scale;
+      const drawHeight = 1000 * scale;
 
       return {
         x: Math.random() * width,
-        y: Math.random() * (waterBottom - 80) + 30,
+        y: Math.random() * Math.max(waterBottom - drawHeight - 30, 1) + 20,
         speed: 0.4 + Math.random() * 1.2,
-        size: 10 + Math.random() * 10,
+        image,
+        width: drawWidth,
+        height: drawHeight,
         direction: Math.random() > 0.5 ? 1 : -1,
         bobOffset: Math.random() * Math.PI * 2,
       };
@@ -50,24 +80,21 @@ export default function HomeBackground() {
       const bob = Math.sin(time * 0.003 + f.bobOffset) * 2;
       const x = f.x;
       const y = f.y + bob;
-      const s = f.size;
 
       ctx.save();
       ctx.translate(x, y);
 
-      if (f.direction === -1) {
+      if (f.direction === 1) {
         ctx.scale(-1, 1);
       }
 
-      ctx.fillStyle = "#ff9966";
-      ctx.fillRect(-s, -s / 2, s * 1.6, s);
-      ctx.fillRect(s * 0.6, -s / 4, s / 2, s / 2);
-
-      ctx.fillStyle = "#ffcc88";
-      ctx.fillRect(-s * 1.4, -s / 4, s / 2, s / 2);
-
-      ctx.fillStyle = "#111";
-      ctx.fillRect(s * 0.3, -s / 4, 2, 2);
+      ctx.drawImage(
+        f.image,
+        -f.width / 2,
+        -f.height / 2,
+        f.width,
+        f.height,
+      );
 
       ctx.restore();
     }
@@ -109,12 +136,12 @@ export default function HomeBackground() {
       for (const f of fish) {
         f.x += f.speed * f.direction;
 
-        if (f.direction === 1 && f.x > width + 30) {
-          f.x = -30;
-          f.y = Math.random() * (waterBottom - 80) + 30;
-        } else if (f.direction === -1 && f.x < -30) {
-          f.x = width + 30;
-          f.y = Math.random() * (waterBottom - 80) + 30;
+        if (f.direction === 1 && f.x > width + f.width) {
+          f.x = -f.width;
+          f.y = Math.random() * Math.max(waterBottom - f.height - 30, 1) + 20;
+        } else if (f.direction === -1 && f.x < -f.width) {
+          f.x = width + f.width;
+          f.y = Math.random() * Math.max(waterBottom - f.height - 30, 1) + 20;
         }
       }
 
@@ -164,8 +191,12 @@ export default function HomeBackground() {
     }
 
     window.addEventListener("resize", resize);
-    resize();
-    animationFrameId = requestAnimationFrame(draw);
+
+    loadFishImages().then((images) => {
+      fishImages = images;
+      resize();
+      animationFrameId = requestAnimationFrame(draw);
+    });
 
     return () => {
       window.removeEventListener("resize", resize);
