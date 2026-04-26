@@ -11,31 +11,34 @@ function MyApp({ onLogin }) {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  function handleLogin() {
+  async function handleLogin() {
     const trimmedUsername = username.trim();
 
-    //replace with login API call to backend
-    const matchingAccount = DUMMY_ACCOUNTS.find(
-      (account) => account.userName === trimmedUsername && account.password === password
-    );
+    try {
+      const response = await fetch(`http://localhost:8000/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          username: trimmedUsername, 
+          password: password 
+        }),
+      });
 
-    const promise = fetch(`http://localhost:8000/users`, {
-      method: "POST"
-    }).then(async (response) => {
-      if (!response.ok){
-        setErrorMessage(`Error: ${response.status}`)
+      if (!response.ok) {
+        const errorData = await response.json();
+        setErrorMessage(errorData.error || "Login failed");
+        return;
       }
 
-    }).catch((error) => console.log(error));
-
-
-    if (!matchingAccount) {
-      setErrorMessage("Invalid username or password.");
-      return;
+      const user = await response.json();
+      setErrorMessage("");
+      onLogin(trimmedUsername);
+    } catch (error) {
+      setErrorMessage("Connection error. Is the backend running?");
+      console.log(error);
     }
-
-    setErrorMessage("");
-    onLogin(matchingAccount.userName);
   }
 
   return (

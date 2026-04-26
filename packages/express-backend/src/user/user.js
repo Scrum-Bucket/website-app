@@ -17,8 +17,8 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      minlength: 8,
-      maxlength: 32,
+      minlength: 60,
+      maxlength: 60, //Forced to be 60 chars long by bcrypt
       unique: false,
       index: true
     },

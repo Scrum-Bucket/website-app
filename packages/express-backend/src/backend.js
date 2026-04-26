@@ -31,7 +31,7 @@ app.get("/users/:id", async (req, res) => {
 // createUser
 app.post("/users", async (req, res) => {
   console.log("Received create user request with body:", req.body);
-  const userName  = req.body.username;
+  const userName = req.body.username;
   const passWord = req.body.password;
   
   await userServices
@@ -51,10 +51,11 @@ app.delete("/users/:id", async (req, res) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 });
 
-// loginUser
-app.post("/users/:id/login", async (req, res) => {
+// loginUser - expects { username, password } in body
+app.post("/users/login", async (req, res) => {
+  const { username, password } = req.body;
   await userServices
-    .loginUser(req.params.id)
+    .loginUser(username, password)
     .then((user) => res.json(user))
     .catch((err) => res.status(400).json({ error: err.message }));
 });

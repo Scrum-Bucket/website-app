@@ -1,4 +1,5 @@
 //user-services.js
+const bcrypt = require("bcrypt");
 const userModel = require("./user.js");
 
 //allows get all
@@ -20,7 +21,13 @@ async function findUserById(id) {
 
 // defaults defined in schema
 async function createUser(userName, passWord) {
-  const newUser = new userModel({ userName, passWord });
+  // Validate password before hashing
+  if (!passWord || passWord.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+  
+  const hashedPassword = await bcrypt.hash(passWord, 10);
+  const newUser = new userModel({ userName, passWord: hashedPassword });
   return await newUser.save();
 }
 
@@ -31,11 +38,16 @@ async function deleteUser(id) {
 
 //if not async youd check status b4 mongoDB fetches it
 //set status to 1 if they exist and arent timed out
-async function loginUser(id) {
-  const user = await userModel.findById(id);
+async function loginUser(userName, password) {
+  const user = await userModel.findOne({ userName });
   if (!user) throw new Error("User not found");
+
+  const isPasswordValid = await bcrypt.compare(password, user.passWord);
+  if (!isPasswordValid) throw new Error("Invalid password");
   if (user.status === 2) throw new Error("User is timed out");
-  return await userModel.findByIdAndUpdate(id, { status: 1 }, { new: true });
+
+  console.log("User logged in, updating status to 1");
+  return await userModel.findByIdAndUpdate(user._id, { status: 1 }, { new: true });
 }
 
 // logoutUser: set status back to 0
