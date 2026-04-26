@@ -1,13 +1,58 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./code.css";
+import OtherBackground from "../../../animationFiles/other-background.jsx";
 
-function Code() {
+const API = "http://localhost:8000";
+
+function Code({ username }) {
   const navigate = useNavigate();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleJoin() {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
+      setError("Please enter a room code.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // Verify the room exists
+      const checkRes = await fetch(`${API}/rooms/${trimmed}`);
+      if (!checkRes.ok) {
+        setError("Room not found. Check the code and try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Join the room
+      await fetch(`${API}/rooms/${trimmed}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userName: username || "guest" }),
+      });
+
+      navigate(`/home/room/${trimmed}`);
+    } catch {
+      setError("Could not connect to server. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter") handleJoin();
+  }
 
   return (
     <div className="code-page">
-      <p className="code-title">Join by Code or Public</p>
+      <OtherBackground />
+      <p className="code-title">Join by Code</p>
 
       <div className="code-panel">
         <div className="code-logo" aria-label="logo">
@@ -15,19 +60,41 @@ function Code() {
         </div>
 
         <section className="code-join-box">
-          <span className="code-id">A1B2C3</span>
-          <button className="code-join-btn" type="button" onClick={() => navigate("/home/room")}>
-            Join by
-            <br />
-            code
+          <input
+            className="code-input"
+            type="text"
+            placeholder="Enter room code"
+            value={code}
+            maxLength={12}
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={handleKeyDown}
+            aria-label="Room code"
+          />
+          <button
+            className="code-join-btn"
+            type="button"
+            onClick={handleJoin}
+            disabled={loading}
+          >
+            {loading ? "…" : "Join by\ncode"}
           </button>
         </section>
 
-        <button className="code-browse-btn" type="button" onClick={() => navigate("/home/join")}>
+        {error && <p className="code-error">{error}</p>}
+
+        <button
+          className="code-browse-btn"
+          type="button"
+          onClick={() => navigate("/home/join")}
+        >
           Browse public rooms
         </button>
 
-        <button className="code-browse-btn" type="button" onClick={() => navigate("/home")}>
+        <button
+          className="code-browse-btn"
+          type="button"
+          onClick={() => navigate("/home")}
+        >
           Back to Home
         </button>
       </div>

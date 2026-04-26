@@ -1,48 +1,203 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import "./room.css";
+import OtherBackground from "../../../animationFiles/other-background.jsx";
 
-const queueSongs = [
-  { id: 1, name: "Song Name", artist: "Artist Name", album: "Album Name" },
-  { id: 2, name: "Song Name", artist: "Artist Name", album: "Album Name" },
-  { id: 3, name: "Song Name", artist: "Artist Name", album: "Album Name" },
-  { id: 4, name: "Song Name", artist: "Artist Name", album: "Album Name" },
-];
+const API = "http://localhost:8000";
+const POLL_MS = 2000;
 
-function Room() {
+function Room({ username }) {
+  const { roomCode } = useParams();
   const navigate = useNavigate();
 
+  const [room, setRoom] = useState(null);
+  const [error, setError] = useState("");
+  const pollRef = useRef(null);
+
+  // ── Fetch room state ──────────────────────────────────────────────────────
+  const fetchRoom = useCallback(async () => {
+    if (!roomCode) return;
+    try {
+      const res = await fetch(`${API}/rooms/${roomCode}`);
+      if (!res.ok) {
+        setError("Room not found.");
+        return;
+      }
+      const data = await res.json();
+      setRoom(data);
+    } catch {
+      setError("Lost connection to server.");
+    }
+  }, [roomCode]);
+
+  useEffect(() => {
+    fetchRoom();
+    pollRef.current = setInterval(fetchRoom, POLL_MS);
+    return () => clearInterval(pollRef.current);
+  }, [fetchRoom]);
+
+  // ── Upvote ────────────────────────────────────────────────────────────────
+  async function handleUpvote(songId) {
+    try {
+      const res = await fetch(`${API}/rooms/${roomCode}/upvote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ songId }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setRoom(updated);
+      }
+    } catch {
+      // silent — next poll will sync
+    }
+  }
+
+  // ── Host: start game ──────────────────────────────────────────────────────
+  async function handleStart() {
+    try {
+      const res = await fetch(`${API}/rooms/${roomCode}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setRoom(updated);
+      }
+    } catch {
+      // silent
+    }
+  }
+
+  // ── Leave room ────────────────────────────────────────────────────────────
+  async function handleLeave() {
+    try {
+      await fetch(`${API}/rooms/${roomCode}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userName: username || "guest" }),
+      });
+    } finally {
+      navigate("/home");
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="room-page">
+        <OtherBackground />
+        <div className="room-error-box">
+          <p>{error}</p>
+          <button type="button" onClick={() => navigate("/home")}>
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!room) {
+    return (
+      <div className="room-page">
+        <OtherBackground />
+        <div className="room-loading">Connecting…</div>
+      </div>
+    );
+  }
+
+  const isHost = room.host === (username || "guest");
+
+  // ── Lobby ─────────────────────────────────────────────────────────────────
+  if (!room.started) {
+    return (
+      <div className="room-page">
+        <OtherBackground />
+        <div className="room-window">
+          <header className="room-top-row">
+            <div className="room-logo" aria-label="logo">
+              <span>J</span>
+            </div>
+            <div className="room-id-bar">
+              <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
+            </div>
+            <button
+              className="room-menu-btn"
+              type="button"
+              aria-label="leave room"
+              onClick={handleLeave}
+            >
+              ✕
+            </button>
+          </header>
+
+          <div className="room-lobby">
+            <h2 className="room-lobby-title">Waiting for host to start…</h2>
+
+            <div className="room-lobby-members">
+              <p className="room-lobby-members-label">Players in room</p>
+              <ul className="room-members-list">
+                {room.members.map((m) => (
+                  <li key={m} className="room-member-item">
+                    {m}
+                    {m === room.host ? " 👑" : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {isHost && (
+              <button
+                className="room-start-btn"
+                type="button"
+                onClick={handleStart}
+                disabled={room.queue.length === 0}
+              >
+                {room.queue.length === 0
+                  ? "Add songs to start"
+                  : "Start Game"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Game ──────────────────────────────────────────────────────────────────
   return (
     <div className="room-page">
-      <p className="room-title">Room</p>
-
+      <OtherBackground />
       <div className="room-window">
         <header className="room-top-row">
           <div className="room-logo" aria-label="logo">
             <span>J</span>
           </div>
-
           <div className="room-id-bar">
-            <span className="room-id-label">ROOM ID</span>
-            <button className="room-qr-btn" type="button">
-              QR
-              <br />
-              CODE
-            </button>
+            <span className="room-id-label">ROOM: {room.roomCode}</span>
           </div>
-
           <button
             className="room-menu-btn"
             type="button"
-            aria-label="back home"
-            onClick={() => navigate("/home")}
+            aria-label="leave room"
+            onClick={handleLeave}
           >
-            |||
+            ✕
           </button>
         </header>
 
         <section className="room-content">
-          <aside className="room-side-panel" />
+          <aside className="room-side-panel">
+            <p className="room-side-label">Players</p>
+            <ul className="room-members-list room-members-list--side">
+              {room.members.map((m) => (
+                <li key={m} className="room-member-item">
+                  {m}
+                  {m === room.host ? " 👑" : ""}
+                </li>
+              ))}
+            </ul>
+          </aside>
 
           <main className="room-main-panel">
             <section className="room-now-playing">
@@ -54,32 +209,40 @@ function Room() {
               </div>
             </section>
 
+            <p className="room-queue-hint">
+              Upvote to move a song up the queue!
+            </p>
+
             <section className="room-queue-list">
-              {queueSongs.map((song) => (
-                <article className="room-song-row" key={song.id}>
-                  <div className="room-album-cover">Album Cover</div>
+              {room.queue.length === 0 && (
+                <p className="room-empty">No songs in queue yet.</p>
+              )}
+              {room.queue.map((song, index) => (
+                <article
+                  className={`room-song-row${index === 0 ? " room-song-row--top" : ""}`}
+                  key={song.songId}
+                >
+                  <div className="room-song-rank">#{index + 1}</div>
 
                   <div className="room-song-meta">
-                    <span>{song.name}</span>
-                    <span>{song.artist}</span>
-                    <span>{song.album}</span>
+                    <span className="room-song-name">{song.name}</span>
+                    <span className="room-song-artist">{song.artist}</span>
                   </div>
 
                   <div className="room-votes">
-                    <button className="room-upvote-btn" type="button">
-                      Upvote
-                    </button>
-                    <button className="room-downvote-btn" type="button">
-                      Downvote
+                    <span className="room-vote-count">{song.upvotes}</span>
+                    <button
+                      className="room-upvote-btn"
+                      type="button"
+                      onClick={() => handleUpvote(song.songId)}
+                      aria-label={`Upvote ${song.name}`}
+                    >
+                      ▲ Upvote
                     </button>
                   </div>
                 </article>
               ))}
             </section>
-
-            <button className="room-add-btn" type="button" aria-label="add song">
-              +
-            </button>
           </main>
         </section>
       </div>

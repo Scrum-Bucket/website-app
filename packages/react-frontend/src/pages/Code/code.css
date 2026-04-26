@@ -1,6 +1,7 @@
 .code-page {
   min-height: 100vh;
-  background: #efefef;
+  position: relative;
+  overflow: hidden;
   padding: 12px;
 }
 
@@ -32,19 +33,38 @@
 
 .code-join-box {
   width: min(820px, 100%);
-  margin: 0 auto 60px;
+  margin: 0 auto 24px;
   display: grid;
   grid-template-columns: 1fr 180px;
 }
 
-.code-id {
+.code-input {
   min-height: 126px;
   background: #b9b9b9;
-  display: grid;
-  place-items: center;
-  font-size: clamp(46px, 8vw, 84px);
-  letter-spacing: 0.02em;
+  border: none;
+  text-align: center;
+  font-size: clamp(32px, 6vw, 64px);
+  letter-spacing: 0.12em;
   color: #000000;
+  font-family: inherit;
+  outline: none;
+}
+
+.code-input::placeholder {
+  font-size: clamp(18px, 2.5vw, 28px);
+  letter-spacing: 0.02em;
+  color: #666;
+}
+
+.code-error {
+  width: min(820px, 100%);
+  margin: 0 auto 24px;
+  color: #c0392b;
+  font-size: 20px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+  padding: 8px 12px;
 }
 
 .code-join-btn {

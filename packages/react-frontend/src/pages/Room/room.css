@@ -1,22 +1,47 @@
 .room-page {
   min-height: 100vh;
-  background: #efefef;
+  position: relative;
+  overflow: hidden;
   padding: 12px;
 }
 
-.room-title {
-  margin: 0 0 8px 6px;
-  font-size: 34px;
-  color: #9f9f9f;
+/* ── Loading / Error ─────────────────────────────────────────────────────── */
+
+.room-loading,
+.room-error-box {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #e7f4ff;
+  font-size: 28px;
 }
+
+.room-error-box button {
+  border: none;
+  background: #2f50bd;
+  color: #fff;
+  font-size: 20px;
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ── Window ──────────────────────────────────────────────────────────────── */
 
 .room-window {
   width: min(1280px, 100%);
   margin: 0 auto;
-  background: #43a3e8;
+  background: rgba(67, 163, 232, 0.88);
   border-radius: 10px;
   padding: 10px;
+  backdrop-filter: blur(4px);
 }
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
 
 .room-top-row {
   display: grid;
@@ -39,60 +64,142 @@
 .room-id-bar {
   height: 74px;
   background: #2f50bd;
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) 70px;
+  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
+  padding: 8px 20px;
 }
 
 .room-id-label {
-  height: 56px;
-  display: grid;
-  place-items: center;
-  background: #42a4e8;
   color: #e7f4ff;
-  font-size: 13px;
-  letter-spacing: 0.1em;
-}
-
-.room-qr-btn {
-  width: 70px;
-  height: 56px;
-  border: none;
-  background: #2f50bd;
-  color: #d8ebff;
-  font-size: 12px;
-  line-height: 1.15;
-  cursor: pointer;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .room-menu-btn {
   width: 42px;
-  height: 38px;
+  height: 42px;
   border: 1px solid #bcbcbc;
   background: #f5f5f5;
-  color: #8a8a8a;
-  font-size: 28px;
+  color: #333;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
+  border-radius: 4px;
 }
+
+/* ── Lobby ───────────────────────────────────────────────────────────────── */
+
+.room-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 32px 20px 40px;
+}
+
+.room-lobby-title {
+  margin: 0;
+  color: #e7f4ff;
+  font-size: clamp(22px, 3vw, 36px);
+  text-align: center;
+}
+
+.room-lobby-members {
+  width: min(480px, 100%);
+  background: rgba(47, 80, 189, 0.7);
+  border-radius: 10px;
+  padding: 18px 24px;
+}
+
+.room-lobby-members-label {
+  margin: 0 0 12px;
+  color: #c8e6ff;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.room-members-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-member-item {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 8px 14px;
+  color: #e7f4ff;
+  font-size: 18px;
+}
+
+.room-start-btn {
+  min-width: 220px;
+  min-height: 60px;
+  border: none;
+  background: #19be35;
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 4px 0 #0e8a22;
+}
+
+.room-start-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #0e8a22;
+}
+
+.room-start-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #0e8a22;
+}
+
+.room-start-btn:disabled {
+  background: #888;
+  box-shadow: 0 4px 0 #555;
+  cursor: not-allowed;
+}
+
+/* ── Game layout ─────────────────────────────────────────────────────────── */
 
 .room-content {
   display: grid;
-  grid-template-columns: 230px 1fr;
-  gap: 24px;
+  grid-template-columns: 200px 1fr;
+  gap: 16px;
 }
 
 .room-side-panel {
-  background: #2f50bd;
-  min-height: 920px;
-  border-radius: 0 0 0 8px;
+  background: rgba(47, 80, 189, 0.7);
+  border-radius: 8px;
+  padding: 14px 12px;
+  min-height: 400px;
+}
+
+.room-side-label {
+  margin: 0 0 10px;
+  color: #c8e6ff;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.room-members-list--side .room-member-item {
+  font-size: 15px;
+  padding: 6px 10px;
 }
 
 .room-main-panel {
-  padding: 0 18px 24px 0;
+  padding: 0 8px 24px 0;
 }
+
+/* ── Now playing ─────────────────────────────────────────────────────────── */
 
 .room-now-playing {
   background: #3e58dd;
@@ -102,8 +209,8 @@
 }
 
 .room-now-art {
-  width: 220px;
-  height: 220px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
   margin: 0 auto 18px;
   border: 4px solid #cfd8de;
@@ -125,102 +232,153 @@
   background: #cbd1d6;
 }
 
+/* ── Queue ───────────────────────────────────────────────────────────────── */
+
+.room-queue-hint {
+  margin: 0 0 10px;
+  color: #c8e6ff;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
 .room-queue-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+.room-empty {
+  color: #c8e6ff;
+  text-align: center;
+  font-size: 18px;
+  padding: 24px 0;
 }
 
 .room-song-row {
   background: #3e58dd;
-  min-height: 106px;
+  min-height: 80px;
   display: grid;
-  grid-template-columns: 1.1fr 1fr 190px;
-  gap: 8px;
-  padding: 8px;
+  grid-template-columns: 48px 1fr 160px;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, transform 0.25s ease;
 }
 
-.room-album-cover {
-  background: #c7c7c7;
-  display: grid;
-  place-items: center;
-  color: #4b4b4b;
-  font-size: 19px;
+.room-song-row--top {
+  border-color: #f7b244;
+  background: #4a6aee;
+}
+
+.room-song-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c8e6ff;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .room-song-meta {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
-.room-song-meta span {
-  background: #d2d9d8;
-  color: #252525;
-  text-align: center;
-  font-size: 16px;
-  line-height: 1.2;
+.room-song-name {
+  color: #e7f4ff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.room-song-artist {
+  color: #a8d4f0;
+  font-size: 14px;
 }
 
 .room-votes {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
-.room-upvote-btn,
-.room-downvote-btn {
-  border: none;
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 15px;
+.room-vote-count {
+  color: #f7b244;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .room-upvote-btn {
-  background: #19be35;
-}
-
-.room-downvote-btn {
-  background: #ba1818;
-}
-
-.room-add-btn {
-  display: block;
-  margin: 24px auto 0;
-  width: 180px;
-  height: 46px;
   border: none;
-  background: #d3d3d3;
-  color: #6b6b6b;
-  font-size: 38px;
-  line-height: 1;
+  background: #19be35;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+  box-shadow: 0 3px 0 #0e8a22;
 }
 
-@media (max-width: 980px) {
+.room-upvote-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 #0e8a22;
+}
+
+.room-upvote-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #0e8a22;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 860px) {
   .room-content {
     grid-template-columns: 1fr;
   }
 
   .room-side-panel {
-    min-height: 60px;
+    min-height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
   }
 
-  .room-main-panel {
-    padding-right: 0;
+  .room-side-label {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  .room-members-list--side {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .room-song-row {
+    grid-template-columns: 40px 1fr 120px;
+  }
+}
+
+@media (max-width: 520px) {
+  .room-song-row {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
-  .room-album-cover {
-    min-height: 92px;
+  .room-song-rank {
+    justify-content: flex-start;
   }
 
   .room-votes {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto;
+    flex-direction: row;
+    justify-content: space-between;
   }
 }

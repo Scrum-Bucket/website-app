@@ -1,6 +1,7 @@
 .playlist-page {
   min-height: 100vh;
-  background: #efefef;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;

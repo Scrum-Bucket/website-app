@@ -37,8 +37,9 @@ function App() {
         <Route path="/home" element={<Home username={username} />} />
         <Route path="/home/host" element={<Host />} />
         <Route path="/home/join" element={<Join />} />
-        <Route path="/home/code" element={<Code />} />
-        <Route path="/home/room" element={<Room />} />
+        <Route path="/home/code" element={<Code username={username} />} />
+        <Route path="/home/room" element={<Room username={username} />} />
+        <Route path="/home/room/:roomCode" element={<Room username={username} />} />
         <Route path="/home/playlist" element={<Playlist />} />
       </Routes>
     </BrowserRouter>

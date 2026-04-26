@@ -33,27 +33,31 @@
 }
 
 /* big middle frame: pixel ocean panel, not a stretched bubble */
-.home-window.pixel-window {
+.home-layout {
   width: min(1000px, 100%);
-  min-height: 400px;
-  padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 28px;
   position: relative;
   z-index: 2;
-  background: var(--window-blue);
-  border: 4px solid var(--pixel-black);
-  box-shadow: 8px 8px 0 var(--window-blue-dark);
-  border-radius: 16px;
 }
 
-/* keep layout stable */
-.home-top-row,
-.home-username,
+.home-header-bubble,
 .home-cards-row {
   position: relative;
   z-index: 1;
+}
+
+.home-header-bubble {
+  width: min(360px, 100%);
+  
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: floatY 6s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
 }
 
 .home-top-row {
@@ -71,10 +75,11 @@
 }
 
 .home-username {
-  margin: -12px 0 0;
-  color: #ffffff;
+  margin: 0;
+  color: var(--text-dark);
   font-size: 28px;
   font-family: "Blackbeard", serif;
+  line-height: 1;
 }
 
 .home-cards-row {
@@ -152,6 +157,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
+  animation: floatY 6s ease-in-out infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.home-card.pixel-bubble-card:nth-child(2) {
+  animation-delay: 1.2s;
+}
+
+.home-card.pixel-bubble-card:nth-child(3) {
+  animation-delay: 2.4s;
 }
 
 .home-card img {
@@ -191,7 +207,30 @@
   font-size: 22px;
 }
 
+@keyframes floatY {
+  0%,
+  100% {
+    transform: translate(-5px, -5px) rotate(-0.6deg) scale(1);
+  }
+
+  25% {
+    transform: translate(2px, -2px) rotate(0.3deg) scale(0.995);
+  }
+
+  50% {
+    transform: translate(4px, 4px) rotate(0.6deg) scale(0.99);
+  }
+
+  75% {
+    transform: translate(-2px, 2px) rotate(-0.3deg) scale(0.995);
+  }
+}
+
 @media (max-width: 820px) {
+  .home-header-bubble {
+    margin: 0 auto;
+  }
+
   .home-cards-row {
     justify-content: center;
   }

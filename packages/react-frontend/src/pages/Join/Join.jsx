@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./join.css";
+import OtherBackground from "../../../animationFiles/other-background.jsx";
 
 const songs = [
   { id: 1, name: "Song Name", artist: "Artist Name", album: "Album Name" },
@@ -14,6 +15,7 @@ function Join() {
 
   return (
     <div className="join-page">
+      <OtherBackground />
       <div className="join-window">
         <header className="join-top-row">
           <div className="join-logo" aria-label="logo">
@@ -46,14 +48,7 @@ function Join() {
                 <span>{song.artist}</span>
                 <span>{song.album}</span>
               </div>
-              <div className="join-votes">
-                <button className="upvote-btn" type="button">
-                  Upvote
-                </button>
-                <button className="downvote-btn" type="button">
-                  Downvote
-                </button>
-              </div>
+              
             </article>
           ))}
         </section>

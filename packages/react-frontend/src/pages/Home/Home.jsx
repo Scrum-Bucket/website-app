@@ -14,47 +14,49 @@ function Home({ username }) {
     <div className="home-page">
       <Background />
 
-      <div className="home-window pixel-window">
-  <div className="home-top-row">
-    <img className="home-logo" src={logoImage} alt="logo" />
-    <button className="menu-btn pixel-bubble-btn" aria-label="menu">
-      &#9776;
-    </button>
-  </div>
+      <div className="home-layout">
+        <div className="home-header-bubble pixel-bubble-card">
+          <div className="home-top-row">
+            <img className="home-logo" src={logoImage} alt="logo" />
+            <button className="menu-btn pixel-bubble-btn" aria-label="menu">
+              &#9776;
+            </button>
+          </div>
 
-  <p className="home-username">Welcome, {username}</p>
+          <p className="home-username">Welcome, {username}</p>
+        </div>
 
-  <div className="home-cards-row">
-    <div className="home-card pixel-bubble-card">
-      <img src={wifiImage} alt="wifi" />
-      <button type="button" className="pixel-bubble-btn" onClick={() => navigate("/home/host")}>
-        Host
-      </button>
-    </div>
+        <div className="home-cards-row">
+          <div className="home-card pixel-bubble-card">
+            <img src={wifiImage} alt="wifi" />
+            <button type="button" className="pixel-bubble-btn" onClick={() => navigate("/home/host")}>
+              Host
+            </button>
+          </div>
 
-    <div className="home-card pixel-bubble-card">
-      <img src={roomImage} alt="room" />
-      <button
-        type="button"
-        className="pixel-bubble-btn"
-        onClick={() => navigate("/home/join")}
-      >
-        Join Room
-      </button>
-    </div>
+          <div className="home-card pixel-bubble-card">
+            <img src={roomImage} alt="room" />
+            <button
+              type="button"
+              className="pixel-bubble-btn"
+              onClick={() => navigate("/home/join")}
+            >
+              Join Room
+            </button>
+          </div>
 
-    <div className="home-card pixel-bubble-card">
-      <img src={musicNoteImage} alt="music note" />
-      <button
-        type="button"
-        className="pixel-bubble-btn"
-        onClick={() => navigate("/home/playlist")}
-      >
-        Playlist
-      </button>
-    </div>
-  </div>
-</div>
+          <div className="home-card pixel-bubble-card">
+            <img src={musicNoteImage} alt="music note" />
+            <button
+              type="button"
+              className="pixel-bubble-btn"
+              onClick={() => navigate("/home/playlist")}
+            >
+              Playlist
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

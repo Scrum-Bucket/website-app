@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./playlist.css";
+import OtherBackground from "../../../animationFiles/other-background.jsx";
 
 function Playlist() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ function Playlist() {
 
   return (
     <div className="playlist-page">
+      <OtherBackground />
       <div className="playlist-window">
         <header className="playlist-header">
           <h1>Playlist</h1>
