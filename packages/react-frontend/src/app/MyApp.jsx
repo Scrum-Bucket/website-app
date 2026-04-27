@@ -1,10 +1,20 @@
 // src/MyApp.jsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function MyApp({ onLogin }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [redirectError, setRedirectError] = useState(location.state?.loginError || "");
+
+  useEffect(() => {
+    if (location.state?.loginError) {
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   async function handleLogin() {
     const trimmedUsername = username.trim();
@@ -30,6 +40,7 @@ function MyApp({ onLogin }) {
       await response.json();
       setErrorMessage("");
       onLogin(trimmedUsername);
+      navigate("/home");
     } catch (error) {
       setErrorMessage("Connection error. Is the backend running?");
       console.log(error);
@@ -70,38 +81,58 @@ function MyApp({ onLogin }) {
       await response.json();
       setErrorMessage("");
       onLogin(trimmedUsername);
+      navigate("/home");
     } catch (error) {
       setErrorMessage("Connection error. Is the backend running?");
       console.log(error);
     }
   }
 
+  function handleGuestLogin() {
+    onLogin("Guest");
+    navigate("/home");
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    handleLogin();
+  }
+
   return (
     <div className="page">
-      <div className="floating">
-        <div className="row">
+      <div className="floating" style={{ minWidth: '840px', padding: '48px' }}>
+        <form className="login-row" onSubmit={handleSubmit}>
           <input
             type="text"
             placeholder="Username"
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            onChange={(event) => {
+              setUsername(event.target.value);
+              setErrorMessage("");
+              setRedirectError("");
+            }}
           />
           <input
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onChange={(event) => {
+              setPassword(event.target.value);
+              setErrorMessage("");
+              setRedirectError("");
+            }}
           />
-        </div>
-        <div className="button-row">
-          <button type="button" className="login-button" onClick={handleLogin}>
+          <button type="submit" className="login-button">
             Log In
           </button>
-          <button type="button" className="signup-button" onClick={handleSignup}>
-            Sign Up
-          </button>
-        </div>
-        {errorMessage ? <p className="auth-error">{errorMessage}</p> : null}
+        </form>
+        <button type="button" className="other-button" onClick={handleGuestLogin}>
+          Continue as Guest
+        </button>
+        <button type="button" className="other-button" onClick={handleSignup}>
+          Sign Up
+        </button>
+        {(errorMessage || redirectError) ? <p className="auth-error">{errorMessage || redirectError}</p> : null}
         <p className="demo-accounts">Demo accounts: nick/music123 or demo/password1</p>
       </div>
     </div>

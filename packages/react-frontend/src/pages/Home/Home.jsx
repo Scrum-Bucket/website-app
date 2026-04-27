@@ -18,8 +18,13 @@ function Home({ username }) {
         <div className="home-header-bubble pixel-bubble-card">
           <div className="home-top-row">
             <img className="home-logo" src={logoImage} alt="logo" />
-            <button className="menu-btn pixel-bubble-btn" aria-label="menu">
-              &#9776;
+            <button
+              type="button"
+              className="profile-btn pixel-bubble-btn"
+              aria-label="profile"
+              onClick={() => navigate("/home/profile")}
+            >
+              Profile
             </button>
           </div>
 

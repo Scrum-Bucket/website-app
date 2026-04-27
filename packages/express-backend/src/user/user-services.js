@@ -25,10 +25,22 @@ async function createUser(userName, passWord) {
   if (!passWord || passWord.length < 8) {
     throw new Error("Password must be at least 8 characters long");
   }
+
+  const existingUser = await userModel.findOne({ userName });
+  if (existingUser) {
+    throw new Error("An account with this username already exists. Please choose a different username or log in.");
+  }
   
   const hashedPassword = await bcrypt.hash(passWord, 10);
   const newUser = new userModel({ userName, passWord: hashedPassword });
-  return await newUser.save();
+  try {
+    return await newUser.save();
+  } catch (err) {
+    if (err.code === 11000 || (err.message && err.message.toLowerCase().includes("duplicate key"))) {
+      throw new Error("An account with this username already exists. Please choose a different username or log in.");
+    }
+    throw err;
+  }
 }
 
 // nukes it
