@@ -1,0 +1,5 @@
+user-function branch changes: 
+
+"type": "commonjs" changed to "type": "module" in root package.json
+Commented out 2 lines in user-services.js
+Deleted package-lock.json

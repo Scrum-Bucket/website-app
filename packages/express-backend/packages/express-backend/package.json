@@ -1,0 +1,25 @@
+{
+  "name": "express-backend",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "backend.js",
+  "scripts": {
+    "test": "jest",
+    "dev": "npx nodemon src/startup.js",
+    "start": "node src/startup.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dunder-proto": "^1.0.1",
+    "ee-first": "^1.1.1",
+    "express": "^5.2.1",
+    "jest": "^30.3.0",
+    "mongoose": "^9.2.2",
+    "supertest": "^7.2.2"
+  }
+}

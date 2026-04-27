@@ -1,9 +1,49 @@
-### Jacob's notes for implementing youtube API
+# website-app
 
-## Installation
-Install google 
-```
-npm install goodleapis
-```
-## To access youtube API, we use HTTP requests:
+To test api endpoints, install supertest: `npm install supertest`
 
+To run backend and frontend at once in root, install concurrently: `npm install concurrently`
+
+Style: JS Style Guide
+
+To initialize the packages:
+Install vite in frontend by running `npm install vite` in packages/react-frontend
+Then, in stall express in backend by running `npm install express` and `npm install bcrypt` in packages/express-backend
+
+To run this website, you need both the frontend and backend:
+Run `npm run dev` in a terminal in the following directories:
+
+1. packages/express-backend
+2. packages/react-frontend
+
+## Code Coverage
+
+```
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   99.24 |     86.2 |     100 |     100 |
+ src               |     100 |      100 |     100 |     100 |
+  backend.js       |     100 |      100 |     100 |     100 |
+ src/songs         |   94.11 |       60 |     100 |     100 |
+  song-services.js |   92.85 |       60 |     100 |     100 | 24-35
+  song.js          |     100 |      100 |     100 |     100 |
+ src/user          |     100 |     87.5 |     100 |     100 |
+  user-services.js |     100 |     87.5 |     100 |     100 | 68-69
+  user.js          |     100 |      100 |     100 |     100 |
+-------------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 2 passed, 2 total
+Tests:       50 passed, 50 total
+Snapshots:   0 total
+Time:        1.819 s
+```
+
+## Documentation
+
+- [Product Specification](https://docs.google.com/document/d/1mHLF9VbAohl15Izfi-5ZskFS4eX-vD1d_WkiqiE46fQ/edit?tab=t.0)
+- [Project Wiki](https://github.com/Scrum-Bucket/website-app/wiki)
+
+## Demo
+
+- [Watch the Demo Video](https://drive.google.com/file/d/1uAM1H02-eCvunkPq36HE16gq0xVT5WIq/view?usp=sharing)
