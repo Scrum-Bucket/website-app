@@ -13,9 +13,7 @@ app.get("/users", (req, res) => {
   const name = req.query.name;
   const job = req.query.job;
 
-  userServices
-    .getUsers(name, job)
-    .then((users) => res.json({ users_list: users }));
+  userServices.getUsers(name, job).then((users) => res.json({ users_list: users }));
 });
 
 app.get("/users/:id", (req, res) => {
@@ -30,23 +28,24 @@ app.get("/users/:id", (req, res) => {
 //endpoint to search for a youtube song
 app.get("/youtube/:link", (req, res) => {
   const Ylink = req.params["link"]; //or req.params.id
-    const apikey = "";
-    //make GET request to youtube API 
-    const promise = fetch(
-      `https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${Ylink}&maxResults=1&key=${apikey}`, {
+  const apikey = "";
+  //make GET request to youtube API
+  const promise = fetch(
+    `https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${Ylink}&maxResults=1&key=${apikey}`,
+    {
       method: "GET",
       headers: {
-        "part": "snippet",
-        "channelId": "UC_x5XG1OV2P6uZZ5FSM9Ttw",
-        "maxResults": 1,
+        part: "snippet",
+        channelId: "UC_x5XG1OV2P6uZZ5FSM9Ttw",
+        maxResults: 1,
       },
-    }).then(async (response) =>{
-        const content = await response.json()
-        console.log(content);
-      }
-
-    ).catch((error) => console.log(error))
-
+    }
+  )
+    .then(async (response) => {
+      const content = await response.json();
+      console.log(content);
+    })
+    .catch((error) => console.log(error));
 });
 
 app.get("/", (req, res) => {
@@ -54,9 +53,7 @@ app.get("/", (req, res) => {
 });
 
 app.post("/users", (req, res) => {
-  userServices
-    .addUser(req.body)
-    .then((created) => res.status(201).json(created));
+  userServices.addUser(req.body).then((created) => res.status(201).json(created));
 });
 
 app.delete("/users/:id", (req, res) => {

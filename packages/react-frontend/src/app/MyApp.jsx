@@ -20,9 +20,9 @@ function MyApp({ onLogin }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          username: trimmedUsername, 
-          password: password 
+        body: JSON.stringify({
+          username: trimmedUsername,
+          password: password,
         }),
       });
 

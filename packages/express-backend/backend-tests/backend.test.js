@@ -3,6 +3,7 @@ const supertest = require("supertest");
 const mockingoose = require("mockingoose").default;
 const userModel = require("../src/user/user.js");
 const songModel = require("../src/songs/song.js");
+const bcrypt = require("bcrypt");
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -85,20 +86,26 @@ test(" get /users by id fail - database error", async () => {
 });
 
 test("create user", async () => {
+  console.log("Testing create user endpoint...");
   const mockedUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "Joe",
+    passWord: "hashedpassword",
     status: 0,
     favorites: [],
     crab: [],
   };
-
   mockingoose(userModel).toReturn(mockedUser, "save");
 
-  const result = await supertest(backend.app).post("/users").send({ userName: "Joe" }).expect(201);
+  const result = await supertest(backend.app)
+    .post("/users")
+    .set("Content-Type", "application/json")
+    .send({ username: "Joe", password: "password123" })
+    .expect(201);
 
   expect(result.body._id).toBe("507f1f77bcf86cd799439011");
   expect(result.body.userName).toBe("Joe");
+  expect(result.body.passWord).toBe("hashedpassword");
   expect(result.body.status).toBe(0);
   expect(result.body.favorites).toStrictEqual([]);
   expect(result.body.crab).toStrictEqual([]);
@@ -109,7 +116,7 @@ test("create user fail - bad request", async () => {
 
   const result = await supertest(backend.app).post("/users").send({ userName: "Joe" }).expect(400);
 
-  expect(result.body.error).toBe("Validation failed");
+  expect(result.body.error).toBe("Password must be at least 8 characters long");
 });
 
 test("delete user", async () => {
@@ -144,6 +151,7 @@ test("login test", async () => {
   const existingUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "John Doe",
+    passWord: await bcrypt.hash("password123", 10),
     status: 0,
     favorites: [],
     crab: [],
@@ -158,7 +166,8 @@ test("login test", async () => {
   mockingoose(userModel).toReturn(loggedInUser, "findOneAndUpdate");
 
   const result = await supertest(backend.app)
-    .post("/users/507f1f77bcf86cd799439011/login")
+    .post("/users/login")
+    .send({ username: "John Doe", password: "password123" })
     .expect(200);
 
   expect(result.body.status).toBe(1);
@@ -168,7 +177,8 @@ test("login test fail - user not found", async () => {
   mockingoose(userModel).toReturn(undefined, "findOne");
 
   const result = await supertest(backend.app)
-    .post("/users/507f1f77bcf86cd799439011/login")
+    .post("/users/login")
+    .send({ username: "John Doe", password: "password123" })
     .expect(400);
 
   expect(result.body.error).toBe("User not found");
@@ -178,6 +188,7 @@ test("login test fail - user is timed out", async () => {
   const timedOutUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "John Doe",
+    passWord: await bcrypt.hash("password123", 10),
     status: 2,
     favorites: [],
     crab: [],
@@ -186,7 +197,8 @@ test("login test fail - user is timed out", async () => {
   mockingoose(userModel).toReturn(timedOutUser, "findOne");
 
   const result = await supertest(backend.app)
-    .post("/users/507f1f77bcf86cd799439011/login")
+    .post("/users/login")
+    .send({ username: "John Doe", password: "password123" })
     .expect(400);
 
   expect(result.body.error).toBe("User is timed out");
@@ -434,4 +446,14 @@ test("delete song fail - database error", async () => {
   const result = await supertest(backend.app).delete("/songs/507f1f77bcf86cd799439021").expect(500);
 
   expect(result.body.error).toBe("Database failed");
+});
+
+test("youtube link validation", async () => {
+  const result = await supertest(backend.app)
+    .get("/youtube/:link")
+    .send({ id: "PLFPk5ONFpYvWsnAYJqm6Li4qtg367uUbv" })
+    .expect(200);
+
+  expect(result.body).toBeDefined();
+  expect(result.body["items"]).toBeDefined();
 });

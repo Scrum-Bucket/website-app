@@ -3,11 +3,63 @@ const express = require("express");
 const cors = require("cors"); //frontend to backend
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
+const path = require("path");
+
+const dotenv = require("dotenv");
+
+dotenv.config({
+  path: path.resolve(__dirname, "..", "..", "..", "config", "database.env"),
+});
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+//endpoint to search for a youtube song
+app.get("/youtube/:link", async (req, res) => {
+  const { id } = req.body;
+  const apikey = process.env.YOUTUBE_API_KEY;
+  const promise = fetch(
+    `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${id}&maxResults=1&key=${apikey}`,
+    {
+      method: "GET",
+    }
+  )
+    .then(async (response) => {
+      const content = await response.json();
+      res.status(200).send(content);
+      console.log("YouTube API Response:", content);
+    })
+    .catch((error) => console.log(error));
+  return promise;
+});
+
+app.get("/youtube/:channelId", async (req, res) => {
+  const channelId = String(req.params.channelId).trim();
+  const apiKey = process.env.YOUTUBE_API_KEY;
+
+  const url =
+    `https://www.googleapis.com/youtube/v3/playlists` +
+    `?part=snippet&channelId=${encodeURIComponent(channelId)}` +
+    `&maxResults=1&key=${encodeURIComponent(apiKey)}`;
+
+  console.log("channelId =", JSON.stringify(channelId));
+  console.log("url =", url);
+
+  try {
+    const response = await fetch(url);
+    const content = await response.json();
+
+    if (!response.ok) {
+      return res.status(response.status).json(content);
+    }
+
+    return res.json(content);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 // get all users or filter by userName
 app.get("/users", async (req, res) => {
@@ -33,7 +85,7 @@ app.post("/users", async (req, res) => {
   console.log("Received create user request with body:", req.body);
   const userName = req.body.username;
   const passWord = req.body.password;
-  
+
   await userServices
     .createUser(userName, passWord)
     .then((created) => res.status(201).json(created))
