@@ -12,12 +12,11 @@ const UserSchema = new mongoose.Schema(
       required: true,
       trim: true,
       validate(value) {
-        if (value.length < 2)
-          throw new Error("Invalid job, must be at least 2 characters.");
+        if (value.length < 2) throw new Error("Invalid job, must be at least 2 characters.");
       },
     },
   },
-  { collection: "users_list" },
+  { collection: "users_list" }
 );
 
 const User = mongoose.model("User", UserSchema);

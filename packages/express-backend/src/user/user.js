@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema(
       minlength: 60,
       maxlength: 60, //Forced to be 60 chars long by bcrypt
       unique: false,
-      index: true
+      index: true,
     },
     // 0 = logged out, 1 = logged in, 2 = timed out
     status: {

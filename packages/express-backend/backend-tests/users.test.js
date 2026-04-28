@@ -3,6 +3,7 @@ const userServices = require("../src/user/user-services.js");
 const songsSchema = require("../src/songs/song.js");
 const songsServices = require("../src/songs/song-services.js");
 const mockingoose = require("mockingoose").default;
+const bcrypt = require("bcrypt");
 
 //initialize database models
 let userModel;
@@ -114,6 +115,7 @@ test("Create user", async () => {
   const addedUser = {
     _id: "1234",
     userName: "John Doe",
+    passWord: "hashedpassword",
     status: 0,
     favorites: [],
     crab: [],
@@ -121,6 +123,7 @@ test("Create user", async () => {
   const toBeAdded = {
     _id: "1234",
     userName: "John Doe",
+    passWord: "hashedpassword",
     status: 0,
     favorites: [],
     crab: [],
@@ -128,7 +131,7 @@ test("Create user", async () => {
 
   //mock mongoose save function with mockingoose instead of jest.fn()
   mockingoose(userModel).toReturn(addedUser, "save");
-  const result = await userServices.createUser(toBeAdded);
+  const result = await userServices.createUser(toBeAdded.userName, toBeAdded.passWord);
 
   expect(result).toBeTruthy();
   expect(result.userName).toBe(toBeAdded.userName);
@@ -159,56 +162,39 @@ test("delete by id", async () => {
 });
 
 test("login test", async () => {
-  const dummyUser = {
-    _id: "1234",
-    userName: "John Doe",
-    status: 0,
-    favorites: [],
-    crab: [],
-  };
-  userModel.findById = jest.fn().mockResolvedValue(dummyUser);
-
-  const foundUser = await userServices.findUserById("1234");
-  expect(foundUser.status).toBe(dummyUser.status);
-
   const expectedUser = {
     _id: "1234",
     userName: "John Doe",
+    passWord: await bcrypt.hash("password123", 10),
     status: 1,
     favorites: [],
     crab: [],
   };
-  userModel.findByIdAndUpdate = jest.fn().mockResolvedValue(expectedUser);
 
-  const updatedUser = await userServices.loginUser(dummyUser._id);
+  mockingoose(userModel).toReturn(expectedUser, "findOne");
+  mockingoose(userModel).toReturn({ ...expectedUser, status: 1 }, "findOneAndUpdate");
+  mockingoose(userModel).toReturn({ ...expectedUser, status: 1 }, "findByIdAndUpdate");
+
+  const updatedUser = await userServices.loginUser(expectedUser.userName, "password123");
 
   expect(updatedUser).toBeDefined();
   expect(updatedUser.status).toBe(1);
 });
 
 test("login fail - user timed out", async () => {
-  const dummyUser = {
-    _id: "1234",
-    userName: "John Doe",
-    status: 2,
-    favorites: [],
-    crab: [],
-  };
-  userModel.findById = jest.fn().mockResolvedValue(dummyUser);
-
-  const foundUser = await userServices.findUserById("1234");
-  expect(foundUser.status).toBe(dummyUser.status);
-
   const expectedUser = {
     _id: "1234",
     userName: "John Doe",
+    passWord: await bcrypt.hash("password123", 10),
     status: 2,
     favorites: [],
     crab: [],
   };
-  userModel.findById = jest.fn().mockResolvedValue(expectedUser);
+  mockingoose(userModel).toReturn(expectedUser, "findOne");
 
-  await expect(userServices.loginUser(dummyUser._id)).rejects.toThrow("User is timed out");
+  await expect(userServices.loginUser(expectedUser.userName, "password123")).rejects.toThrow(
+    "User is timed out"
+  );
 });
 
 test("login fail - user not found", async () => {

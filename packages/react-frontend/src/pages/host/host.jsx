@@ -9,18 +9,10 @@ function Host() {
     <div className="host-page">
       <OtherBackground />
       <p className="host-title">Host a Room</p>
-      <button
-        className="host-btn"
-        type="button"
-        onClick={() => navigate("/home/room")}
-      >
+      <button className="host-btn" type="button" onClick={() => navigate("/home/room")}>
         Create Room
       </button>
-      <button
-        className="host-btn"
-        type="button"
-        onClick={() => navigate("/home")}
-      >
+      <button className="host-btn" type="button" onClick={() => navigate("/home")}>
         Back to Home
       </button>
     </div>
