@@ -28,38 +28,88 @@ app.get("/youtube/:link", async (req, res) => {
   )
     .then(async (response) => {
       const content = await response.json();
-      res.status(200).send(content);
+      const playlistId = content["items"][0]["id"];
+      const playlistItems = await getSongs(playlistId, undefined);
       console.log("YouTube API Response:", content);
+      const songs = await compileSongs(playlistItems, playlistId);
+      res.status(200).send(songs);
     })
-    .catch((error) => console.log(error));
+    .catch((error) => res.status(500).json({ error: error.message }));
   return promise;
 });
 
-app.get("/youtube/:channelId", async (req, res) => {
-  const channelId = String(req.params.channelId).trim();
-  const apiKey = process.env.YOUTUBE_API_KEY;
+async function getSongs(id, pageToken) {
+  const apikey = process.env.YOUTUBE_API_KEY;
+  if (pageToken !== undefined) {
+    return fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${id}&maxResults=50&key=${apikey}&pageToken=${pageToken}`,
+      { method: "GET" }
+    )
+      .then(async (response) => {
+        const content = await response.json();
+        return content;
+      })
+      .catch((error) => {
+        throw new Error("failed to get playlist items: " + error);
+      });
+  }
 
-  const url =
-    `https://www.googleapis.com/youtube/v3/playlists` +
-    `?part=snippet&channelId=${encodeURIComponent(channelId)}` +
-    `&maxResults=1&key=${encodeURIComponent(apiKey)}`;
+  return fetch(
+    `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${id}&maxResults=50&key=${apikey}`,
+    { method: "GET" }
+  )
+    .then(async (response) => {
+      const content = await response.json();
+      return content;
+    })
+    .catch((error) => {
+      throw new Error("failed to get playlist items: " + error);
+    });
+}
 
-  console.log("channelId =", JSON.stringify(channelId));
-  console.log("url =", url);
+async function compileSongs(playlistItems, playlistId) {
+  const songs = [];
+  for (const item of playlistItems["items"]) {
+    if (
+      item.snippet.title !== "Private video" &&
+      item.snippet.title !== "Deleted video" &&
+      item.snippet.thumbnails?.default?.url
+    ) {
+      songs.push({
+        songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+        details: {
+          title: item.snippet.title,
+          thumbnail: item.snippet.thumbnails.default.url,
+          description: item.snippet.description,
+        },
+      });
+    }
+  }
 
-  try {
-    const response = await fetch(url);
-    const content = await response.json();
+  while (playlistItems["nextPageToken"] !== undefined) {
+    console.log("Next Page Token:", playlistItems["nextPageToken"]);
+    console.log("Current Songs Count:", songs.length);
+    const nextPageResponse = await getSongs(playlistId, playlistItems["nextPageToken"]);
+    console.log("Next Page token", nextPageResponse["nextPageToken"]);
 
-    if (!response.ok) {
-      return res.status(response.status).json(content);
+    for (const item of nextPageResponse["items"]) {
+      if (item.snippet.title !== "Private video" && item.snippet.title !== "Deleted video") {
+        songs.push({
+          songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+          details: {
+            title: item.snippet.title,
+            thumbnail: item.snippet.thumbnails.default.url,
+            description: item.snippet.description,
+          },
+        });
+      }
     }
 
-    return res.json(content);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    playlistItems = nextPageResponse;
   }
-});
+  console.log("Extracted Songs:", songs);
+  return songs;
+}
 
 // get all users or filter by userName
 app.get("/users", async (req, res) => {
@@ -189,4 +239,4 @@ app.delete("/songs/:id", async (req, res) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 });
 
-module.exports = { app };
+module.exports = { app, getSongs };
