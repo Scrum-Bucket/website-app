@@ -448,12 +448,32 @@ test("delete song fail - database error", async () => {
   expect(result.body.error).toBe("Database failed");
 });
 
-test("youtube link validation", async () => {
+test("youtube playlist test", async () => {
   const result = await supertest(backend.app)
     .get("/youtube/:link")
-    .send({ id: "PLFPk5ONFpYvWsnAYJqm6Li4qtg367uUbv" })
+    .send({ id: "PLTdZagM8WNQAUNBCb9JeqhOwao2yu8F8H&si=FCFSU4sTtUAeUujg" })
     .expect(200);
 
   expect(result.body).toBeDefined();
-  expect(result.body["items"]).toBeDefined();
+  expect(result.body[0]["songLink"]).toBeDefined();
+});
+
+test("youtube playlist items test", async () => {
+  const result = await backend.getSongs("PLFPk5ONFpYvWsnAYJqm6Li4qtg367uUbv", undefined);
+
+  expect(result["kind"]).toBe("youtube#playlistItemListResponse");
+});
+
+test("youtube playlist fail", async () => {
+  const result = await supertest(backend.app)
+    .get("/youtube/:link")
+    .send({ id: "invalid_playlist_id" })
+    .expect(500);
+
+  expect(result.error).toBeDefined();
+});
+
+test("youtube playlist items fail", async () => {
+  const result = await backend.getSongs("invalid_playlist_id", undefined);
+  expect(result.error).toBeDefined();
 });
