@@ -27,7 +27,7 @@ function MyApp({ onLogin }) {
         },
         body: JSON.stringify({
           username: trimmedUsername,
-          password,
+          password: password,
         }),
       });
 

@@ -26,11 +26,7 @@ function addRoom(roomCode, host = null) {
 }
 
 function joinRoom(roomCode, userName) {
-  return room.findOneAndUpdate(
-    { roomCode },
-    { $addToSet: { members: userName } },
-    { new: true }
-  );
+  return room.findOneAndUpdate({ roomCode }, { $addToSet: { members: userName } }, { new: true });
 }
 
 function deleteRoom(id) {

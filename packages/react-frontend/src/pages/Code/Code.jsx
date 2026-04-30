@@ -70,31 +70,18 @@ function Code({ username }) {
             onKeyDown={handleKeyDown}
             aria-label="Room code"
           />
-          <button
-            className="code-join-btn"
-            type="button"
-            onClick={handleJoin}
-            disabled={loading}
-          >
+          <button className="code-join-btn" type="button" onClick={handleJoin} disabled={loading}>
             {loading ? "…" : "Join by\ncode"}
           </button>
         </section>
 
         {error && <p className="code-error">{error}</p>}
 
-        <button
-          className="code-browse-btn"
-          type="button"
-          onClick={() => navigate("/home/join")}
-        >
+        <button className="code-browse-btn" type="button" onClick={() => navigate("/home/join")}>
           Browse public rooms
         </button>
 
-        <button
-          className="code-browse-btn"
-          type="button"
-          onClick={() => navigate("/home")}
-        >
+        <button className="code-browse-btn" type="button" onClick={() => navigate("/home")}>
           Back to Home
         </button>
       </div>

@@ -19,8 +19,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #8ed6ff url("./assets/login background.png") center / cover
-    no-repeat;
+  background: #8ed6ff url("./assets/login background.png") center / cover no-repeat;
 }
 
 .floating {

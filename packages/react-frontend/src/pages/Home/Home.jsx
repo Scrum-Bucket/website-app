@@ -34,7 +34,11 @@ function Home({ username }) {
         <div className="home-cards-row">
           <div className="home-card pixel-bubble-card">
             <img src={wifiImage} alt="wifi" />
-            <button type="button" className="pixel-bubble-btn" onClick={() => navigate("/home/host")}>
+            <button
+              type="button"
+              className="pixel-bubble-btn"
+              onClick={() => navigate("/home/host")}
+            >
               Host
             </button>
           </div>

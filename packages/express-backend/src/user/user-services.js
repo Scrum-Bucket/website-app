@@ -4,7 +4,6 @@ const userModel = require("./user.js");
 
 //allows get all
 async function getUsers(userName) {
-  console.log("Getting users with userName:", userName);
   if (!userName) {
     console.log("No userName provided, returning all users");
     const allUsers = await userModel.find();
@@ -21,6 +20,7 @@ async function findUserById(id) {
 
 // defaults defined in schema
 async function createUser(userName, passWord) {
+  console.log("checking password: ", passWord);
   // Validate password before hashing
   if (!passWord || passWord.length < 8) {
     throw new Error("Password must be at least 8 characters long");
