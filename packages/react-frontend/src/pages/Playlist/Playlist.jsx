@@ -5,19 +5,24 @@ import OtherBackground from "../../../animationFiles/other-background.jsx";
 
 function Playlist() {
   const navigate = useNavigate();
-  const [songInput, setSongInput] = useState("");
-  const [songs, setSongs] = useState(["Song Name 1", "Song Name 2"]);
+  // Now its a PlaylistID
+  const [playlistId, setPlaylistId] = useState("");
+  const [songs, setSongs] = useState([]);
 
-  function handleAddSong() {
-    const trimmedSong = songInput.trim();
+async function handleAddSong() {
+  const trimmedId = playlistId.trim();
 
-    if (!trimmedSong) {
-      return;
-    }
+  if (!trimmedId) return;
 
-    setSongs((prevSongs) => [...prevSongs, trimmedSong]);
-    setSongInput("");
+  try {
+    const res = await fetch(`http://localhost:8000/youtube/${trimmedId}`);
+    const data = await res.json();
+    setSongs(data);
+    setPlaylistId("");
+  } catch (err) {
+    console.error(err);
   }
+}
 
   return (
     <div className="playlist-page">
@@ -33,9 +38,9 @@ function Playlist() {
         <section className="playlist-add-row">
           <input
             type="text"
-            placeholder="Enter song name"
-            value={songInput}
-            onChange={(event) => setSongInput(event.target.value)}
+            value={playlistId}
+            onChange={(event) => setPlaylistId(event.target.value)}
+            placeholder="Enter playlist ID"
           />
           <button type="button" onClick={handleAddSong}>
             Add Song
@@ -44,7 +49,7 @@ function Playlist() {
 
         <section className="playlist-list">
           {songs.map((song, index) => (
-            <p key={`${song}-${index}`}>{song}</p>
+            <p key={index}>{song.details.title}</p>
           ))}
         </section>
       </div>

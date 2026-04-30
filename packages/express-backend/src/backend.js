@@ -17,11 +17,18 @@ app.use(cors());
 app.use(express.json());
 
 //endpoint to search for a youtube song
+
+/*
+Note about these changes:
+- The URL says :link, yet the code reads req.body.id
+- Also makes front end call simple -> 'fetch("/youtube/PLAYLIST_ID")'
+- Now it reads the playlist value from the URL, rather than looking in req.body
+*/
 app.get("/youtube/:link", async (req, res) => {
-  const { id } = req.body;
+  const { link } = req.params;
   const apikey = process.env.YOUTUBE_API_KEY;
   const promise = fetch(
-    `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${id}&maxResults=1&key=${apikey}`,
+    `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${link}&maxResults=1&key=${apikey}`,
     {
       method: "GET",
     }
