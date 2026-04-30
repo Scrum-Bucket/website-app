@@ -139,7 +139,16 @@ app.post("/users", async (req, res) => {
   await userServices
     .createUser(userName, passWord)
     .then((created) => res.status(201).json(created))
-    .catch((err) => res.status(400).json({ error: err.message }));
+    .catch((err) => {
+      if (
+        err.message?.includes("already exists") ||
+        err.code === 11000 ||
+        (err.message && err.message.toLowerCase().includes("duplicate key"))
+      ) {
+        return res.status(409).json({ error: err.message });
+      }
+      res.status(400).json({ error: err.message });
+    });
 });
 
 // deleteUser
