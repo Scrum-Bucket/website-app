@@ -28,7 +28,7 @@ async function createUser(userName, passWord) {
 
   const existingUser = await userModel.findOne({ userName });
   if (existingUser) {
-    throw new Error("An account with this username already exists. Please choose a different username or log in.");
+    throw new Error("An account with this username already exists.");
   }
   
   const hashedPassword = await bcrypt.hash(passWord, 10);
