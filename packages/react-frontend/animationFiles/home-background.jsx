@@ -3,11 +3,7 @@ import bloodAngelImage from "./animationAssets/blood-angel.png";
 import cuttlefishImage from "./animationAssets/cuttlefish.png";
 import swordfishImage from "./animationAssets/swordfish.png";
 
-const FISH_IMAGE_SOURCES = [
-  bloodAngelImage,
-  cuttlefishImage,
-  swordfishImage,
-];
+const FISH_IMAGE_SOURCES = [bloodAngelImage, cuttlefishImage, swordfishImage];
 
 export default function HomeBackground() {
   const canvasRef = useRef(null);
@@ -32,8 +28,8 @@ export default function HomeBackground() {
               image.src = src;
               image.onload = () => resolve(image);
               image.onerror = reject;
-            }),
-        ),
+            })
+        )
       );
     }
 
@@ -88,13 +84,7 @@ export default function HomeBackground() {
         ctx.scale(-1, 1);
       }
 
-      ctx.drawImage(
-        f.image,
-        -f.width / 2,
-        -f.height / 2,
-        f.width,
-        f.height,
-      );
+      ctx.drawImage(f.image, -f.width / 2, -f.height / 2, f.width, f.height);
 
       ctx.restore();
     }

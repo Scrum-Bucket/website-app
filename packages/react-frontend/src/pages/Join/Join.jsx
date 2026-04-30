@@ -47,7 +47,6 @@ function Join() {
                 <span>{song.artist}</span>
                 <span>{song.album}</span>
               </div>
-              
             </article>
           ))}
         </section>

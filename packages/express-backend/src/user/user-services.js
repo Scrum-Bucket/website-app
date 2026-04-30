@@ -1,10 +1,9 @@
 //user-services.js
-const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 const userModel = require("./user.js");
 
 //allows get all
 async function getUsers(userName) {
-  console.log("Getting users with userName:", userName);
   if (!userName) {
     console.log("No userName provided, returning all users");
     const allUsers = await userModel.find();
@@ -15,28 +14,52 @@ async function getUsers(userName) {
   return await userModel.find({ userName });
 }
 
-function findUserById(id) {
-  return userModel.findById(id);
+async function findUserById(id) {
+  return await userModel.findById(id);
 }
 
 // defaults defined in schema
-function createUser(userName) {
-  const newUser = new userModel({ userName });
-  return newUser.save();
+async function createUser(userName, passWord) {
+  console.log("checking password: ", passWord);
+  // Validate password before hashing
+  if (!passWord || passWord.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+
+  const existingUser = await userModel.findOne({ userName });
+  if (existingUser) {
+    throw new Error("An account with this username already exists.");
+  }
+  
+  const hashedPassword = await bcrypt.hash(passWord, 10);
+  const newUser = new userModel({ userName, passWord: hashedPassword });
+  try {
+    return await newUser.save();
+  } catch (err) {
+    if (err.code === 11000 || (err.message && err.message.toLowerCase().includes("duplicate key"))) {
+      throw new Error("An account with this username already exists. Please choose a different username or log in.");
+    }
+    throw err;
+  }
 }
 
 // nukes it
-function deleteUser(id) {
-  return userModel.findByIdAndDelete(id);
+async function deleteUser(id) {
+  return await userModel.findByIdAndDelete(id);
 }
 
 //if not async youd check status b4 mongoDB fetches it
 //set status to 1 if they exist and arent timed out
-async function loginUser(id) {
-  const user = await userModel.findById(id);
+async function loginUser(userName, password) {
+  const user = await userModel.findOne({ userName });
   if (!user) throw new Error("User not found");
+
+  const isPasswordValid = await bcrypt.compare(password, user.passWord);
+  if (!isPasswordValid) throw new Error("Invalid password");
   if (user.status === 2) throw new Error("User is timed out");
-  return userModel.findByIdAndUpdate(id, { status: 1 }, { new: true });
+
+  console.log("User logged in, updating status to 1");
+  return await userModel.findByIdAndUpdate(user._id, { status: 1 }, { new: true });
 }
 
 // logoutUser: set status back to 0
@@ -44,14 +67,14 @@ async function logoutUser(id) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   //new:true means return user after its updated
-  return userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
 }
 
 // timeoutUser: status 2 basically soft ban
 async function timeoutUser(id) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
-  return userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
+  return await userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
 }
 
 // changePrefs: update favorites and/or crab lists
@@ -63,7 +86,7 @@ async function changePrefs(id, { favorites, crab }) {
   if (favorites !== undefined) update.favorites = favorites;
   if (crab !== undefined) update.crab = crab;
 
-  return userModel.findByIdAndUpdate(id, update, { new: true });
+  return await userModel.findByIdAndUpdate(id, update, { new: true });
 }
 
 module.exports = {

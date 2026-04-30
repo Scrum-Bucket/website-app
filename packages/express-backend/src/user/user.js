@@ -13,6 +13,15 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    passWord: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 60,
+      maxlength: 60, //Forced to be 60 chars long by bcrypt
+      unique: false,
+      index: true,
+    },
     // 0 = logged out, 1 = logged in, 2 = timed out
     status: {
       type: Number,

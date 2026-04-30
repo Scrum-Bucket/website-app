@@ -147,7 +147,9 @@
   font-weight: 700;
   border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
   box-shadow: 0 4px 0 #0e8a22;
 }
 
@@ -264,7 +266,9 @@
   padding: 10px 14px;
   border-radius: 6px;
   border: 2px solid transparent;
-  transition: border-color 0.2s, transform 0.25s ease;
+  transition:
+    border-color 0.2s,
+    transform 0.25s ease;
 }
 
 .room-song-row--top {
@@ -323,7 +327,9 @@
   padding: 6px 14px;
   border-radius: 6px;
   cursor: pointer;
-  transition: transform 0.08s, box-shadow 0.08s;
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
   box-shadow: 0 3px 0 #0e8a22;
 }
 

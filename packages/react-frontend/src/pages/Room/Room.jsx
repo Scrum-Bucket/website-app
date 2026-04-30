@@ -153,9 +153,7 @@ function Room({ username }) {
                 onClick={handleStart}
                 disabled={room.queue.length === 0}
               >
-                {room.queue.length === 0
-                  ? "Add songs to start"
-                  : "Start Game"}
+                {room.queue.length === 0 ? "Add songs to start" : "Start Game"}
               </button>
             )}
           </div>
@@ -209,14 +207,10 @@ function Room({ username }) {
               </div>
             </section>
 
-            <p className="room-queue-hint">
-              Upvote to move a song up the queue!
-            </p>
+            <p className="room-queue-hint">Upvote to move a song up the queue!</p>
 
             <section className="room-queue-list">
-              {room.queue.length === 0 && (
-                <p className="room-empty">No songs in queue yet.</p>
-              )}
+              {room.queue.length === 0 && <p className="room-empty">No songs in queue yet.</p>}
               {room.queue.map((song, index) => (
                 <article
                   className={`room-song-row${index === 0 ? " room-song-row--top" : ""}`}
