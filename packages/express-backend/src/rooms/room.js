@@ -9,20 +9,31 @@ const RoomSchema = new mongoose.Schema(
       unique: true,
     },
     members: {
-      type: [String], 
+      type: [String],
       default: [],
     },
     queue: {
-      type: [String], 
+      type: [
+        {
+          songId: { type: String, required: true },
+          name: { type: String, default: "Unknown" },
+          artist: { type: String, default: "Unknown" },
+          upvotes: { type: Number, default: 0 },
+        },
+      ],
       default: [],
     },
     currentSong: {
-      type: String, 
+      type: String,
       default: null,
     },
     host: {
-      type: String, 
+      type: String,
       default: null,
+    },
+    started: {
+      type: Boolean,
+      default: false,
     },
   },
   {

@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./join.css";
+import logoImage from "../../assets/logo.png";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 
 const songs = [
@@ -18,9 +19,7 @@ function Join() {
       <OtherBackground />
       <div className="join-window">
         <header className="join-top-row">
-          <div className="join-logo" aria-label="logo">
-            <span className="join-logo-mark">J</span>
-          </div>
+          <img className="join-logo" src={logoImage} alt="logo" />
           <button
             className="join-menu-btn"
             aria-label="back home"
@@ -41,7 +40,7 @@ function Join() {
 
         <section className="join-list">
           {songs.map((song) => (
-            <article className="join-song-row" key={song.id} onClick={() => navigate("/home/room")}>
+            <article className="join-song-row" key={song.id} onClick={() => navigate("/home/code")}>
               <div className="join-album-cover">Album Cover</div>
               <div className="join-song-meta">
                 <span>{song.name}</span>

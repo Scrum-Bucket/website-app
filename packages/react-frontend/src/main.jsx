@@ -38,7 +38,7 @@ function App() {
         <Route path="/home/host" element={<Host />} />
         <Route path="/home/join" element={<Join />} />
         <Route path="/home/code" element={<Code username={username} />} />
-        <Route path="/home/room" element={<Room username={username} />} />
+        <Route path="/home/room" element={<Navigate to="/home/code" replace />} />
         <Route path="/home/room/:roomCode" element={<Room username={username} />} />
         <Route path="/home/playlist" element={<Playlist />} />
       </Routes>

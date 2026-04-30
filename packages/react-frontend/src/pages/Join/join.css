@@ -35,23 +35,8 @@
 .join-logo {
   width: 66px;
   height: 66px;
-  background: linear-gradient(160deg, #ff603a, #f7b244);
-  border: 2px solid #0f66b8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.join-logo-mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: #ffffff;
-  display: grid;
-  place-items: center;
-  font-size: 24px;
-  font-weight: 700;
-  color: #1d1d1d;
+  display: block;
+  object-fit: contain;
 }
 
 .join-menu-btn {

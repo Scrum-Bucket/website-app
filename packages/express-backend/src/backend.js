@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors"); //frontend to backend
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
+const roomServices = require("./rooms/room-services.js");
 
 const app = express();
 
@@ -129,6 +130,108 @@ app.delete("/songs/:id", async (req, res) => {
     .deleteSong(req.params.id)
     .then((deleted) => {
       if (!deleted) return res.status(404).send("Song not found.");
+      res.status(204).send();
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// ── Room routes ──────────────────────────────────────────────────────────────
+
+// GET /rooms  – list all rooms (optionally filter by ?roomCode=)
+app.get("/rooms", async (req, res) => {
+  const { roomCode } = req.query;
+  await roomServices
+    .getRooms(roomCode)
+    .then((rooms) => res.json(rooms))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// GET /rooms/:roomCode  – get a single room by its code
+app.get("/rooms/:roomCode", async (req, res) => {
+  await roomServices
+    .findRoomByCode(req.params.roomCode)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// POST /rooms  – create a room  { roomCode, host }
+app.post("/rooms", async (req, res) => {
+  const { roomCode, host } = req.body;
+  if (!roomCode) return res.status(400).json({ error: "roomCode is required." });
+  await roomServices
+    .addRoom(roomCode, host)
+    .then((created) => res.status(201).json(created))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/join  – join a room  { userName }
+app.post("/rooms/:roomCode/join", async (req, res) => {
+  const { userName } = req.body;
+  if (!userName) return res.status(400).json({ error: "userName is required." });
+  await roomServices
+    .joinRoom(req.params.roomCode, userName)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/start  – host starts the game
+app.post("/rooms/:roomCode/start", async (req, res) => {
+  await roomServices
+    .startRoom(req.params.roomCode)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
+app.post("/rooms/:roomCode/queue", async (req, res) => {
+  const { songId, name, artist } = req.body;
+  if (!songId) return res.status(400).json({ error: "songId is required." });
+  await roomServices
+    .addSongToQueue(req.params.roomCode, songId, name || "Unknown", artist || "Unknown")
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/upvote  – upvote a song  { songId }
+app.post("/rooms/:roomCode/upvote", async (req, res) => {
+  const { songId } = req.body;
+  if (!songId) return res.status(400).json({ error: "songId is required." });
+  await roomServices
+    .upvoteSong(req.params.roomCode, songId)
+    .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/leave  – leave a room  { userName }
+app.post("/rooms/:roomCode/leave", async (req, res) => {
+  const { userName } = req.body;
+  await roomServices
+    .leaveRoom(req.params.roomCode, userName)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// DELETE /rooms/:id  – delete a room by MongoDB id
+app.delete("/rooms/:id", async (req, res) => {
+  await roomServices
+    .deleteRoom(req.params.id)
+    .then((deleted) => {
+      if (!deleted) return res.status(404).send("Room not found.");
       res.status(204).send();
     })
     .catch((err) => res.status(500).json({ error: err.message }));
