@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./profile.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import HouseIcon from "../../assets/House.PNG";
 
 function Profile({ username }) {
   const navigate = useNavigate();
@@ -154,7 +155,9 @@ function Profile({ username }) {
       <div className="profile-window">
         <header className="profile-header">
           <h1>Profile</h1>
-          <button type="button" onClick={() => navigate("/home")}>Back to Home</button>
+          <button type="button" className="profile-home-btn" onClick={() => navigate("/home")}>
+            <img src={HouseIcon} alt="Back to Home" />
+          </button>
         </header>
 
         <section className="profile-details">

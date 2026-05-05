@@ -48,6 +48,32 @@
   transform: translateY(-1px);
 }
 
+.profile-home-btn {
+  background: transparent;
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: transform 0.2s ease, background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.profile-home-btn img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+}
+
+.profile-home-btn:hover {
+  background: rgba(74, 166, 221, 0.2);
+  transform: translateY(-2px);
+}
+
 .profile-details {
   display: grid;
   gap: 16px;
