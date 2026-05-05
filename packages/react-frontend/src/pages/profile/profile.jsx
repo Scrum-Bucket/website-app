@@ -105,6 +105,49 @@ function Profile({ username }) {
     }
   };
 
+  const handleDeleteUser = async () => {
+    const userId = localStorage.getItem("userId");
+    
+    if (!userId) {
+      console.error("No user ID found");
+      return;
+    }
+
+    // Ask for confirmation
+    const confirmed = window.confirm(
+      "Are you sure you want to delete your account? This action cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      // Call backend delete endpoint
+      const response = await fetch(`http://localhost:8000/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Delete failed");
+      }
+
+      // Clear authentication data from localStorage
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("username");
+      localStorage.removeItem("userId");
+      
+      // Navigate to login screen
+      navigate("/");
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Failed to delete user: " + error.message);
+    }
+  };
+
   return (
     <div className="profile-page">
       <OtherBackground />
@@ -126,7 +169,7 @@ function Profile({ username }) {
         </section>
 
         <section className="profile-actions">
-          <button className="profile-action-btn" style={{'--btn-color': '#e74c3c', '--btn-hover-color': '#c0392b'}} type="button">Delete User</button>
+          <button className="profile-action-btn" style={{'--btn-color': '#e74c3c', '--btn-hover-color': '#c0392b'}} type="button" onClick={handleDeleteUser}>Delete User</button>
           <button className="profile-action-btn" style={{'--btn-color': '#4aa6dd', '--btn-hover-color': '#2980b9'}} type="button" onClick={handleLogout}>Logout</button>
           <button className="profile-action-btn" style={{'--btn-color': '#27ae60', '--btn-hover-color': '#229954'}} type="button" onClick={handleRenameUser}>Rename User</button>
         </section>
