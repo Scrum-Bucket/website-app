@@ -26,6 +26,12 @@ function Profile({ username }) {
             <strong>{displayName === "Guest" ? "Guest" : "User"}</strong>
           </div>
         </section>
+
+        <section className="profile-actions">
+          <button className="profile-action-btn" style={{'--btn-color': '#e74c3c', '--btn-hover-color': '#c0392b'}} type="button">Delete User</button>
+          <button className="profile-action-btn" style={{'--btn-color': '#4aa6dd', '--btn-hover-color': '#2980b9'}} type="button">Logout</button>
+          <button className="profile-action-btn" style={{'--btn-color': '#27ae60', '--btn-hover-color': '#229954'}} type="button">Rename User</button>
+        </section>
       </div>
     </div>
   );
