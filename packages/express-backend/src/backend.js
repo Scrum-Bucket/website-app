@@ -186,6 +186,23 @@ app.post("/users/:id/logout", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
+// renameUser - expects { newUserName } in body
+app.patch("/users/:id/rename", async (req, res) => {
+  const { newUserName } = req.body;
+  if (!newUserName) {
+    return res.status(400).json({ error: "newUserName is required" });
+  }
+  await userServices
+    .renameUser(req.params.id, newUserName)
+    .then((user) => res.json(user))
+    .catch((err) => {
+      if (err.message.includes("already taken")) {
+        return res.status(409).json({ error: err.message });
+      }
+      res.status(400).json({ error: err.message });
+    });
+});
+
 // timeoutUser
 app.post("/users/:id/timeout", async (req, res) => {
   await userServices

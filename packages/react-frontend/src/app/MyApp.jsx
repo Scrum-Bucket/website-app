@@ -37,8 +37,13 @@ function MyApp({ onLogin }) {
         return;
       }
 
-      await response.json();
+      const userData = await response.json();
       setErrorMessage("");
+      
+      // Store username and userId in localStorage
+      localStorage.setItem("username", userData.userName);
+      localStorage.setItem("userId", userData._id);
+      
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {
@@ -78,8 +83,13 @@ function MyApp({ onLogin }) {
         return;
       }
 
-      await response.json();
+      const userData = await response.json();
       setErrorMessage("");
+      
+      // Store username and userId in localStorage
+      localStorage.setItem("username", userData.userName);
+      localStorage.setItem("userId", userData._id);
+      
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {
