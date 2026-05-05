@@ -89,6 +89,32 @@ async function changePrefs(id, { favorites, crab }) {
   return await userModel.findByIdAndUpdate(id, update, { new: true });
 }
 
+// renameUser: update userName
+async function renameUser(id, newUserName) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+
+  const existingUser = await userModel.findOne({ userName: newUserName });
+  if (existingUser && existingUser._id.toString() !== id) {
+    throw new Error("Username already taken");
+  }
+
+  return await userModel.findByIdAndUpdate(id, { userName: newUserName }, { new: true });
+}
+
+// changePassword: update passWord after validation
+async function changePassword(id, newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  return await userModel.findByIdAndUpdate(id, { passWord: hashedPassword }, { new: true });
+}
+
 module.exports = {
   getUsers,
   findUserById,
@@ -98,4 +124,6 @@ module.exports = {
   logoutUser,
   timeoutUser,
   changePrefs,
+  renameUser,
+  changePassword,
 };
