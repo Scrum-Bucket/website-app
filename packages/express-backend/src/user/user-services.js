@@ -102,6 +102,19 @@ async function renameUser(id, newUserName) {
   return await userModel.findByIdAndUpdate(id, { userName: newUserName }, { new: true });
 }
 
+// changePassword: update passWord after validation
+async function changePassword(id, newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error("Password must be at least 8 characters long");
+  }
+
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  return await userModel.findByIdAndUpdate(id, { passWord: hashedPassword }, { new: true });
+}
+
 module.exports = {
   getUsers,
   findUserById,
@@ -112,4 +125,5 @@ module.exports = {
   timeoutUser,
   changePrefs,
   renameUser,
+  changePassword,
 };

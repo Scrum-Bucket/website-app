@@ -86,9 +86,6 @@ function Profile({ username }) {
         body: JSON.stringify({ newUserName: trimmedUsername }),
       });
 
-      console.log("Rename response status:", response.status);
-      console.log("Rename response ok:", response.ok);
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Rename failed");
@@ -103,6 +100,45 @@ function Profile({ username }) {
       console.error("Rename error:", error);
       console.error("Error message:", error.message);
       alert("Failed to rename user: " + error.message);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    const userId = localStorage.getItem("userId");
+
+    if (!userId) {
+      console.error("No user ID found");
+      return;
+    }
+
+    const newPassword = prompt("Enter your new password (at least 8 characters):");
+    if (newPassword === null) {
+      return;
+    }
+
+    const trimmedPassword = newPassword.trim();
+    if (trimmedPassword.length < 8) {
+      alert("Password must be at least 8 characters long");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/users/${userId}/password`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newPassword: trimmedPassword }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Password change failed");
+      }
+    } catch (error) {
+      console.error("Password change error:", error);
+      console.error("Error message:", error.message);
+      alert("Failed to change password: " + error.message);
     }
   };
 
@@ -175,6 +211,7 @@ function Profile({ username }) {
           <button className="profile-action-btn" style={{'--btn-color': '#e74c3c', '--btn-hover-color': '#c0392b'}} type="button" onClick={handleDeleteUser}>Delete User</button>
           <button className="profile-action-btn" style={{'--btn-color': '#4aa6dd', '--btn-hover-color': '#2980b9'}} type="button" onClick={handleLogout}>Logout</button>
           <button className="profile-action-btn" style={{'--btn-color': '#27ae60', '--btn-hover-color': '#229954'}} type="button" onClick={handleRenameUser}>Rename User</button>
+          <button className="profile-action-btn" style={{'--btn-color': '#f1c40f', '--btn-hover-color': '#d4b10f'}} type="button" onClick={handleChangePassword}>Change Password</button>
         </section>
       </div>
     </div>

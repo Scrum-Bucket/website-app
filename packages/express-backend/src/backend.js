@@ -203,6 +203,19 @@ app.patch("/users/:id/rename", async (req, res) => {
     });
 });
 
+// changePassword - expects { newPassword } in body
+app.patch("/users/:id/password", async (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword) {
+    return res.status(400).json({ error: "newPassword is required" });
+  }
+
+  await userServices
+    .changePassword(req.params.id, newPassword)
+    .then((user) => res.json(user))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 // timeoutUser
 app.post("/users/:id/timeout", async (req, res) => {
   await userServices
