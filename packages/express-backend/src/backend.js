@@ -232,6 +232,32 @@ app.patch("/users/:id/prefs", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
+// promoteToAdmin - promote user to admin
+app.post("/users/:id/promote", async (req, res) => {
+  // Verify that the requester is an admin (optional - implement your own auth check)
+  await userServices
+    .promoteToAdmin(req.params.id)
+    .then((user) => res.json(user))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// demoteFromAdmin - demote admin to regular user
+app.post("/users/:id/demote", async (req, res) => {
+  // Verify that the requester is an admin (optional - implement your own auth check)
+  await userServices
+    .demoteFromAdmin(req.params.id)
+    .then((user) => res.json(user))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// isAdmin - check if user is admin
+app.get("/users/:id/admin-status", async (req, res) => {
+  await userServices
+    .isAdmin(req.params.id)
+    .then((isAdminStatus) => res.json({ isAdmin: isAdminStatus }))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.get("/", (req, res) => {
   res.send("Backend running.");
 });

@@ -10,6 +10,7 @@ import Code from "./pages/Code/Code";
 import Room from "./pages/Room/Room";
 import Playlist from "./pages/Playlist/Playlist";
 import Profile from "./pages/Profile/Profile";
+import Admin from "./pages/admin/Admin";
 
 import "./login.css";
 
@@ -92,6 +93,18 @@ function App() {
             isLoggedIn ? (
               <GuestGuard username={username}>
                 <Profile username={username} />
+              </GuestGuard>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/home/admin"
+          element={
+            isLoggedIn ? (
+              <GuestGuard username={username}>
+                <Admin />
               </GuestGuard>
             ) : (
               <Navigate to="/" replace />

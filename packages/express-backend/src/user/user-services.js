@@ -115,6 +115,27 @@ async function changePassword(id, newPassword) {
   return await userModel.findByIdAndUpdate(id, { passWord: hashedPassword }, { new: true });
 }
 
+// promoteToAdmin: set isAdmin to true
+async function promoteToAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { isAdmin: true }, { new: true });
+}
+
+// demoteFromAdmin: set isAdmin to false
+async function demoteFromAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { isAdmin: false }, { new: true });
+}
+
+// isAdmin: check if user is admin
+async function isAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return user.isAdmin;
+}
+
 module.exports = {
   getUsers,
   findUserById,
@@ -126,4 +147,7 @@ module.exports = {
   changePrefs,
   renameUser,
   changePassword,
+  promoteToAdmin,
+  demoteFromAdmin,
+  isAdmin,
 };

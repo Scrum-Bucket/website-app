@@ -40,9 +40,10 @@ function MyApp({ onLogin }) {
       const userData = await response.json();
       setErrorMessage("");
       
-      // Store username and userId in localStorage
+      // Store username, userId, and admin status in localStorage
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
+      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
       
       onLogin(trimmedUsername);
       navigate("/home");
@@ -86,9 +87,10 @@ function MyApp({ onLogin }) {
       const userData = await response.json();
       setErrorMessage("");
       
-      // Store username and userId in localStorage
+      // Store username, userId, and admin status in localStorage
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
+      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
       
       onLogin(trimmedUsername);
       navigate("/home");
