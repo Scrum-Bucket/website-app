@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./admin.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
-import HouseIcon from "../../assets/House.PNG";
 
 function Admin() {
   const navigate = useNavigate();
@@ -187,7 +186,7 @@ function Admin() {
         <header className="admin-header">
           <h1>Admin Panel</h1>
           <button type="button" className="admin-home-btn" onClick={() => navigate("/home/profile")}>
-            <img src={HouseIcon} alt="Back to Profile" />
+            Back
           </button>
         </header>
 

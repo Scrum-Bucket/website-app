@@ -20,7 +20,9 @@ function Profile({ username }) {
           return;
         }
         const data = await response.json();
-        setIsAdmin(data.isAdmin === true);
+        const isAdminStatus = data.isAdmin === true;
+        setIsAdmin(isAdminStatus);
+        localStorage.setItem("isAdmin", isAdminStatus ? "true" : "false");
       } catch (err) {
         console.error("Failed to verify admin status:", err);
       }
@@ -288,13 +290,16 @@ function Profile({ username }) {
           <button className="profile-action-btn" style={{'--btn-color': '#4aa6dd', '--btn-hover-color': '#2980b9'}} type="button" onClick={handleLogout}>Logout</button>
           <button className="profile-action-btn" style={{'--btn-color': '#27ae60', '--btn-hover-color': '#229954'}} type="button" onClick={handleRenameUser}>Rename User</button>
           <button className="profile-action-btn" style={{'--btn-color': '#f1c40f', '--btn-hover-color': '#d4b10f'}} type="button" onClick={handleChangePassword}>Change Password</button>
-          
+        </section>
+
+        <section className="Admin-actions">
           {isAdmin && (
             <>
-              <button className="profile-action-btn" style={{'--btn-color': '#9b59b6', '--btn-hover-color': '#8e44ad'}} type="button" onClick={handleAdminPanel}>Admin Panel</button>
+              <button className="profile-action-btn" style={{'--btn-color': '#a4a4a4', '--btn-hover-color': '#838383'}} type="button" onClick={handleAdminPanel}>Admin Panel</button>
             </>
           )}
         </section>
+
       </div>
     </div>
   );

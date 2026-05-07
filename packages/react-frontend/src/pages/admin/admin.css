@@ -66,23 +66,20 @@
   background: #4aa6dd;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 10px 16px;
   transition: transform 0.2s ease, background 0.2s ease;
   border-radius: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
 }
 
 .admin-home-btn:hover {
   background: #3e8fc0;
   transform: translateY(-2px);
-}
-
-.admin-home-btn img {
-  width: 60px;
-  height: 60px;
-  display: block;
 }
 
 .admin-error {
