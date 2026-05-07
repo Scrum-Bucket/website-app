@@ -35,6 +35,10 @@ const UserSchema = new mongoose.Schema(
       type: [Number],
       default: [],
     },
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     collection: "users",

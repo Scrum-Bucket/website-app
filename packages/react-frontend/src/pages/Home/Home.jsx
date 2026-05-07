@@ -48,7 +48,7 @@ function Home({ username }) {
             <button
               type="button"
               className="pixel-bubble-btn"
-              onClick={() => navigate("/home/join")}
+              onClick={() => navigate("/home/code")}
             >
               Join Room
             </button>

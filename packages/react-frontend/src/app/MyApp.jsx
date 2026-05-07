@@ -37,8 +37,14 @@ function MyApp({ onLogin }) {
         return;
       }
 
-      await response.json();
+      const userData = await response.json();
       setErrorMessage("");
+      
+      // Store username, userId, and admin status in localStorage
+      localStorage.setItem("username", userData.userName);
+      localStorage.setItem("userId", userData._id);
+      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+      
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {
@@ -78,8 +84,14 @@ function MyApp({ onLogin }) {
         return;
       }
 
-      await response.json();
+      const userData = await response.json();
       setErrorMessage("");
+      
+      // Store username, userId, and admin status in localStorage
+      localStorage.setItem("username", userData.userName);
+      localStorage.setItem("userId", userData._id);
+      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+      
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {

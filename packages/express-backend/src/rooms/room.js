@@ -13,7 +13,14 @@ const RoomSchema = new mongoose.Schema(
       default: [],
     },
     queue: {
-      type: [String],
+      type: [
+        {
+          songId: { type: String, required: true },
+          name: { type: String, default: "Unknown" },
+          artist: { type: String, default: "Unknown" },
+          upvotes: { type: Number, default: 0 },
+        },
+      ],
       default: [],
     },
     currentSong: {
@@ -23,6 +30,10 @@ const RoomSchema = new mongoose.Schema(
     host: {
       type: String,
       default: null,
+    },
+    started: {
+      type: Boolean,
+      default: false,
     },
   },
   {
