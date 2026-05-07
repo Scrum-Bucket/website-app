@@ -224,6 +224,14 @@ app.post("/users/:id/timeout", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
+// unbanUser - remove timeout status
+app.post("/users/:id/unban", async (req, res) => {
+  await userServices
+    .unbanUser(req.params.id)
+    .then((user) => res.json(user))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 // changePrefs: send { favorites: [...], crab: [...] } in body, both optional
 app.patch("/users/:id/prefs", async (req, res) => {
   await userServices

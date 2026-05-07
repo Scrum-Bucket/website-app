@@ -113,14 +113,36 @@ function Admin() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Timeout failed");
+        throw new Error(errorData.error || "Ban failed");
       }
 
-      alert("User has been timed out");
+      alert("User has been banned");
       fetchUsers();
     } catch (error) {
-      console.error("Timeout error:", error);
-      alert("Failed to timeout user: " + error.message);
+      console.error("Ban error:", error);
+      alert("Failed to ban user: " + error.message);
+    }
+  };
+
+  const handleUnbanUser = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/users/${userId}/unban`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Unban failed");
+      }
+
+      alert("User has been unbanned");
+      fetchUsers();
+    } catch (error) {
+      console.error("Unban error:", error);
+      alert("Failed to unban user: " + error.message);
     }
   };
 
@@ -199,7 +221,7 @@ function Admin() {
                     </div>
                     <div className="admin-user-details">
                       <div>ID: {user._id}</div>
-                      <div>Status: {user.status === 0 ? "Logged Out" : user.status === 1 ? "Logged In" : "Timed Out"}</div>
+                      <div>Status: {user.status === 0 ? "Logged Out" : user.status === 1 ? "Logged In" : "Banned"}</div>
                       <div>Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
                     </div>
                   </div>
@@ -221,13 +243,23 @@ function Admin() {
                         Promote to Admin
                       </button>
                     )}
-                    <button
-                      className="admin-action-btn timeout"
-                      type="button"
-                      onClick={() => handleTimeoutUser(user._id)}
-                    >
-                      Timeout User
-                    </button>
+                    {user.status === 2 ? (
+                      <button
+                        className="admin-action-btn unban"
+                        type="button"
+                        onClick={() => handleUnbanUser(user._id)}
+                      >
+                        Unban
+                      </button>
+                    ) : (
+                      <button
+                        className="admin-action-btn timeout"
+                        type="button"
+                        onClick={() => handleTimeoutUser(user._id)}
+                      >
+                        Ban User
+                      </button>
+                    )}
                     <button
                       className="admin-action-btn delete"
                       type="button"

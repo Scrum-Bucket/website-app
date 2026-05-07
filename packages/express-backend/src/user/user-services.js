@@ -77,6 +77,13 @@ async function timeoutUser(id) {
   return await userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
 }
 
+// unbanUser: remove timeout by setting status back to 0
+async function unbanUser(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+}
+
 // changePrefs: update favorites and/or crab lists
 async function changePrefs(id, { favorites, crab }) {
   const user = await userModel.findById(id);
@@ -144,6 +151,7 @@ module.exports = {
   loginUser,
   logoutUser,
   timeoutUser,
+  unbanUser,
   changePrefs,
   renameUser,
   changePassword,
