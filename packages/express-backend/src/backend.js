@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors"); //frontend to backend
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
+const roomServices = require("./rooms/room-services.js");
 const path = require("path");
 
 const dotenv = require("dotenv");
@@ -12,9 +13,22 @@ dotenv.config({
 });
 
 const app = express();
+const ROOM_CODE_LENGTH = 6;
+const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 app.use(cors());
 app.use(express.json());
+
+function generateRoomCode() {
+  return Array.from({ length: ROOM_CODE_LENGTH }, () => {
+    const index = Math.floor(Math.random() * ROOM_CODE_CHARS.length);
+    return ROOM_CODE_CHARS[index];
+  }).join("");
+}
+
+function normalizeRoomCode(roomCode) {
+  return (roomCode || "").trim().toUpperCase();
+}
 
 //endpoint to search for a youtube song
 
@@ -194,7 +208,7 @@ app.post("/users/:id/timeout", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
-// changePrefs: send { favorites: [...], crab: [...] } in body, both optional
+// changePrefs: send { playlist: [...], crab: [...] } in body, both optional
 app.patch("/users/:id/prefs", async (req, res) => {
   await userServices
     .changePrefs(req.params.id, req.body)
@@ -206,7 +220,98 @@ app.get("/", (req, res) => {
   res.send("Backend running.");
 });
 
-//song functions below!
+//room functions
+
+app.get("/rooms", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.query.roomCode);
+
+  await roomServices
+    .getRooms(roomCode)
+    .then((rooms) => res.json(rooms))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.get("/rooms/:roomCode", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+
+  await roomServices
+    .findRoomByCode(roomCode)
+    .then((room) => {
+      if (!room) return res.status(404).send("Room not found.");
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.post("/rooms", async (req, res) => {
+  const requestedRoomCode = normalizeRoomCode(req.body.roomCode);
+  const host = (req.body.host || req.body.userName || req.body.username || "").trim() || null;
+  const maxAttempts = requestedRoomCode ? 1 : 5;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const roomCode = requestedRoomCode || generateRoomCode();
+
+    try {
+      const existingRoom = await roomServices.findRoomByCode(roomCode);
+      if (existingRoom) {
+        if (requestedRoomCode) {
+          return res.status(409).json({ error: "Room code already exists." });
+        }
+        continue;
+      }
+
+      const created = await roomServices.addRoom(roomCode, host);
+      return res.status(201).json(created);
+    } catch (err) {
+      if (err.code === 11000) {
+        if (requestedRoomCode) {
+          return res.status(409).json({ error: "Room code already exists." });
+        }
+        continue;
+      }
+
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  return res.status(500).json({ error: "Could not create a unique room code." });
+});
+
+app.post("/rooms/:roomCode/join", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const userName = (req.body.userName || req.body.username || "").trim();
+
+  if (!userName) {
+    return res.status(400).json({ error: "userName is required." });
+  }
+
+  await roomServices
+    .joinRoom(roomCode, userName)
+    .then((room) => {
+      if (!room) return res.status(404).send("Room not found.");
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.post("/rooms/:roomCode/leave", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const userName = (req.body.userName || req.body.username || "").trim();
+
+  if (!userName) {
+    return res.status(400).json({ error: "userName is required." });
+  }
+
+  await roomServices
+    .leaveRoom(roomCode, userName)
+    .then((room) => {
+      if (!room) return res.status(404).send("Room not found.");
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+//song functions
 
 // get all songs or filter by songLink
 app.get("/songs", async (req, res) => {

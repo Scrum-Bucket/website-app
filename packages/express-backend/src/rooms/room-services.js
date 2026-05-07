@@ -29,6 +29,10 @@ function joinRoom(roomCode, userName) {
   return room.findOneAndUpdate({ roomCode }, { $addToSet: { members: userName } }, { new: true });
 }
 
+function leaveRoom(roomCode, userName) {
+  return room.findOneAndUpdate({ roomCode }, { $pull: { members: userName } }, { new: true });
+}
+
 function deleteRoom(id) {
   return room.findByIdAndDelete(id);
 }
@@ -39,5 +43,6 @@ module.exports = {
   findRoomByCode,
   addRoom,
   joinRoom,
+  leaveRoom,
   deleteRoom,
 };

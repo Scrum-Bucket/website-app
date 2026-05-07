@@ -21,7 +21,7 @@ test(" get /users ", async () => {
       //_id: "1234",
       userName: "Joe",
       status: 0,
-      favorites: [1, 2],
+      playlist: [1, 2],
       crab: [],
     },
   ];
@@ -34,7 +34,7 @@ test(" get /users ", async () => {
   //expect(result.body).toHaveLength(1);
   expect(result.body[0].userName).toBe("Joe");
   expect(result.body[0].status).toBe(0);
-  expect(result.body[0].favorites).toStrictEqual([1, 2]);
+  expect(result.body[0].playlist).toStrictEqual([1, 2]);
 });
 
 test("get /users fail - database error", async () => {
@@ -57,7 +57,7 @@ test(" get /users by id", async () => {
     _id: "507f1f77bcf86cd799439011",
     userName: "Joe",
     status: 0,
-    favorites: [1, 2],
+    playlist: [1, 2],
     crab: [],
   };
 
@@ -68,7 +68,7 @@ test(" get /users by id", async () => {
   expect(result.body._id).toBe("507f1f77bcf86cd799439011");
   expect(result.body.userName).toBe("Joe");
   expect(result.body.status).toBe(0);
-  expect(result.body.favorites).toStrictEqual([1, 2]);
+  expect(result.body.playlist).toStrictEqual([1, 2]);
 });
 
 test(" get /users by id fail - user not found", async () => {
@@ -92,7 +92,7 @@ test("create user", async () => {
     userName: "Joe",
     passWord: "hashedpassword",
     status: 0,
-    favorites: [],
+    playlist: [],
     crab: [],
   };
   mockingoose(userModel).toReturn(mockedUser, "save");
@@ -107,7 +107,7 @@ test("create user", async () => {
   expect(result.body.userName).toBe("Joe");
   expect(result.body.passWord).toBe("hashedpassword");
   expect(result.body.status).toBe(0);
-  expect(result.body.favorites).toStrictEqual([]);
+  expect(result.body.playlist).toStrictEqual([]);
   expect(result.body.crab).toStrictEqual([]);
 });
 
@@ -124,7 +124,7 @@ test("delete user", async () => {
     _id: "507f1f77bcf86cd799439011",
     userName: "Joe",
     status: 0,
-    favorites: [],
+    playlist: [],
     crab: [],
   };
 
@@ -153,7 +153,7 @@ test("login test", async () => {
     userName: "John Doe",
     passWord: await bcrypt.hash("password123", 10),
     status: 0,
-    favorites: [],
+    playlist: [],
     crab: [],
   };
 
@@ -190,7 +190,7 @@ test("login test fail - user is timed out", async () => {
     userName: "John Doe",
     passWord: await bcrypt.hash("password123", 10),
     status: 2,
-    favorites: [],
+    playlist: [],
     crab: [],
   };
 
@@ -209,7 +209,7 @@ test("logout test", async () => {
     _id: "507f1f77bcf86cd799439011",
     userName: "John Doe",
     status: 1,
-    favorites: [],
+    playlist: [],
     crab: [],
   };
 
@@ -243,7 +243,7 @@ test("timeout test", async () => {
     _id: "507f1f77bcf86cd799439011",
     userName: "John Doe",
     status: 1,
-    favorites: [],
+    playlist: [],
     crab: [],
   };
 
@@ -277,13 +277,13 @@ test("change prefs test", async () => {
     _id: "507f1f77bcf86cd799439011",
     userName: "John Doe",
     status: 0,
-    favorites: [],
+    playlist: [],
     crab: [],
   };
 
   const updatedUser = {
     ...existingUser,
-    favorites: [1, 2],
+    playlist: [1, 2],
     crab: [3],
   };
 
@@ -292,10 +292,10 @@ test("change prefs test", async () => {
 
   const result = await supertest(backend.app)
     .patch("/users/507f1f77bcf86cd799439011/prefs")
-    .send({ favorites: [1, 2], crab: [3] })
+    .send({ playlist: [1, 2], crab: [3] })
     .expect(200);
 
-  expect(result.body.favorites).toStrictEqual([1, 2]);
+  expect(result.body.playlist).toStrictEqual([1, 2]);
   expect(result.body.crab).toStrictEqual([3]);
 });
 
@@ -304,7 +304,7 @@ test("change prefs test fail - user not found", async () => {
 
   const result = await supertest(backend.app)
     .patch("/users/507f1f77bcf86cd799439011/prefs")
-    .send({ favorites: [1, 2] })
+    .send({ playlist: [1, 2] })
     .expect(400);
 
   expect(result.body.error).toBe("User not found");
