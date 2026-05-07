@@ -292,8 +292,6 @@ function Profile({ username }) {
           {isAdmin && (
             <>
               <button className="profile-action-btn" style={{'--btn-color': '#9b59b6', '--btn-hover-color': '#8e44ad'}} type="button" onClick={handleAdminPanel}>Admin Panel</button>
-              <button className="profile-action-btn" style={{'--btn-color': '#16a085', '--btn-hover-color': '#138d75'}} type="button" onClick={handlePromoteUser}>Promote User to Admin</button>
-              <button className="profile-action-btn" style={{'--btn-color': '#d35400', '--btn-hover-color': '#ba4a00'}} type="button" onClick={handleDemoteUser}>Demote Admin to User</button>
             </>
           )}
         </section>
