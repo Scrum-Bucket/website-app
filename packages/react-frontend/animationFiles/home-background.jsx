@@ -1,9 +1,12 @@
 import { useEffect, useRef } from "react";
 import bloodAngelImage from "./animationAssets/blood-angel.png";
 import cuttlefishImage from "./animationAssets/cuttlefish.png";
+import parrotImage from "./animationAssets/parrot.png";
+import spottedImage from "./animationAssets/spotted.png";
+import copperbandImage from "./animationAssets/copperband.png";
 import swordfishImage from "./animationAssets/swordfish.png";
-
-const FISH_IMAGE_SOURCES = [bloodAngelImage, cuttlefishImage, swordfishImage];
+import clowntriggerImage from "./animationAssets/clown-trigger-unf.png";
+const FISH_IMAGE_SOURCES = [bloodAngelImage, cuttlefishImage, parrotImage, spottedImage, copperbandImage, swordfishImage, clowntriggerImage];
 
 export default function HomeBackground() {
   const canvasRef = useRef(null);

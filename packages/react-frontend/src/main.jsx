@@ -10,6 +10,7 @@ import Code from "./pages/Code/Code";
 import Room from "./pages/Room/Room";
 import Playlist from "./pages/Playlist/Playlist";
 import Profile from "./pages/Profile/Profile";
+import EditCrab from "./pages/Profile/edit-crab";
 
 import "./login.css";
 
@@ -92,6 +93,18 @@ function App() {
             isLoggedIn ? (
               <GuestGuard username={username}>
                 <Profile username={username} />
+              </GuestGuard>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/home/profile/edit-crab"
+          element={
+            isLoggedIn ? (
+              <GuestGuard username={username}>
+                <EditCrab />
               </GuestGuard>
             ) : (
               <Navigate to="/" replace />

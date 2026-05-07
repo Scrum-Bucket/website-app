@@ -79,6 +79,40 @@
   gap: 16px;
 }
 
+.profile-icon-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.profile-edit-crab-btn {
+  width: 92px;
+  height: 92px;
+  border: 2px solid #c8e5f2;
+  background: #eef6fb;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-edit-crab-btn img {
+  width: 74px;
+  height: 74px;
+  filter: hue-rotate(var(--crab-hue));
+  object-fit: contain;
+}
+
+.profile-edit-crab-btn:hover {
+  background: #dff0f8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.16);
+}
+
 .profile-row {
   display: flex;
   justify-content: space-between;
