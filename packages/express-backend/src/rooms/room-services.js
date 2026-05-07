@@ -80,14 +80,6 @@ function leaveRoom(roomCode, userName) {
   );
 }
 
-function leaveRoom(roomCode, userName) {
-  return room.findOneAndUpdate({ roomCode }, { $pull: { members: userName } }, { new: true });
-}
-
-function leaveRoom(roomCode, userName) {
-  return room.findOneAndUpdate({ roomCode }, { $pull: { members: userName } }, { new: true });
-}
-
 function deleteRoom(id) {
   return Room.findByIdAndDelete(id);
 }
