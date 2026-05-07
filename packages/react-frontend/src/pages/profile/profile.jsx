@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./profile.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
@@ -32,6 +32,30 @@ function getHueFromHex(hexColor) {
 function Profile({ username }) {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(username || "Guest");
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem("isAdmin") === "true");
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    const verifyAdmin = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/users/${userId}/admin-status`);
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        const isAdminStatus = data.isAdmin === true;
+        setIsAdmin(isAdminStatus);
+        localStorage.setItem("isAdmin", isAdminStatus ? "true" : "false");
+      } catch (err) {
+        console.error("Failed to verify admin status:", err);
+      }
+    };
+
+    verifyAdmin();
+  }, []);
+
   const savedCrabColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
   const crabHue = localStorage.getItem("profileCrabHue") || String(getHueFromHex(savedCrabColor));
 
@@ -61,6 +85,7 @@ function Profile({ username }) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
+      localStorage.removeItem("isAdmin");
       
       // Navigate to login screen
       navigate("/");
@@ -70,7 +95,60 @@ function Profile({ username }) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
+      localStorage.removeItem("isAdmin");
       navigate("/");
+    }
+  };
+
+  const handleAdminPanel = () => {
+    navigate("/home/admin");
+  };
+
+  const handlePromoteUser = async () => {
+    const userId = prompt("Enter the user ID to promote to admin:");
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/users/${userId.trim()}/promote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Promotion failed");
+      }
+
+      alert("User promoted to admin successfully");
+    } catch (error) {
+      console.error("Promotion error:", error);
+      alert("Failed to promote user: " + error.message);
+    }
+  };
+
+  const handleDemoteUser = async () => {
+    const userId = prompt("Enter the user ID to demote from admin:");
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/users/${userId.trim()}/demote`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Demotion failed");
+      }
+
+      alert("Admin demoted to regular user successfully");
+    } catch (error) {
+      console.error("Demotion error:", error);
+      alert("Failed to demote user: " + error.message);
     }
   };
 
@@ -246,7 +324,7 @@ function Profile({ username }) {
           </div>
           <div className="profile-row">
             <span>Account type</span>
-            <strong>{displayName === "Guest" ? "Guest" : "User"}</strong>
+            <strong>{displayName === "Guest" ? "Guest" : (isAdmin ? "Admin" : "User")}</strong>
           </div>
         </section>
 
@@ -256,6 +334,15 @@ function Profile({ username }) {
           <button className="profile-action-btn" style={{'--btn-color': '#27ae60', '--btn-hover-color': '#229954'}} type="button" onClick={handleRenameUser}>Rename User</button>
           <button className="profile-action-btn" style={{'--btn-color': '#f1c40f', '--btn-hover-color': '#d4b10f'}} type="button" onClick={handleChangePassword}>Change Password</button>
         </section>
+
+        <section className="Admin-actions">
+          {isAdmin && (
+            <>
+              <button className="profile-action-btn" style={{'--btn-color': '#a4a4a4', '--btn-hover-color': '#838383'}} type="button" onClick={handleAdminPanel}>Admin Panel</button>
+            </>
+          )}
+        </section>
+
       </div>
     </div>
   );

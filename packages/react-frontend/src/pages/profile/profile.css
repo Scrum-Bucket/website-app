@@ -164,3 +164,17 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
+
+.Admin-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.Admin-actions .profile-action-btn {
+  flex: 0 0 auto;
+  width: 33%;
+  min-width: 160px;
+  max-width: 220px;
+  padding: 20px 24px;
+  margin: 24px 0 8px;
+}

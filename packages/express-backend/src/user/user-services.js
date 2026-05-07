@@ -77,6 +77,13 @@ async function timeoutUser(id) {
   return await userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
 }
 
+// unbanUser: remove timeout by setting status back to 0
+async function unbanUser(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+}
+
 // changePrefs: update favorites and/or crab lists
 async function changePrefs(id, { favorites, crab }) {
   const user = await userModel.findById(id);
@@ -115,6 +122,27 @@ async function changePassword(id, newPassword) {
   return await userModel.findByIdAndUpdate(id, { passWord: hashedPassword }, { new: true });
 }
 
+// promoteToAdmin: set isAdmin to true
+async function promoteToAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { isAdmin: true }, { new: true });
+}
+
+// demoteFromAdmin: set isAdmin to false
+async function demoteFromAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { isAdmin: false }, { new: true });
+}
+
+// isAdmin: check if user is admin
+async function isAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return user.isAdmin;
+}
+
 module.exports = {
   getUsers,
   findUserById,
@@ -123,7 +151,11 @@ module.exports = {
   loginUser,
   logoutUser,
   timeoutUser,
+  unbanUser,
   changePrefs,
   renameUser,
   changePassword,
+  promoteToAdmin,
+  demoteFromAdmin,
+  isAdmin,
 };

@@ -10,6 +10,7 @@ import Code from "./pages/Code/Code";
 import Room from "./pages/Room/Room";
 import Playlist from "./pages/Playlist/Playlist";
 import Profile from "./pages/Profile/Profile";
+import Admin from "./pages/admin/Admin";
 import EditCrab from "./pages/Profile/edit-crab";
 
 import "./login.css";
@@ -100,6 +101,11 @@ function App() {
           }
         />
         <Route
+          path="/home/admin"
+          element={
+            isLoggedIn ? (
+              <GuestGuard username={username}>
+                <Admin />
           path="/home/profile/edit-crab"
           element={
             isLoggedIn ? (
