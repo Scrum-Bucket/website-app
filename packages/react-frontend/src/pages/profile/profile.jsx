@@ -3,6 +3,31 @@ import { useNavigate } from "react-router-dom";
 import "./profile.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
+import UserCrabIcon from "../../assets/user-crab.png";
+
+function getHueFromHex(hexColor) {
+  const normalizedColor = hexColor.replace("#", "");
+  const red = parseInt(normalizedColor.slice(0, 2), 16) / 255;
+  const green = parseInt(normalizedColor.slice(2, 4), 16) / 255;
+  const blue = parseInt(normalizedColor.slice(4, 6), 16) / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+
+  if (delta === 0) {
+    return 0;
+  }
+
+  if (max === red) {
+    return Math.round(60 * (((green - blue) / delta) % 6));
+  }
+
+  if (max === green) {
+    return Math.round(60 * ((blue - red) / delta + 2));
+  }
+
+  return Math.round(60 * ((red - green) / delta + 4));
+}
 
 function Profile({ username }) {
   const navigate = useNavigate();
@@ -31,6 +56,8 @@ function Profile({ username }) {
     verifyAdmin();
   }, []);
 
+  const savedCrabColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
+  const crabHue = localStorage.getItem("profileCrabHue") || String(getHueFromHex(savedCrabColor));
 
   const handleLogout = async () => {
     const userId = localStorage.getItem("userId");
@@ -275,6 +302,22 @@ function Profile({ username }) {
         </header>
 
         <section className="profile-details">
+          <div className="profile-icon-row">
+            <button
+              type="button"
+              className="profile-edit-crab-btn"
+              onClick={() => navigate("/home/profile/edit-crab")}
+              aria-label="Edit profile icon color"
+              title="Edit profile icon color"
+            >
+              <img
+                src={UserCrabIcon}
+                alt=""
+                aria-hidden="true"
+                style={{ "--crab-hue": `${crabHue}deg` }}
+              />
+            </button>
+          </div>
           <div className="profile-row">
             <span>Username</span>
             <strong>{displayName}</strong>

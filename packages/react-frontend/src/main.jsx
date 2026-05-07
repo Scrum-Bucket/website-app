@@ -11,6 +11,7 @@ import Room from "./pages/Room/Room";
 import Playlist from "./pages/Playlist/Playlist";
 import Profile from "./pages/Profile/Profile";
 import Admin from "./pages/admin/Admin";
+import EditCrab from "./pages/Profile/edit-crab";
 
 import "./login.css";
 
@@ -105,6 +106,11 @@ function App() {
             isLoggedIn ? (
               <GuestGuard username={username}>
                 <Admin />
+          path="/home/profile/edit-crab"
+          element={
+            isLoggedIn ? (
+              <GuestGuard username={username}>
+                <EditCrab />
               </GuestGuard>
             ) : (
               <Navigate to="/" replace />
