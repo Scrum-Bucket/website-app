@@ -12,6 +12,8 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 20
+      - run: rm -rf node_modules package-lock.json
+      - run: npm install --include=optional
       - run: npm ci --include=optional
       - run: npm run -w packages/express-backend lint
       - run: npm run -w packages/react-frontend lint
