@@ -1,12 +1,14 @@
 const backend = require("./backend");
 const database = require("./database");
-const port = 8000;
+const port = process.env.PORT || 8000;
+const host = process.env.PORT ? "0.0.0.0" : "localhost";
 
 database
   .connect()
   .then(() => {
-    backend.app.listen(process.env.PORT || port, () => {
-      console.log("REST API is listening.");
+    backend.app.listen(port, host, () => {
+      const address = process.env.PORT ? `port ${port}` : `http://${host}:${port}`;
+      console.log(`REST API is listening on ${address}.`);
     });
   })
   .catch((err) => {

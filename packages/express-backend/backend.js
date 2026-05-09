@@ -4,7 +4,8 @@ import cors from "cors";
 import userServices from "./user-services.js";
 
 const app = express();
-const port = 8000;
+const port = process.env.PORT || 8000;
+const host = process.env.PORT ? "0.0.0.0" : "localhost";
 
 app.use(cors());
 app.use(express.json());
@@ -65,6 +66,7 @@ app.delete("/users/:id", (req, res) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+app.listen(port, host, () => {
+  const address = process.env.PORT ? `port ${port}` : `http://${host}:${port}`;
+  console.log(`Example app listening on ${address}`);
 });
