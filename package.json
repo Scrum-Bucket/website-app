@@ -9,6 +9,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix packages/react-frontend\" \"npm run dev --prefix packages/express-backend\"",
+    "start": "npm run -w packages/express-backend start",
     "test": "jest",
     "coverage": "jest --coverage",
     "lint": "eslint .",
