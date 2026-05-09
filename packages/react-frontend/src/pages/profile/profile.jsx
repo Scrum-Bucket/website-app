@@ -104,54 +104,6 @@ function Profile({ username }) {
     navigate("/home/admin");
   };
 
-  const handlePromoteUser = async () => {
-    const userId = prompt("Enter the user ID to promote to admin:");
-    if (!userId) return;
-
-    try {
-      const response = await fetch(`http://localhost:8000/users/${userId.trim()}/promote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Promotion failed");
-      }
-
-      alert("User promoted to admin successfully");
-    } catch (error) {
-      console.error("Promotion error:", error);
-      alert("Failed to promote user: " + error.message);
-    }
-  };
-
-  const handleDemoteUser = async () => {
-    const userId = prompt("Enter the user ID to demote from admin:");
-    if (!userId) return;
-
-    try {
-      const response = await fetch(`http://localhost:8000/users/${userId.trim()}/demote`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Demotion failed");
-      }
-
-      alert("Admin demoted to regular user successfully");
-    } catch (error) {
-      console.error("Demotion error:", error);
-      alert("Failed to demote user: " + error.message);
-    }
-  };
-
   const handleRenameUser = async () => {
     const userId = localStorage.getItem("userId");
     const currentUsername = localStorage.getItem("username");

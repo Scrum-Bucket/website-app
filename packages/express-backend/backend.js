@@ -1,5 +1,5 @@
 // backend.js
-import express, { response } from "express";
+import express from "express";
 import cors from "cors";
 import userServices from "./user-services.js";
 
@@ -26,11 +26,11 @@ app.get("/users/:id", (req, res) => {
 });
 
 //endpoint to search for a youtube song
-app.get("/youtube/:link", (req, res) => {
+app.get("/youtube/:link", (req) => {
   const Ylink = req.params["link"]; //or req.params.id
   const apikey = "";
   //make GET request to youtube API
-  const promise = fetch(
+  fetch(
     `https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${Ylink}&maxResults=1&key=${apikey}`,
     {
       method: "GET",
