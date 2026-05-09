@@ -10,6 +10,24 @@ function Admin() {
   const [error, setError] = useState("");
   const [adminVerified, setAdminVerified] = useState(false);
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("http://localhost:8000/users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      const data = await response.json();
+      setUsers(data);
+      setError("");
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setError("Failed to load users: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (!userId) {
@@ -38,24 +56,6 @@ function Admin() {
 
     verifyAdmin();
   }, [navigate]);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("http://localhost:8000/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      const data = await response.json();
-      setUsers(data);
-      setError("");
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      setError("Failed to load users: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePromoteUser = async (userId) => {
     try {

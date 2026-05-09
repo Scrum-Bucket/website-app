@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
@@ -12,7 +12,6 @@ function Room({ username }) {
 
   const [room, setRoom] = useState(null);
   const [error, setError] = useState("");
-  const pollRef = useRef(null);
 
   // ── Fetch room state ──────────────────────────────────────────────────────
   const fetchRoom = useCallback(async () => {
@@ -31,9 +30,13 @@ function Room({ username }) {
   }, [roomCode]);
 
   useEffect(() => {
-    fetchRoom();
-    pollRef.current = setInterval(fetchRoom, POLL_MS);
-    return () => clearInterval(pollRef.current);
+    const initialFetchId = setTimeout(fetchRoom, 0);
+    const pollId = setInterval(fetchRoom, POLL_MS);
+
+    return () => {
+      clearTimeout(initialFetchId);
+      clearInterval(pollId);
+    };
   }, [fetchRoom]);
 
   // ── Upvote ────────────────────────────────────────────────────────────────
