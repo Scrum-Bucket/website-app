@@ -13,6 +13,6 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npm run -w express-backend lint
-      - run: npm run -w react-frontend eslint
-      - run: npm run -w react-frontend build
+      - run: npm run -w packages/express-backend lint
+      - run: npm run -w packages/react-frontend eslint
+      - run: npm run -w packages/react-frontend build
