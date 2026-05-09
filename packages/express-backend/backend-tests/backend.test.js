@@ -1,3 +1,6 @@
+const originalYoutubeApiKey = process.env.YOUTUBE_API_KEY;
+process.env.YOUTUBE_API_KEY = "test-youtube-api-key";
+
 const backend = require("../src/backend.js");
 const supertest = require("supertest");
 const mockingoose = require("mockingoose").default;
@@ -5,10 +8,29 @@ const userModel = require("../src/user/user.js");
 const songModel = require("../src/songs/song.js");
 const bcrypt = require("bcrypt");
 
+const originalFetch = global.fetch;
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockingoose.resetAll();
+  global.fetch = originalFetch;
+  process.env.YOUTUBE_API_KEY = "test-youtube-api-key";
 });
+
+afterAll(() => {
+  global.fetch = originalFetch;
+  if (originalYoutubeApiKey === undefined) {
+    delete process.env.YOUTUBE_API_KEY;
+  } else {
+    process.env.YOUTUBE_API_KEY = originalYoutubeApiKey;
+  }
+});
+
+function youtubeJsonResponse(body) {
+  return Promise.resolve({
+    json: jest.fn().mockResolvedValue(body),
+  });
+}
 
 test("test app runs", async () => {
   const result = await supertest(backend.app).get("/").expect(200);
@@ -449,31 +471,67 @@ test("delete song fail - database error", async () => {
 });
 
 test("youtube playlist test", async () => {
+  global.fetch = jest
+    .fn()
+    .mockResolvedValueOnce(youtubeJsonResponse({ items: [{ id: "playlist-id" }] }))
+    .mockResolvedValueOnce(
+      youtubeJsonResponse({
+        items: [
+          {
+            snippet: {
+              title: "Crab Rave",
+              description: "test song",
+              thumbnails: {
+                default: {
+                  url: "https://img.youtube.com/vi/LDU_Txk06tM/default.jpg",
+                },
+              },
+              resourceId: {
+                videoId: "LDU_Txk06tM",
+              },
+            },
+          },
+        ],
+      })
+    );
+
   const result = await supertest(backend.app)
-    .get("/youtube/:link")
-    .send({ id: "PLTdZagM8WNQAUNBCb9JeqhOwao2yu8F8H&si=FCFSU4sTtUAeUujg" })
+    .get("/youtube/PLTdZagM8WNQAUNBCb9JeqhOwao2yu8F8H")
     .expect(200);
 
   expect(result.body).toBeDefined();
   expect(result.body[0]["songLink"]).toBeDefined();
+  expect(global.fetch).toHaveBeenCalledTimes(2);
 });
 
 test("youtube playlist items test", async () => {
+  global.fetch = jest.fn().mockResolvedValueOnce(
+    youtubeJsonResponse({
+      kind: "youtube#playlistItemListResponse",
+      items: [],
+    })
+  );
+
   const result = await backend.getSongs("PLFPk5ONFpYvWsnAYJqm6Li4qtg367uUbv", undefined);
 
   expect(result["kind"]).toBe("youtube#playlistItemListResponse");
+  expect(global.fetch).toHaveBeenCalledTimes(1);
 });
 
 test("youtube playlist fail", async () => {
+  global.fetch = jest.fn().mockRejectedValueOnce(new Error("YouTube failed"));
+
   const result = await supertest(backend.app)
-    .get("/youtube/:link")
-    .send({ id: "invalid_playlist_id" })
+    .get("/youtube/invalid_playlist_id")
     .expect(500);
 
-  expect(result.error).toBeDefined();
+  expect(result.body.error).toBe("YouTube failed");
 });
 
 test("youtube playlist items fail", async () => {
-  const result = await backend.getSongs("invalid_playlist_id", undefined);
-  expect(result.error).toBeDefined();
+  global.fetch = jest.fn().mockRejectedValueOnce(new Error("YouTube failed"));
+
+  await expect(backend.getSongs("invalid_playlist_id", undefined)).rejects.toThrow(
+    "failed to get playlist items: Error: YouTube failed"
+  );
 });
