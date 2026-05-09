@@ -1,15 +1,10 @@
 //backend.js
 const express = require("express");
 const cors = require("cors"); //frontend to backend
-const path = require("path");
-const dotenv = require("dotenv");
+const { requireEnv } = require("./env");
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
 const roomServices = require("./rooms/room-services.js");
-
-dotenv.config({
-  path: path.resolve(__dirname, "..", "..", "..", "config", "database.env"),
-});
 
 const app = express();
 
@@ -26,7 +21,14 @@ Note about these changes:
 */
 app.get("/youtube/:link", async (req, res) => {
   const { link } = req.params;
-  const apikey = process.env.YOUTUBE_API_KEY;
+  let apikey;
+
+  try {
+    apikey = requireEnv("YOUTUBE_API_KEY");
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
   const promise = fetch(
     `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${link}&maxResults=1&key=${apikey}`,
     { method: "GET" }
@@ -44,7 +46,7 @@ app.get("/youtube/:link", async (req, res) => {
 });
 
 async function getSongs(id, pageToken) {
-  const apikey = process.env.YOUTUBE_API_KEY;
+  const apikey = requireEnv("YOUTUBE_API_KEY");
   if (pageToken !== undefined) {
     return fetch(
       `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${id}&maxResults=50&key=${apikey}&pageToken=${pageToken}`,

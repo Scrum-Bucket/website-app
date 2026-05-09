@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import frontendLink from "../../frontendLink";
 
 function Playlist() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ async function handleAddSong() {
   if (!trimmedId) return;
 
   try {
-    const res = await fetch(`http://localhost:8000/youtube/${trimmedId}`);
+    const res = await fetch(`${frontendLink}/youtube/${trimmedId}`);
     const data = await res.json();
     setSongs(data);
     setPlaylistId("");

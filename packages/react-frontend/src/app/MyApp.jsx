@@ -1,6 +1,7 @@
 // src/MyApp.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import frontendLink from "../frontendLink";
 
 function MyApp({ onLogin }) {
   const location = useLocation();
@@ -20,7 +21,7 @@ function MyApp({ onLogin }) {
     const trimmedUsername = username.trim();
 
     try {
-      const response = await fetch(`http://localhost:8000/users/login`, {
+      const response = await fetch(`${frontendLink}/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,7 +68,7 @@ function MyApp({ onLogin }) {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/users`, {
+      const response = await fetch(`${frontendLink}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

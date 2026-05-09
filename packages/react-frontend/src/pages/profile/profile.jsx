@@ -4,6 +4,7 @@ import "./profile.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
+import frontendLink from "../../frontendLink";
 
 function getHueFromHex(hexColor) {
   const normalizedColor = hexColor.replace("#", "");
@@ -40,7 +41,7 @@ function Profile({ username }) {
 
     const verifyAdmin = async () => {
       try {
-        const response = await fetch(`http://localhost:8000/users/${userId}/admin-status`);
+        const response = await fetch(`${frontendLink}/users/${userId}/admin-status`);
         if (!response.ok) {
           return;
         }
@@ -70,7 +71,7 @@ function Profile({ username }) {
 
     try {
       // Call backend logout endpoint
-      const response = await fetch(`http://localhost:8000/users/${userId}/logout`, {
+      const response = await fetch(`${frontendLink}/users/${userId}/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +136,7 @@ function Profile({ username }) {
 
     try {
       // Call backend rename endpoint
-      const response = await fetch(`http://localhost:8000/users/${userId}/rename`, {
+      const response = await fetch(`${frontendLink}/users/${userId}/rename`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -180,7 +181,7 @@ function Profile({ username }) {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/users/${userId}/password`, {
+      const response = await fetch(`${frontendLink}/users/${userId}/password`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -218,7 +219,7 @@ function Profile({ username }) {
 
     try {
       // Call backend delete endpoint
-      const response = await fetch(`http://localhost:8000/users/${userId}`, {
+      const response = await fetch(`${frontendLink}/users/${userId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

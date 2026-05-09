@@ -16,6 +16,7 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "dunder-proto": "^1.0.1",
     "ee-first": "^1.1.1",
     "express": "^5.2.1",

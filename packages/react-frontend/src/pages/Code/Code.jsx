@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./code.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import frontendLink from "../../frontendLink";
 
-const API = "http://localhost:8000";
+const API = frontendLink;
 
 function Code({ username }) {
   const navigate = useNavigate();

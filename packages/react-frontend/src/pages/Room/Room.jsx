@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import frontendLink from "../../frontendLink";
 
-const API = "http://localhost:8000";
+const API = frontendLink;
 const POLL_MS = 2000;
 
 function Room({ username }) {
