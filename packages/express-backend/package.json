@@ -10,7 +10,8 @@
   "scripts": {
     "test": "jest",
     "dev": "npx nodemon src/startup.js",
-    "start": "node src/startup.js"
+    "start": "node src/startup.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
