@@ -27,7 +27,7 @@ const UserSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    playlist: {
+    favorites: {
       type: [Number], // SongIDs
       default: [],
     },
