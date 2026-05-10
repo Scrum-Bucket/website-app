@@ -14,6 +14,7 @@ import Admin from "./pages/admin/Admin";
 import EditCrab from "./pages/profile/edit-crab";
 
 import "./login.css";
+import "./background.css";
 
 const container = document.getElementById("root");
 const root = ReactDOMClient.createRoot(container);
