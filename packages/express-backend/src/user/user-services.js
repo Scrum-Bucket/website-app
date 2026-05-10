@@ -84,13 +84,20 @@ async function unbanUser(id) {
   return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
 }
 
-// changePrefs: update favorites and/or crab lists
-async function changePrefs(id, { favorites, crab }) {
+// unbanUser: remove timeout by setting status back to 0
+async function unbanUser(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+}
+
+// changePrefs: update playlist and/or crab lists
+async function changePrefs(id, { playlist, crab }) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
 
   const update = {};
-  if (favorites !== undefined) update.favorites = favorites;
+  if (playlist !== undefined) update.playlist = playlist;
   if (crab !== undefined) update.crab = crab;
 
   return await userModel.findByIdAndUpdate(id, update, { new: true });

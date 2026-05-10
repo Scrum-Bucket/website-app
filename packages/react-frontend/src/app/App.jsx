@@ -45,7 +45,7 @@ export function App() {
           element={
             isLoggedIn ? (
               <GuestGuard username={username}>
-                <Host />
+                <Host username={username} />
               </GuestGuard>
             ) : (
               <Navigate to="/" replace />

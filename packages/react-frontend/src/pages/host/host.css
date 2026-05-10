@@ -9,3 +9,10 @@
   gap: 20px;
   padding: 24px;
 }
+
+.host-error {
+  color: #ffd6d6;
+  font-size: 18px;
+  margin: 0;
+  text-align: center;
+}

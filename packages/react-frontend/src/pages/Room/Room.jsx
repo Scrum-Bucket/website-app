@@ -16,7 +16,10 @@ function Room({ username }) {
 
   // ── Fetch room state ──────────────────────────────────────────────────────
   const fetchRoom = useCallback(async () => {
-    if (!roomCode) return;
+    if (!roomCode) {
+      setError("Room code is missing.");
+      return;
+    }
     try {
       const res = await fetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
@@ -31,6 +34,11 @@ function Room({ username }) {
   }, [roomCode]);
 
   useEffect(() => {
+    if (!roomCode) {
+      fetchRoom();
+      return undefined;
+    }
+
     const initialFetchId = setTimeout(fetchRoom, 0);
     const pollId = setInterval(fetchRoom, POLL_MS);
 
@@ -38,7 +46,7 @@ function Room({ username }) {
       clearTimeout(initialFetchId);
       clearInterval(pollId);
     };
-  }, [fetchRoom]);
+  }, [fetchRoom, roomCode]);
 
   // ── Upvote ────────────────────────────────────────────────────────────────
   async function handleUpvote(songId) {
