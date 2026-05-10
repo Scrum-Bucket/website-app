@@ -90,7 +90,6 @@ module.exports = {
   findRoomByCode,
   addRoom,
   joinRoom,
-  leaveRoom,
   startRoom,
   addSongToQueue,
   upvoteSong,

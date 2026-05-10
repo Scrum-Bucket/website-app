@@ -24,18 +24,6 @@ function normalizeRoomCode(roomCode) {
   return (roomCode || "").trim().toUpperCase();
 }
 
-function generateRoomCode() {
-  return Array.from({ length: ROOM_CODE_LENGTH }, () => {
-    const index = Math.floor(Math.random() * ROOM_CODE_CHARS.length);
-    return ROOM_CODE_CHARS[index];
-  }).join("");
-}
-
-function normalizeRoomCode(roomCode) {
-  return (roomCode || "").trim().toUpperCase();
-}
-
-
 /*
 Note about these changes:
 - The URL says :link, yet the code reads req.body.id
@@ -257,14 +245,6 @@ app.post("/users/:id/unban", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
-// unbanUser - remove timeout status
-app.post("/users/:id/unban", async (req, res) => {
-  await userServices
-    .unbanUser(req.params.id)
-    .then((user) => res.json(user))
-    .catch((err) => res.status(400).json({ error: err.message }));
-});
-
 app.patch("/users/:id/prefs", async (req, res) => {
   await userServices
     .changePrefs(req.params.id, req.body)
@@ -444,53 +424,12 @@ app.delete("/songs/:id", async (req, res) => {
 
 // ── Rooms ─────────────────────────────────────────────────────────────────────
 
-// GET /rooms  – list all rooms (optionally filter by ?roomCode=)
-app.get("/rooms", async (req, res) => {
-  const { roomCode } = req.query;
-  await roomServices
-    .getRooms(roomCode)
-    .then((rooms) => res.json(rooms))
-    .catch((err) => res.status(500).json({ error: err.message }));
-});
-
-// GET /rooms/:roomCode  – get a single room by its code
-app.get("/rooms/:roomCode", async (req, res) => {
-  await roomServices
-    .findRoomByCode(req.params.roomCode)
-    .then((room) => {
-      if (!room) return res.status(404).json({ error: "Room not found." });
-      res.json(room);
-    })
-    .catch((err) => res.status(500).json({ error: err.message }));
-});
-
-// POST /rooms  – create a room  { roomCode, host }
-app.post("/rooms", async (req, res) => {
-  const { roomCode, host } = req.body;
-  if (!roomCode) return res.status(400).json({ error: "roomCode is required." });
-  await roomServices
-    .addRoom(roomCode, host)
-    .then((created) => res.status(201).json(created))
-    .catch((err) => res.status(400).json({ error: err.message }));
-});
-
-// POST /rooms/:roomCode/join  – join a room  { userName }
-app.post("/rooms/:roomCode/join", async (req, res) => {
-  const { userName } = req.body;
-  if (!userName) return res.status(400).json({ error: "userName is required." });
-  await roomServices
-    .joinRoom(req.params.roomCode, userName)
-    .then((room) => {
-      if (!room) return res.status(404).json({ error: "Room not found." });
-      res.json(room);
-    })
-    .catch((err) => res.status(500).json({ error: err.message }));
-});
-
 // POST /rooms/:roomCode/start  – host starts the game
 app.post("/rooms/:roomCode/start", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+
   await roomServices
-    .startRoom(req.params.roomCode)
+    .startRoom(roomCode)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -500,10 +439,11 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { songId, name, artist } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
-    .addSongToQueue(req.params.roomCode, songId, name || "Unknown", artist || "Unknown")
+    .addSongToQueue(roomCode, songId, name || "Unknown", artist || "Unknown")
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -513,24 +453,13 @@ app.post("/rooms/:roomCode/queue", async (req, res) => {
 
 // POST /rooms/:roomCode/upvote  – upvote a song  { songId }
 app.post("/rooms/:roomCode/upvote", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { songId } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
-    .upvoteSong(req.params.roomCode, songId)
+    .upvoteSong(roomCode, songId)
     .then((room) => res.json(room))
     .catch((err) => res.status(400).json({ error: err.message }));
-});
-
-// POST /rooms/:roomCode/leave  – leave a room  { userName }
-app.post("/rooms/:roomCode/leave", async (req, res) => {
-  const { userName } = req.body;
-  await roomServices
-    .leaveRoom(req.params.roomCode, userName)
-    .then((room) => {
-      if (!room) return res.status(404).json({ error: "Room not found." });
-      res.json(room);
-    })
-    .catch((err) => res.status(500).json({ error: err.message }));
 });
 
 // DELETE /rooms/:id  – delete a room by MongoDB id
