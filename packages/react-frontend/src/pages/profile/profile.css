@@ -56,7 +56,9 @@
   border: none;
   cursor: pointer;
   border-radius: 12px;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -97,7 +99,10 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .profile-edit-crab-btn img {
@@ -155,7 +160,9 @@
   font-size: 1rem;
   flex: 1;
   max-width: 160px;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
   background: var(--btn-color);
 }
 

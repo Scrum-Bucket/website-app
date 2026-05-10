@@ -26,19 +26,11 @@ function addRoom(roomCode, host = null) {
 }
 
 function joinRoom(roomCode, userName) {
-  return Room.findOneAndUpdate(
-    { roomCode },
-    { $addToSet: { members: userName } },
-    { new: true }
-  );
+  return Room.findOneAndUpdate({ roomCode }, { $addToSet: { members: userName } }, { new: true });
 }
 
 function startRoom(roomCode) {
-  return Room.findOneAndUpdate(
-    { roomCode },
-    { $set: { started: true } },
-    { new: true }
-  );
+  return Room.findOneAndUpdate({ roomCode }, { $set: { started: true } }, { new: true });
 }
 
 function addSongToQueue(roomCode, songId, name, artist) {
@@ -73,11 +65,7 @@ async function upvoteSong(roomCode, songId) {
 }
 
 function leaveRoom(roomCode, userName) {
-  return Room.findOneAndUpdate(
-    { roomCode },
-    { $pull: { members: userName } },
-    { new: true }
-  );
+  return Room.findOneAndUpdate({ roomCode }, { $pull: { members: userName } }, { new: true });
 }
 
 function deleteRoom(id) {

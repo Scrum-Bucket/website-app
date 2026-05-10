@@ -30,14 +30,19 @@ async function createUser(userName, passWord) {
   if (existingUser) {
     throw new Error("An account with this username already exists.");
   }
-  
+
   const hashedPassword = await bcrypt.hash(passWord, 10);
   const newUser = new userModel({ userName, passWord: hashedPassword });
   try {
     return await newUser.save();
   } catch (err) {
-    if (err.code === 11000 || (err.message && err.message.toLowerCase().includes("duplicate key"))) {
-      throw new Error("An account with this username already exists. Please choose a different username or log in.");
+    if (
+      err.code === 11000 ||
+      (err.message && err.message.toLowerCase().includes("duplicate key"))
+    ) {
+      throw new Error(
+        "An account with this username already exists. Please choose a different username or log in."
+      );
     }
     throw err;
   }

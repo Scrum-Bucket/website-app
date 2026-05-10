@@ -62,7 +62,7 @@ function Profile({ username }) {
 
   const handleLogout = async () => {
     const userId = localStorage.getItem("userId");
-    
+
     if (!userId) {
       // If no userId, just navigate to login
       navigate("/");
@@ -87,7 +87,7 @@ function Profile({ username }) {
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
       localStorage.removeItem("isAdmin");
-      
+
       // Navigate to login screen
       navigate("/");
     } catch (error) {
@@ -108,7 +108,7 @@ function Profile({ username }) {
   const handleRenameUser = async () => {
     const userId = localStorage.getItem("userId");
     const currentUsername = localStorage.getItem("username");
-    
+
     if (!userId) {
       console.error("No user ID found");
       return;
@@ -116,7 +116,7 @@ function Profile({ username }) {
 
     // Prompt user for new username
     const newUsername = prompt("Enter your new username:", currentUsername);
-    
+
     // User cancelled the prompt
     if (newUsername === null) {
       return;
@@ -151,7 +151,7 @@ function Profile({ username }) {
 
       // Update localStorage with new username
       localStorage.setItem("username", trimmedUsername);
-      
+
       // Update the display name state to show the new username immediately
       setDisplayName(trimmedUsername);
     } catch (error) {
@@ -202,7 +202,7 @@ function Profile({ username }) {
 
   const handleDeleteUser = async () => {
     const userId = localStorage.getItem("userId");
-    
+
     if (!userId) {
       console.error("No user ID found");
       return;
@@ -234,7 +234,7 @@ function Profile({ username }) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
-      
+
       // Navigate to login screen
       navigate("/");
     } catch (error) {
@@ -277,25 +277,59 @@ function Profile({ username }) {
           </div>
           <div className="profile-row">
             <span>Account type</span>
-            <strong>{displayName === "Guest" ? "Guest" : (isAdmin ? "Admin" : "User")}</strong>
+            <strong>{displayName === "Guest" ? "Guest" : isAdmin ? "Admin" : "User"}</strong>
           </div>
         </section>
 
         <section className="profile-actions">
-          <button className="profile-action-btn" style={{'--btn-color': '#e74c3c', '--btn-hover-color': '#c0392b'}} type="button" onClick={handleDeleteUser}>Delete User</button>
-          <button className="profile-action-btn" style={{'--btn-color': '#4aa6dd', '--btn-hover-color': '#2980b9'}} type="button" onClick={handleLogout}>Logout</button>
-          <button className="profile-action-btn" style={{'--btn-color': '#27ae60', '--btn-hover-color': '#229954'}} type="button" onClick={handleRenameUser}>Rename User</button>
-          <button className="profile-action-btn" style={{'--btn-color': '#f1c40f', '--btn-hover-color': '#d4b10f'}} type="button" onClick={handleChangePassword}>Change Password</button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#e74c3c", "--btn-hover-color": "#c0392b" }}
+            type="button"
+            onClick={handleDeleteUser}
+          >
+            Delete User
+          </button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#4aa6dd", "--btn-hover-color": "#2980b9" }}
+            type="button"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#27ae60", "--btn-hover-color": "#229954" }}
+            type="button"
+            onClick={handleRenameUser}
+          >
+            Rename User
+          </button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#f1c40f", "--btn-hover-color": "#d4b10f" }}
+            type="button"
+            onClick={handleChangePassword}
+          >
+            Change Password
+          </button>
         </section>
 
         <section className="Admin-actions">
           {isAdmin && (
             <>
-              <button className="profile-action-btn" style={{'--btn-color': '#a4a4a4', '--btn-hover-color': '#838383'}} type="button" onClick={handleAdminPanel}>Admin Panel</button>
+              <button
+                className="profile-action-btn"
+                style={{ "--btn-color": "#a4a4a4", "--btn-hover-color": "#838383" }}
+                type="button"
+                onClick={handleAdminPanel}
+              >
+                Admin Panel
+              </button>
             </>
           )}
         </section>
-
       </div>
     </div>
   );

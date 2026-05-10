@@ -186,7 +186,11 @@ function Admin() {
       <div className="admin-container">
         <header className="admin-header">
           <h1>Admin Panel</h1>
-          <button type="button" className="admin-home-btn" onClick={() => navigate("/home/profile")}>
+          <button
+            type="button"
+            className="admin-home-btn"
+            onClick={() => navigate("/home/profile")}
+          >
             Back
           </button>
         </header>
@@ -198,7 +202,7 @@ function Admin() {
             className="admin-control-btn"
             type="button"
             onClick={fetchUsers}
-            style={{'--btn-color': '#3498db', '--btn-hover-color': '#2980b9'}}
+            style={{ "--btn-color": "#3498db", "--btn-hover-color": "#2980b9" }}
           >
             Refresh Users
           </button>
@@ -221,7 +225,14 @@ function Admin() {
                     </div>
                     <div className="admin-user-details">
                       <div>ID: {user._id}</div>
-                      <div>Status: {user.status === 0 ? "Logged Out" : user.status === 1 ? "Logged In" : "Banned"}</div>
+                      <div>
+                        Status:{" "}
+                        {user.status === 0
+                          ? "Logged Out"
+                          : user.status === 1
+                            ? "Logged In"
+                            : "Banned"}
+                      </div>
                       <div>Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
                     </div>
                   </div>

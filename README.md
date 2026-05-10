@@ -1,4 +1,5 @@
 # website-app
+
 This app is currently in CI/CD as of 05/09/2026. As a result, you can look at the website here:
 frontend: https://polite-sea-008d19c10.7.azurestaticapps.net/
 backend: https://crabrave-g0ave8bxcmgxasa0.westus3-01.azurewebsites.net/users

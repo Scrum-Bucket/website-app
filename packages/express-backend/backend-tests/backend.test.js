@@ -521,9 +521,7 @@ test("youtube playlist items test", async () => {
 test("youtube playlist fail", async () => {
   global.fetch = jest.fn().mockRejectedValueOnce(new Error("YouTube failed"));
 
-  const result = await supertest(backend.app)
-    .get("/youtube/invalid_playlist_id")
-    .expect(500);
+  const result = await supertest(backend.app).get("/youtube/invalid_playlist_id").expect(500);
 
   expect(result.body.error).toBe("YouTube failed");
 });
