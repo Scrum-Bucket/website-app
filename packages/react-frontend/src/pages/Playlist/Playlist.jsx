@@ -10,20 +10,20 @@ function Playlist() {
   const [playlistId, setPlaylistId] = useState("");
   const [songs, setSongs] = useState([]);
 
-async function handleAddSong() {
-  const trimmedId = playlistId.trim();
+  async function handleAddSong() {
+    const trimmedId = playlistId.trim();
 
-  if (!trimmedId) return;
+    if (!trimmedId) return;
 
-  try {
-    const res = await fetch(`${frontendLink}/youtube/${trimmedId}`);
-    const data = await res.json();
-    setSongs(data);
-    setPlaylistId("");
-  } catch (err) {
-    console.error(err);
+    try {
+      const res = await fetch(`${frontendLink}/youtube/${trimmedId}`);
+      const data = await res.json();
+      setSongs(data);
+      setPlaylistId("");
+    } catch (err) {
+      console.error(err);
+    }
   }
-}
 
   return (
     <div className="playlist-page">

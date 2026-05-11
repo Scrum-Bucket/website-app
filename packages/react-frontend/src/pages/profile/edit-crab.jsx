@@ -31,9 +31,7 @@ function getHueFromHex(hexColor) {
 
 function EditCrab() {
   const navigate = useNavigate();
-  const [crabColor, setCrabColor] = useState(
-    localStorage.getItem("profileCrabColor") || "#e74c3c"
-  );
+  const [crabColor, setCrabColor] = useState(localStorage.getItem("profileCrabColor") || "#e74c3c");
   const crabHue = getHueFromHex(crabColor);
 
   const handleColorChange = (event) => {
@@ -51,7 +49,11 @@ function EditCrab() {
       <div className="edit-crab-window">
         <header className="edit-crab-header">
           <h1>Edit Icon</h1>
-          <button type="button" className="edit-crab-home-btn" onClick={() => navigate("/home/profile")}>
+          <button
+            type="button"
+            className="edit-crab-home-btn"
+            onClick={() => navigate("/home/profile")}
+          >
             <img src={HouseIcon} alt="Back to Profile" />
           </button>
         </header>
@@ -76,7 +78,11 @@ function EditCrab() {
               aria-label="Choose profile icon color"
             />
           </label>
-          <button type="button" className="edit-crab-save-btn" onClick={() => navigate("/home/profile")}>
+          <button
+            type="button"
+            className="edit-crab-save-btn"
+            onClick={() => navigate("/home/profile")}
+          >
             Save
           </button>
         </section>

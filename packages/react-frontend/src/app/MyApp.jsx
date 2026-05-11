@@ -40,12 +40,12 @@ function MyApp({ onLogin }) {
 
       const userData = await response.json();
       setErrorMessage("");
-      
+
       // Store username, userId, and admin status in localStorage
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
       localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
-      
+
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {
@@ -87,12 +87,12 @@ function MyApp({ onLogin }) {
 
       const userData = await response.json();
       setErrorMessage("");
-      
+
       // Store username, userId, and admin status in localStorage
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
       localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
-      
+
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {
@@ -113,7 +113,7 @@ function MyApp({ onLogin }) {
 
   return (
     <div className="page">
-      <div className="floating" style={{ minWidth: '840px', padding: '48px' }}>
+      <div className="floating" style={{ minWidth: "840px", padding: "48px" }}>
         <form className="login-row" onSubmit={handleSubmit}>
           <input
             type="text"
@@ -145,7 +145,9 @@ function MyApp({ onLogin }) {
         <button type="button" className="other-button" onClick={handleSignup}>
           Sign Up
         </button>
-        {(errorMessage || redirectError) ? <p className="auth-error">{errorMessage || redirectError}</p> : null}
+        {errorMessage || redirectError ? (
+          <p className="auth-error">{errorMessage || redirectError}</p>
+        ) : null}
         <p className="demo-accounts">Demo accounts: nick/music123 or demo/password1</p>
       </div>
     </div>
