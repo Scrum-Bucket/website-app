@@ -72,13 +72,13 @@
 .edit-crab-preview {
   width: 190px;
   height: 190px;
-  filter: hue-rotate(var(--crab-hue));
   object-fit: contain;
 }
 
 .edit-crab-controls {
   display: flex;
-  align-items: center;
+  align-items: stretch;
+  flex-direction: column;
   gap: 16px;
   margin-top: 26px;
 }
@@ -102,6 +102,40 @@
   cursor: pointer;
 }
 
+.edit-crab-hats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 10px;
+}
+
+.edit-crab-hat-btn {
+  min-height: 58px;
+  border: 2px solid #c8e5f2;
+  background: #eef6fb;
+  color: #083047;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  font-size: 0.9rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.edit-crab-hat-btn img {
+  max-width: 46px;
+  max-height: 38px;
+  object-fit: contain;
+}
+
+.edit-crab-hat-btn:hover,
+.edit-crab-hat-btn.is-selected {
+  background: #dff0f8;
+  border-color: #4aa6dd;
+  transform: translateY(-1px);
+}
+
 .edit-crab-save-btn {
   border: none;
   color: white;
@@ -122,10 +156,5 @@
 @media (max-width: 520px) {
   .edit-crab-window {
     padding: 24px;
-  }
-
-  .edit-crab-controls {
-    align-items: stretch;
-    flex-direction: column;
   }
 }
