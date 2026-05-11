@@ -4,30 +4,41 @@ import "./host.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import frontendLink from "../../frontendLink";
 
+function createRoomCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
 function Host({ username }) {
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
   async function handleCreateRoom() {
     setError("");
+    const host = username || localStorage.getItem("username") || "guest";
+    const roomCode = createRoomCode();
+    const fallbackRoom = {
+      roomCode,
+      host,
+      members: [host, "Player 2", "Player 3"],
+      queue: [],
+      started: false,
+    };
 
     try {
       const response = await fetch(`${frontendLink}/rooms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ host: username }),
+        body: JSON.stringify({ roomCode, host }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.error || "Could not create room.");
-        return;
+        throw new Error("Could not create room.");
       }
 
-      const createdRoom = await response.json();
-      navigate(`/home/room/${createdRoom.roomCode}`);
+      navigate(`/home/room/${roomCode}`);
     } catch {
-      setError("Connection error. Is the backend running?");
+      setError("Using a local test room because the backend is unavailable.");
+      navigate(`/home/room/${roomCode}`, { state: { room: fallbackRoom } });
     }
   }
 

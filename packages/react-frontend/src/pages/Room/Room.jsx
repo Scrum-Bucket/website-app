@@ -1,34 +1,63 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import frontendLink from "../../frontendLink";
+import VoteMovingBox from "../game/VoteMovingBox";
 
 const API = frontendLink;
 const POLL_MS = 2000;
 
 function Room({ username }) {
   const { roomCode } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const [room, setRoom] = useState(null);
+  const [room, setRoom] = useState(location.state?.room || null);
   const [error, setError] = useState("");
+  const [localGameStarted, setLocalGameStarted] = useState(false);
 
   // ── Fetch room state ──────────────────────────────────────────────────────
   const fetchRoom = useCallback(async () => {
-    if (!roomCode) return;
+    if (!roomCode) {
+      setRoom({
+        roomCode: "TEST",
+        host: username || "guest",
+        members: [username || "guest", "Player 2", "Player 3"],
+        queue: [],
+        started: false,
+      });
+      return;
+    }
+
+    if (location.state?.room) {
+      return;
+    }
+
     try {
       const res = await fetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
-        setError("Room not found.");
+        setRoom({
+          roomCode,
+          host: username || "guest",
+          members: [username || "guest", "Player 2", "Player 3"],
+          queue: [],
+          started: false,
+        });
         return;
       }
       const data = await res.json();
       setRoom(data);
     } catch {
-      setError("Lost connection to server.");
+      setRoom({
+        roomCode,
+        host: username || "guest",
+        members: [username || "guest", "Player 2", "Player 3"],
+        queue: [],
+        started: false,
+      });
     }
-  }, [roomCode]);
+  }, [location.state?.room, roomCode, username]);
 
   useEffect(() => {
     const initialFetchId = setTimeout(fetchRoom, 0);
@@ -59,6 +88,8 @@ function Room({ username }) {
 
   // ── Host: start game ──────────────────────────────────────────────────────
   async function handleStart() {
+    setLocalGameStarted(true);
+
     try {
       const res = await fetch(`${API}/rooms/${roomCode}/start`, {
         method: "POST",
@@ -111,9 +142,10 @@ function Room({ username }) {
   }
 
   const isHost = room.host === (username || "guest");
+  const gameStarted = room.started || localGameStarted;
 
   // ── Lobby ─────────────────────────────────────────────────────────────────
-  if (!room.started) {
+  if (!gameStarted) {
     return (
       <div className="room-page">
         <OtherBackground />
@@ -155,9 +187,8 @@ function Room({ username }) {
                 className="room-start-btn"
                 type="button"
                 onClick={handleStart}
-                disabled={room.queue.length === 0}
               >
-                {room.queue.length === 0 ? "Add songs to start" : "Start Game"}
+                Start Game
               </button>
             )}
           </div>
@@ -202,45 +233,7 @@ function Room({ username }) {
           </aside>
 
           <main className="room-main-panel">
-            <section className="room-now-playing">
-              <div className="room-now-art" aria-label="Now playing album art" />
-              <div className="room-now-bars">
-                <span />
-                <span />
-                <span />
-              </div>
-            </section>
-
-            <p className="room-queue-hint">Upvote to move a song up the queue!</p>
-
-            <section className="room-queue-list">
-              {room.queue.length === 0 && <p className="room-empty">No songs in queue yet.</p>}
-              {room.queue.map((song, index) => (
-                <article
-                  className={`room-song-row${index === 0 ? " room-song-row--top" : ""}`}
-                  key={song.songId}
-                >
-                  <div className="room-song-rank">#{index + 1}</div>
-
-                  <div className="room-song-meta">
-                    <span className="room-song-name">{song.name}</span>
-                    <span className="room-song-artist">{song.artist}</span>
-                  </div>
-
-                  <div className="room-votes">
-                    <span className="room-vote-count">{song.upvotes}</span>
-                    <button
-                      className="room-upvote-btn"
-                      type="button"
-                      onClick={() => handleUpvote(song.songId)}
-                      aria-label={`Upvote ${song.name}`}
-                    >
-                      ▲ Upvote
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </section>
+            <VoteMovingBox users={room.members.map((member) => ({ id: member, name: member }))} />
           </main>
         </section>
       </div>
