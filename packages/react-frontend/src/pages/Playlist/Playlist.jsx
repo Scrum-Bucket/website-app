@@ -10,18 +10,44 @@ function Playlist() {
   const [playlistId, setPlaylistId] = useState("");
   const [songs, setSongs] = useState([]);
 
+  // state of error for wrong URL/ID
+  // stores current error value 'error', and a function to update it 'setError'
+  const [error, setError] = useState("");
+
   async function handleAddSong() {
+
+    // clear previous errors
+    setError("");
+
     const trimmedId = playlistId.trim();
 
-    if (!trimmedId) return;
+    // If input is empty, show error and stop
+    if (!trimmedId) {
+      setError("Please enter a playlist URL or ID.");
+      return;
+    }
 
     try {
       const res = await fetch(`${frontendLink}/youtube/${trimmedId}`);
+      if (!res.ok) {
+        setError("Invalid playlist URL or ID."); // handle bad response from backend
+        return;
+      }
       const data = await res.json();
+
+      // ensure backend returned expected format/list of songs
+      if (!Array.isArray(data)) {
+        setError("Invalid playlist response."); 
+        return;
+      }
+
       setSongs(data);
       setPlaylistId("");
+
     } catch (err) {
       console.error(err);
+      // handle unexpected errors
+      setError("Could not load playlist. Please check the URL or ID."); 
     }
   }
 
@@ -41,13 +67,13 @@ function Playlist() {
             type="text"
             value={playlistId}
             onChange={(event) => setPlaylistId(event.target.value)}
-            placeholder="Enter playlist ID"
+            placeholder="Enter playlist URL or ID"
           />
           <button type="button" onClick={handleAddSong}>
             Add Song
           </button>
         </section>
-
+        {error && <p className="playlist-error">{error}</p>}
         <section className="playlist-list">
           {songs.map((song, index) => (
             <p key={index}>{song.details.title}</p>

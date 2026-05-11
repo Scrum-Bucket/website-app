@@ -97,3 +97,12 @@
     min-height: 44px;
   }
 }
+
+.playlist-error {
+  margin: 0;
+  color: white;
+  background: #8b1e1e;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+}
