@@ -31,10 +31,6 @@ const UserSchema = new mongoose.Schema(
       type: [Number], // SongIDs
       default: [],
     },
-    favorites: {
-      type: [mongoose.Schema.Types.Mixed],
-      default: [],
-    },
     crab: {
       type: [Number],
       default: [],

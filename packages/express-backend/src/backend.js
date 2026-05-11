@@ -7,6 +7,8 @@ const songServices = require("./songs/song-services.js");
 const roomServices = require("./rooms/room-services.js");
 
 const app = express();
+const ROOM_CODE_LENGTH = 6;
+const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 app.use(cors());
 app.use(express.json());
@@ -348,6 +350,40 @@ app.get("/rooms/:roomCode", async (req, res) => {
 });
 
 // POST /rooms/:roomCode/join  – join a room  { userName }
+app.post("/rooms", async (req, res) => {
+  const requestedRoomCode = normalizeRoomCode(req.body.roomCode);
+  const host = (req.body.host || req.body.userName || req.body.username || "").trim() || null;
+  const maxAttempts = requestedRoomCode ? 1 : 5;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const roomCode = requestedRoomCode || generateRoomCode();
+
+    try {
+      const existingRoom = await roomServices.findRoomByCode(roomCode);
+      if (existingRoom) {
+        if (requestedRoomCode) {
+          return res.status(409).json({ error: "Room code already exists." });
+        }
+        continue;
+      }
+
+      const created = await roomServices.addRoom(roomCode, host);
+      return res.status(201).json(created);
+    } catch (err) {
+      if (err.code === 11000) {
+        if (requestedRoomCode) {
+          return res.status(409).json({ error: "Room code already exists." });
+        }
+        continue;
+      }
+
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  return res.status(500).json({ error: "Could not create a unique room code." });
+});
+
 app.post("/rooms/:roomCode/join", async (req, res) => {
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });
