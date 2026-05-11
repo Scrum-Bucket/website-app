@@ -332,6 +332,39 @@ app.delete("/songs/:id", async (req, res) => {
 
 // ── Rooms ─────────────────────────────────────────────────────────────────────
 
+// GET /rooms  – list all rooms (optionally filter by ?roomCode=)
+app.get("/rooms", async (req, res) => {
+  const { roomCode } = req.query;
+  await roomServices
+    .getRooms(roomCode)
+    .then((rooms) => res.json(rooms))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// GET /rooms/:roomCode  – get a single room by its code
+app.get("/rooms/:roomCode", async (req, res) => {
+  await roomServices
+    .findRoomByCode(req.params.roomCode)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/join  – join a room  { userName }
+app.post("/rooms/:roomCode/join", async (req, res) => {
+  const { userName } = req.body;
+  if (!userName) return res.status(400).json({ error: "userName is required." });
+  await roomServices
+    .joinRoom(req.params.roomCode, userName)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
 // POST /rooms/:roomCode/start  – host starts the game
 app.post("/rooms/:roomCode/start", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
@@ -368,6 +401,18 @@ app.post("/rooms/:roomCode/upvote", async (req, res) => {
     .upvoteSong(roomCode, songId)
     .then((room) => res.json(room))
     .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/leave  – leave a room  { userName }
+app.post("/rooms/:roomCode/leave", async (req, res) => {
+  const { userName } = req.body;
+  await roomServices
+    .leaveRoom(req.params.roomCode, userName)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
 });
 
 // DELETE /rooms/:id  – delete a room by MongoDB id
