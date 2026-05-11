@@ -1,0 +1,124 @@
+.vote-box-game {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 18px;
+  padding: 18px;
+}
+
+.vote-box-card {
+  min-width: 0;
+  background: rgba(47, 80, 189, 0.58);
+  border: 2px solid rgba(231, 244, 255, 0.32);
+  border-radius: 12px;
+  padding: 14px;
+  color: #e7f4ff;
+}
+
+.vote-box-score {
+  min-width: 48px;
+  min-height: 36px;
+  border-radius: 10px;
+  background: #203c9b;
+  color: #f7b244;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.vote-box-button {
+  min-width: 52px;
+  min-height: 36px;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.vote-box-button--up {
+  background: #19be35;
+  box-shadow: 0 3px 0 #0e8a22;
+}
+
+.vote-box-button--down {
+  background: #e74c3c;
+  box-shadow: 0 3px 0 #a93024;
+}
+
+.vote-box-button:hover {
+  transform: translateY(-1px);
+}
+
+.vote-box-button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.vote-box-stage {
+  height: 250px;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(70px, auto);
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(142, 214, 255, 0.28);
+  padding: 18px 12px;
+}
+
+.vote-box-bar {
+  width: min(100%, 250px);
+  min-height: 62px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #eefbff 0%, #9fd7e4 58%, #4aa6dd 100%);
+  border: 3px solid #083047;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.18);
+  transition: transform 0.34s ease;
+  justify-self: center;
+  display: grid;
+  grid-template-columns: 1fr 54px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+}
+
+.vote-box-crabs {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vote-box-crab {
+  width: clamp(42px, 7vw, 68px);
+  height: clamp(42px, 7vw, 68px);
+  object-fit: contain;
+}
+
+.vote-box-user-name {
+  margin: 12px 0 0;
+  text-align: center;
+  color: #e7f4ff;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .vote-box-game {
+    padding: 12px 0;
+  }
+
+  .vote-box-stage {
+    height: 220px;
+  }
+}
