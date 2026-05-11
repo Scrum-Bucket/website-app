@@ -241,7 +241,7 @@ app.post("/users/:id/unban", async (req, res) => {
     .unbanUser(req.params.id)
     .then((user) => res.json(user))
     .catch((err) => res.status(400).json({ error: err.message }));
-}); 
+});
 
 // changePrefs: send { favorites: [...], crab: [...] } in body, both optional
 app.patch("/users/:id/prefs", async (req, res) => {

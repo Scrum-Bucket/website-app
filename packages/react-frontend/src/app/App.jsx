@@ -25,98 +25,95 @@ export function App() {
 
   return (
     <Routes>
-        <Route
-          path="/"
-          element={
-            <MyApp
-              onLogin={(loggedInUsername) => {
-                setUsername(loggedInUsername);
-                setIsLoggedIn(true);
-              }}
-            />
-          }
-        />
-        <Route
-          path="/home"
-          element={isLoggedIn ? <Home username={username} /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/home/host"
-          element={
-            isLoggedIn ? (
-              <GuestGuard username={username}>
-                <Host username={username} />
-              </GuestGuard>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-        <Route
-          path="/home/join"
-          element={isLoggedIn ? <Join /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/home/code"
-          element={isLoggedIn ? <Code username={username} /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/home/room"
-          element={isLoggedIn ? <Room username={username} /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/home/room/:roomCode"
-          element={isLoggedIn ? <Room username={username} /> : <Navigate to="/" replace />}
-        />
-        <Route
-          path="/home/playlist"
-          element={
-            isLoggedIn ? (
-              <GuestGuard username={username}>
-                <Playlist />
-              </GuestGuard>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-        <Route
-          path="/home/profile"
-          element={
-            isLoggedIn ? (
-              <GuestGuard username={username}>
-                <Profile username={username} />
-              </GuestGuard>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-        <Route
-          path="/home/admin"
-          element={
-            isLoggedIn ? (
-              <GuestGuard username={username}>
-                <Admin />
-              </GuestGuard>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-        <Route
-          path="/home/profile/edit-crab"
-          element={
-            isLoggedIn ? (
-              <GuestGuard username={username}>
-                <EditCrab />
-              </GuestGuard>
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-        <Route path="*" element={<Navigate to={isLoggedIn ? "/home" : "/"} replace />} />
+      <Route
+        path="/"
+        element={
+          <MyApp
+            onLogin={(loggedInUsername) => {
+              setUsername(loggedInUsername);
+              setIsLoggedIn(true);
+            }}
+          />
+        }
+      />
+      <Route
+        path="/home"
+        element={isLoggedIn ? <Home username={username} /> : <Navigate to="/" replace />}
+      />
+      <Route
+        path="/home/host"
+        element={
+          isLoggedIn ? (
+            <GuestGuard username={username}>
+              <Host username={username} />
+            </GuestGuard>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route path="/home/join" element={isLoggedIn ? <Join /> : <Navigate to="/" replace />} />
+      <Route
+        path="/home/code"
+        element={isLoggedIn ? <Code username={username} /> : <Navigate to="/" replace />}
+      />
+      <Route
+        path="/home/room"
+        element={isLoggedIn ? <Room username={username} /> : <Navigate to="/" replace />}
+      />
+      <Route
+        path="/home/room/:roomCode"
+        element={isLoggedIn ? <Room username={username} /> : <Navigate to="/" replace />}
+      />
+      <Route
+        path="/home/playlist"
+        element={
+          isLoggedIn ? (
+            <GuestGuard username={username}>
+              <Playlist />
+            </GuestGuard>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route
+        path="/home/profile"
+        element={
+          isLoggedIn ? (
+            <GuestGuard username={username}>
+              <Profile username={username} />
+            </GuestGuard>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route
+        path="/home/admin"
+        element={
+          isLoggedIn ? (
+            <GuestGuard username={username}>
+              <Admin />
+            </GuestGuard>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route
+        path="/home/profile/edit-crab"
+        element={
+          isLoggedIn ? (
+            <GuestGuard username={username}>
+              <EditCrab />
+            </GuestGuard>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+      <Route path="*" element={<Navigate to={isLoggedIn ? "/home" : "/"} replace />} />
     </Routes>
   );
 }
