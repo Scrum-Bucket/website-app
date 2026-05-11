@@ -108,7 +108,6 @@
 .profile-edit-crab-btn img {
   width: 74px;
   height: 74px;
-  filter: hue-rotate(var(--crab-hue));
   object-fit: contain;
 }
 

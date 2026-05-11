@@ -7,10 +7,25 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: "Sea Bubble";
+  src: url("./SeaBubble-Regular.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --app-font-family: "Sea Bubble", "Comic Sans MS", cursive;
+}
+
 html,
 body,
 #root {
   min-height: 100%;
+}
+
+body {
+  font-family: var(--app-font-family);
 }
 
 .page {
@@ -22,6 +37,12 @@ body,
   background: #8ed6ff url("./assets/login background.png") center / cover no-repeat;
 }
 
+.page,
+.page button,
+.page input {
+  font-family: "Blackbeard", "Times New Roman", serif;
+}
+
 .floating {
   animation: floatY 6s ease-in-out infinite;
   padding: 24px;
@@ -30,7 +51,6 @@ body,
   min-width: 420px;
   transform-origin: center;
   will-change: transform;
-  font-family: "Blackbeard", "Times New Roman", serif;
   background: url("./assets/leaflet.png") center / cover no-repeat;
 }
 

@@ -85,7 +85,7 @@
   margin: 0;
   color: var(--text-dark);
   font-size: 28px;
-  font-family: "Blackbeard", serif;
+  font-family: var(--app-font-family);
   line-height: 1;
 }
 
@@ -184,7 +184,7 @@
   padding: 10px 14px;
   color: var(--text-dark);
   font-size: 28px;
-  font-family: "Blackbeard", serif;
+  font-family: var(--app-font-family);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

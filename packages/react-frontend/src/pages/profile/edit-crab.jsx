@@ -1,46 +1,65 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./edit-crab.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
+import { createCrabIcon } from "./crabColor";
 
-function getHueFromHex(hexColor) {
-  const normalizedColor = hexColor.replace("#", "");
-  const red = parseInt(normalizedColor.slice(0, 2), 16) / 255;
-  const green = parseInt(normalizedColor.slice(2, 4), 16) / 255;
-  const blue = parseInt(normalizedColor.slice(4, 6), 16) / 255;
-  const max = Math.max(red, green, blue);
-  const min = Math.min(red, green, blue);
-  const delta = max - min;
+const hatImages = import.meta.glob("../../assets/hats/*.png", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
 
-  if (delta === 0) {
-    return 0;
-  }
+const hats = Object.entries(hatImages).map(([path, source]) => {
+  const fileName = path.split("/").pop();
+  const label = fileName
+    .replace(".png", "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-  if (max === red) {
-    return Math.round(60 * (((green - blue) / delta) % 6));
-  }
-
-  if (max === green) {
-    return Math.round(60 * ((blue - red) / delta + 2));
-  }
-
-  return Math.round(60 * ((red - green) / delta + 4));
-}
+  return { fileName, label, source };
+});
 
 function EditCrab() {
   const navigate = useNavigate();
-  const [crabColor, setCrabColor] = useState(localStorage.getItem("profileCrabColor") || "#e74c3c");
-  const crabHue = getHueFromHex(crabColor);
+  const [crabColor, setCrabColor] = useState(
+    localStorage.getItem("profileCrabColor") || "#e74c3c"
+  );
+  const [crabHat, setCrabHat] = useState(localStorage.getItem("profileCrabHat") || "");
+  const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
+
+  useEffect(() => {
+    let isActive = true;
+    const selectedHat = hats.find((hat) => hat.fileName === crabHat);
+
+    createCrabIcon(UserCrabIcon, crabColor, selectedHat?.source || "").then((nextIcon) => {
+      if (isActive) {
+        setCrabIcon(nextIcon);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [crabColor, crabHat]);
 
   const handleColorChange = (event) => {
     const nextColor = event.target.value;
-    const nextHue = getHueFromHex(nextColor);
 
     setCrabColor(nextColor);
     localStorage.setItem("profileCrabColor", nextColor);
-    localStorage.setItem("profileCrabHue", String(nextHue));
+  };
+
+  const handleHatChange = (nextHat) => {
+    setCrabHat(nextHat);
+
+    if (nextHat) {
+      localStorage.setItem("profileCrabHat", nextHat);
+    } else {
+      localStorage.removeItem("profileCrabHat");
+    }
   };
 
   return (
@@ -61,9 +80,8 @@ function EditCrab() {
         <section className="edit-crab-preview-wrap">
           <img
             className="edit-crab-preview"
-            src={UserCrabIcon}
+            src={crabIcon}
             alt="Profile icon preview"
-            style={{ "--crab-hue": `${crabHue}deg` }}
           />
         </section>
 
@@ -78,11 +96,28 @@ function EditCrab() {
               aria-label="Choose profile icon color"
             />
           </label>
-          <button
-            type="button"
-            className="edit-crab-save-btn"
-            onClick={() => navigate("/home/profile")}
-          >
+          <div className="edit-crab-hats" aria-label="Choose profile hat">
+            <button
+              type="button"
+              className={`edit-crab-hat-btn${crabHat === "" ? " is-selected" : ""}`}
+              onClick={() => handleHatChange("")}
+            >
+              None
+            </button>
+            {hats.map((hat) => (
+              <button
+                type="button"
+                className={`edit-crab-hat-btn${crabHat === hat.fileName ? " is-selected" : ""}`}
+                key={hat.fileName}
+                onClick={() => handleHatChange(hat.fileName)}
+                aria-label={hat.label}
+                title={hat.label}
+              >
+                <img src={hat.source} alt="" aria-hidden="true" />
+              </button>
+            ))}
+          </div>
+          <button type="button" className="edit-crab-save-btn" onClick={() => navigate("/home/profile")}>
             Save
           </button>
         </section>

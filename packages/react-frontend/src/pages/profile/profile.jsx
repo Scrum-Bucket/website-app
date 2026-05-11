@@ -1,34 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./profile.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
 import frontendLink from "../../frontendLink";
+import { createCrabIcon } from "./crabColor";
 
-function getHueFromHex(hexColor) {
-  const normalizedColor = hexColor.replace("#", "");
-  const red = parseInt(normalizedColor.slice(0, 2), 16) / 255;
-  const green = parseInt(normalizedColor.slice(2, 4), 16) / 255;
-  const blue = parseInt(normalizedColor.slice(4, 6), 16) / 255;
-  const max = Math.max(red, green, blue);
-  const min = Math.min(red, green, blue);
-  const delta = max - min;
-
-  if (delta === 0) {
-    return 0;
-  }
-
-  if (max === red) {
-    return Math.round(60 * (((green - blue) / delta) % 6));
-  }
-
-  if (max === green) {
-    return Math.round(60 * ((blue - red) / delta + 2));
-  }
-
-  return Math.round(60 * ((red - green) / delta + 4));
-}
+const hatImages = import.meta.glob("../../assets/hats/*.png", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
 
 function Profile({ username }) {
   const navigate = useNavigate();
@@ -58,7 +41,23 @@ function Profile({ username }) {
   }, []);
 
   const savedCrabColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
-  const crabHue = localStorage.getItem("profileCrabHue") || String(getHueFromHex(savedCrabColor));
+  const savedCrabHat = localStorage.getItem("profileCrabHat") || "";
+  const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
+
+  useEffect(() => {
+    let isActive = true;
+    const hatSource = savedCrabHat ? hatImages[`../../assets/hats/${savedCrabHat}`] || "" : "";
+
+    createCrabIcon(UserCrabIcon, savedCrabColor, hatSource).then((nextIcon) => {
+      if (isActive) {
+        setCrabIcon(nextIcon);
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [savedCrabColor, savedCrabHat]);
 
   const handleLogout = async () => {
     const userId = localStorage.getItem("userId");
@@ -263,12 +262,7 @@ function Profile({ username }) {
               aria-label="Edit profile icon color"
               title="Edit profile icon color"
             >
-              <img
-                src={UserCrabIcon}
-                alt=""
-                aria-hidden="true"
-                style={{ "--crab-hue": `${crabHue}deg` }}
-              />
+              <img src={crabIcon} alt="" aria-hidden="true" />
             </button>
           </div>
           <div className="profile-row">
