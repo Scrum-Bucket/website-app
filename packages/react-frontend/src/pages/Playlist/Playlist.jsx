@@ -4,6 +4,15 @@ import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import frontendLink from "../../frontendLink";
 
+function getPlaylistId(input) {
+  try {
+    const url = new URL(input);
+    return url.searchParams.get("list") || null;
+  } catch {
+    return input.trim(); // if its not a URL, treat as ID
+  }
+}
+
 function Playlist() {
   const navigate = useNavigate();
   // Now its a PlaylistID
@@ -19,16 +28,16 @@ function Playlist() {
     // clear previous errors
     setError("");
 
-    const trimmedId = playlistId.trim();
+    const parsedId = getPlaylistId(playlistId);
 
     // If input is empty, show error and stop
-    if (!trimmedId) {
+    if (!parsedId) {
       setError("Please enter a playlist URL or ID.");
       return;
     }
 
     try {
-      const res = await fetch(`${frontendLink}/youtube/${trimmedId}`);
+      const res = await fetch(`${frontendLink}/youtube/${parsedId}`);
       if (!res.ok) {
         setError("Invalid playlist URL or ID."); // handle bad response from backend
         return;
