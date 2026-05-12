@@ -3,6 +3,13 @@ import { useNavigate } from "react-router-dom";
 import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import frontendLink from "../../frontendLink";
+import {
+  getSongArtist,
+  getSongId,
+  getSongTitle,
+  readAccountPlaylist,
+  writeAccountPlaylist,
+} from "./playlistStorage";
 
 function getPlaylistId(input) {
   try {
@@ -13,11 +20,12 @@ function getPlaylistId(input) {
   }
 }
 
-function Playlist() {
+function Playlist({ username }) {
   const navigate = useNavigate();
   // Now its a PlaylistID
   const [playlistId, setPlaylistId] = useState("");
   const [songs, setSongs] = useState([]);
+  const [savedSongs, setSavedSongs] = useState(() => readAccountPlaylist(username));
 
   // state of error for wrong URL/ID
   // stores current error value 'error', and a function to update it 'setError'
@@ -60,6 +68,28 @@ function Playlist() {
     }
   }
 
+  function handleAddToAccountPlaylist(song) {
+    const nextSong = {
+      id: getSongId(song),
+      title: getSongTitle(song),
+      artist: getSongArtist(song),
+    };
+
+    if (!nextSong.id) {
+      nextSong.id = nextSong.title;
+    }
+
+    if (savedSongs.some((savedSong) => savedSong.id === nextSong.id)) {
+      setError("That song is already in your playlist.");
+      return;
+    }
+
+    const nextSavedSongs = [...savedSongs, nextSong];
+    setSavedSongs(nextSavedSongs);
+    writeAccountPlaylist(username, nextSavedSongs);
+    setError("");
+  }
+
   return (
     <div className="playlist-page">
       <OtherBackground />
@@ -68,6 +98,9 @@ function Playlist() {
           <h1>Playlist</h1>
           <button type="button" onClick={() => navigate("/home")}>
             Back to Home
+          </button>
+          <button type="button" onClick={() => navigate("/home/my-playlist")}>
+            My Playlist
           </button>
         </header>
 
@@ -85,7 +118,15 @@ function Playlist() {
         {error && <p className="playlist-error">{error}</p>}
         <section className="playlist-list">
           {songs.map((song, index) => (
-            <p key={index}>{song.details.title}</p>
+            <article className="playlist-song-row" key={getSongId(song) || index}>
+              <div className="playlist-song-meta">
+                <span>{getSongTitle(song)}</span>
+                {getSongArtist(song) && <small>{getSongArtist(song)}</small>}
+              </div>
+              <button type="button" onClick={() => handleAddToAccountPlaylist(song)}>
+                Add
+              </button>
+            </article>
           ))}
         </section>
       </div>

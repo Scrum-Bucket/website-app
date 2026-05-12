@@ -14,10 +14,8 @@ function Room({ username }) {
   const navigate = useNavigate();
 
   const [room, setRoom] = useState(location.state?.room || null);
-  const [error, setError] = useState("");
   const [localGameStarted, setLocalGameStarted] = useState(false);
 
-  // ── Fetch room state ──────────────────────────────────────────────────────
   const fetchRoom = useCallback(async () => {
     if (!roomCode) {
       setRoom({
@@ -69,24 +67,6 @@ function Room({ username }) {
     };
   }, [fetchRoom]);
 
-  // ── Upvote ────────────────────────────────────────────────────────────────
-  async function handleUpvote(songId) {
-    try {
-      const res = await fetch(`${API}/rooms/${roomCode}/upvote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setRoom(updated);
-      }
-    } catch {
-      // silent — next poll will sync
-    }
-  }
-
-  // ── Host: start game ──────────────────────────────────────────────────────
   async function handleStart() {
     setLocalGameStarted(true);
 
@@ -100,11 +80,10 @@ function Room({ username }) {
         setRoom(updated);
       }
     } catch {
-      // silent
+      // Local test mode can still start without the backend.
     }
   }
 
-  // ── Leave room ────────────────────────────────────────────────────────────
   async function handleLeave() {
     try {
       await fetch(`${API}/rooms/${roomCode}/leave`, {
@@ -117,26 +96,11 @@ function Room({ username }) {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-  if (error) {
-    return (
-      <div className="room-page">
-        <OtherBackground />
-        <div className="room-error-box">
-          <p>{error}</p>
-          <button type="button" onClick={() => navigate("/home")}>
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (!room) {
     return (
       <div className="room-page">
         <OtherBackground />
-        <div className="room-loading">Connecting…</div>
+        <div className="room-loading">Connecting...</div>
       </div>
     );
   }
@@ -144,7 +108,6 @@ function Room({ username }) {
   const isHost = room.host === (username || "guest");
   const gameStarted = room.started || localGameStarted;
 
-  // ── Lobby ─────────────────────────────────────────────────────────────────
   if (!gameStarted) {
     return (
       <div className="room-page">
@@ -163,20 +126,20 @@ function Room({ username }) {
               aria-label="leave room"
               onClick={handleLeave}
             >
-              ✕
+              x
             </button>
           </header>
 
           <div className="room-lobby">
-            <h2 className="room-lobby-title">Waiting for host to start…</h2>
+            <h2 className="room-lobby-title">Waiting for host to start...</h2>
 
             <div className="room-lobby-members">
               <p className="room-lobby-members-label">Players in room</p>
               <ul className="room-members-list">
-                {room.members.map((m) => (
-                  <li key={m} className="room-member-item">
-                    {m}
-                    {m === room.host ? " 👑" : ""}
+                {room.members.map((member) => (
+                  <li key={member} className="room-member-item">
+                    {member}
+                    {member === room.host ? " Host" : ""}
                   </li>
                 ))}
               </ul>
@@ -197,7 +160,6 @@ function Room({ username }) {
     );
   }
 
-  // ── Game ──────────────────────────────────────────────────────────────────
   return (
     <div className="room-page">
       <OtherBackground />
@@ -215,7 +177,7 @@ function Room({ username }) {
             aria-label="leave room"
             onClick={handleLeave}
           >
-            ✕
+            x
           </button>
         </header>
 
@@ -223,17 +185,19 @@ function Room({ username }) {
           <aside className="room-side-panel">
             <p className="room-side-label">Players</p>
             <ul className="room-members-list room-members-list--side">
-              {room.members.map((m) => (
-                <li key={m} className="room-member-item">
-                  {m}
-                  {m === room.host ? " 👑" : ""}
+              {room.members.map((member) => (
+                <li key={member} className="room-member-item">
+                  {member}
+                  {member === room.host ? " Host" : ""}
                 </li>
               ))}
             </ul>
           </aside>
 
           <main className="room-main-panel">
-            <VoteMovingBox users={room.members.map((member) => ({ id: member, name: member }))} />
+            <VoteMovingBox
+              users={room.members.map((member) => ({ id: member, name: member }))}
+            />
           </main>
         </section>
       </div>

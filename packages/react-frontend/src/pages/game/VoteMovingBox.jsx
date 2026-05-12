@@ -101,17 +101,6 @@ function VoteMovingBox({ users }) {
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
 
   useEffect(() => {
-    setScores((currentScores) =>
-      Object.fromEntries(
-        normalizedUsers.map((user) => [
-          user.id,
-          currentScores[user.id] ?? user.initialScore,
-        ])
-      )
-    );
-  }, [normalizedUsers]);
-
-  useEffect(() => {
     let isActive = true;
     const savedColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
     const savedHat = localStorage.getItem("profileCrabHat") || "";
