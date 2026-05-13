@@ -41,7 +41,7 @@ async function findOrCreateSong(songData) {
 function searchSong(keyword) {
   if (!keyword) return song.find();
   return song.find({
-    details: { $elemMatch: { $regex: keyword, $options: "i" } },
+    "details.title": { $regex: keyword, $options: "i" },
   });
 }
 

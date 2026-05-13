@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import frontendLink from "../../frontendLink";
+
 import {
   getSongArtist,
   getSongId,
@@ -45,11 +46,28 @@ function Playlist({ username }) {
     }
 
     try {
-      const res = await fetch(`${frontendLink}/youtube/${parsedId}`);
+      const userId = localStorage.getItem("userId");
+
+      if (!userId) {
+        setError("You must be logged in to save a playlist.");
+        return;
+      }
+
+      const res = await fetch(`${frontendLink}/users/${userId}/playlists/youtube/${parsedId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playlistName: "My Playlist",
+        }),
+      });
+
       if (!res.ok) {
         setError("Invalid playlist URL or ID."); // handle bad response from backend
         return;
       }
+
       const data = await res.json();
 
       // ensure backend returned expected format/list of songs
