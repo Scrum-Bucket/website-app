@@ -10,8 +10,16 @@ const SongSchema = new mongoose.Schema(
     },
 
     details: {
-      type: [String],
-      default: [],
+      title: {
+        type: String,
+        required: true,
+      },
+      thumbnail: {
+        type: String,
+      },
+      description: {
+        type: String,
+      },
     },
   },
   {
