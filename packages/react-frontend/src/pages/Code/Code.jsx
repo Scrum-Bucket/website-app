@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./code.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 
 const API = frontendLink;
@@ -24,7 +25,7 @@ function Code({ username }) {
 
     try {
       // Verify the room exists
-      const checkRes = await fetch(`${API}/rooms/${trimmed}`);
+      const checkRes = await authFetch(`${API}/rooms/${trimmed}`);
       if (!checkRes.ok) {
         setError("Room not found. Check the code and try again.");
         setLoading(false);
@@ -32,7 +33,7 @@ function Code({ username }) {
       }
 
       // Join the room
-      await fetch(`${API}/rooms/${trimmed}/join`, {
+      await authFetch(`${API}/rooms/${trimmed}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName: username || "guest" }),

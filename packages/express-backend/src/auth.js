@@ -3,7 +3,10 @@ const crypto = require("crypto");
 const { requireEnv } = require("./env");
 
 const AUTH_COOKIE_NAME = "backendAuthToken";
+const USER_AUTH_COOKIE_NAME = "userAuthToken";
 const DEFAULT_TOKEN_EXPIRES_IN = "600s";
+const DEFAULT_USER_TOKEN_EXPIRES_IN = "2h";
+const DEFAULT_USER_TOKEN_COOKIE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 function getTokenSecret() {
   return requireEnv("TOKEN_SECRET");
@@ -17,10 +20,29 @@ function getTokenExpiresIn() {
   return process.env.TOKEN_EXPIRES_IN || DEFAULT_TOKEN_EXPIRES_IN;
 }
 
+function getUserTokenExpiresIn() {
+  return process.env.USER_TOKEN_EXPIRES_IN || DEFAULT_USER_TOKEN_EXPIRES_IN;
+}
+
 function generateAccessToken() {
   return jwt.sign({ type: "backend-access" }, getTokenSecret(), {
     expiresIn: getTokenExpiresIn(),
   });
+}
+
+function generateUserAccessToken(user) {
+  return jwt.sign(
+    {
+      type: "frontend-user",
+      userId: user._id?.toString(),
+      username: user.userName,
+      isAdmin: user.isAdmin === true,
+    },
+    getTokenSecret(),
+    {
+      expiresIn: getUserTokenExpiresIn(),
+    }
+  );
 }
 
 function parseCookies(cookieHeader = "") {
@@ -60,7 +82,11 @@ function getBearerToken(req) {
 
 function getRequestToken(req) {
   const cookies = parseCookies(req.headers.cookie);
-  return getBearerToken(req) || cookies[AUTH_COOKIE_NAME] || null;
+  return getBearerToken(req) || cookies[AUTH_COOKIE_NAME] || cookies[USER_AUTH_COOKIE_NAME] || null;
+}
+
+function isPublicRequest(req) {
+  return req.method === "POST" && req.path === "/users/login";
 }
 
 function wantsHtml(req) {
@@ -81,7 +107,7 @@ function rejectUnauthenticated(req, res, message = "Authentication required.") {
 }
 
 function authenticateUser(req, res, next) {
-  if (req.method === "OPTIONS") {
+  if (req.method === "OPTIONS" || isPublicRequest(req)) {
     return next();
   }
 
@@ -98,12 +124,24 @@ function authenticateUser(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, getTokenSecret());
-    req.auth = { type: "jwt", ...decoded };
+    if (decoded.type !== "backend-access" && decoded.type !== "frontend-user") {
+      return rejectUnauthenticated(req, res, "Invalid access token.");
+    }
+
+    req.auth = decoded;
     return next();
   } catch (error) {
     console.log("Token authentication failed:", error.message);
     return rejectUnauthenticated(req, res, "Invalid or expired access token.");
   }
+}
+
+function requireBackendAccess(req, res, next) {
+  if (req.auth?.type === "shared-token" || req.auth?.type === "backend-access") {
+    return next();
+  }
+
+  return res.status(403).json({ error: "Backend access token required." });
 }
 
 function escapeHtml(value) {
@@ -121,13 +159,43 @@ function safeNextPath(next) {
   return next;
 }
 
-function getCookieOptions(req) {
+function isSecureRequest(req) {
+  return req.secure || req.headers["x-forwarded-proto"] === "https";
+}
+
+function getCookieSameSite(req) {
+  if (process.env.AUTH_COOKIE_SAME_SITE) {
+    return process.env.AUTH_COOKIE_SAME_SITE;
+  }
+
+  return isSecureRequest(req) ? "none" : "lax";
+}
+
+function getCookieOptions(req, maxAge = 10 * 60 * 1000) {
   return {
     httpOnly: true,
-    sameSite: "lax",
-    secure: req.secure || req.headers["x-forwarded-proto"] === "https",
-    maxAge: 10 * 60 * 1000,
+    sameSite: getCookieSameSite(req),
+    secure: isSecureRequest(req),
+    maxAge,
+    path: "/",
   };
+}
+
+function getUserCookieOptions(req) {
+  const maxAge = Number(process.env.USER_TOKEN_COOKIE_MAX_AGE_MS);
+  return getCookieOptions(
+    req,
+    Number.isFinite(maxAge) && maxAge > 0 ? maxAge : DEFAULT_USER_TOKEN_COOKIE_MAX_AGE_MS
+  );
+}
+
+function setUserAuthCookie(req, res, user) {
+  const token = generateUserAccessToken(user);
+  res.cookie(USER_AUTH_COOKIE_NAME, token, getUserCookieOptions(req));
+}
+
+function clearUserAuthCookie(req, res) {
+  res.clearCookie(USER_AUTH_COOKIE_NAME, getUserCookieOptions(req));
 }
 
 function renderSigninPage(res, { error = "", next = "/" } = {}) {
@@ -270,6 +338,7 @@ function signin(req, res) {
 
 function signout(req, res) {
   res.clearCookie(AUTH_COOKIE_NAME, getCookieOptions(req));
+  clearUserAuthCookie(req, res);
   if (wantsJson(req)) {
     return res.status(204).send();
   }
@@ -279,6 +348,11 @@ function signout(req, res) {
 module.exports = {
   authenticateUser,
   generateAccessToken,
+  generateUserAccessToken,
+  getUserTokenExpiresIn,
+  clearUserAuthCookie,
+  requireBackendAccess,
+  setUserAuthCookie,
   signin,
   signinPage,
   signout,
