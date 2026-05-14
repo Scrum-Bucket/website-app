@@ -37,6 +37,30 @@ test("signin page is public", async () => {
   expect(result.text).toContain("Backend Sign In");
 });
 
+test("deployed frontend origin can make credentialed cors requests", async () => {
+  const result = await supertest(backend.app)
+    .options("/users/login")
+    .set("Origin", "https://polite-sea-008d19c10.7.azurestaticapps.net")
+    .set("Access-Control-Request-Method", "POST")
+    .expect(204);
+
+  expect(result.headers["access-control-allow-origin"]).toBe(
+    "https://polite-sea-008d19c10.7.azurestaticapps.net"
+  );
+  expect(result.headers["access-control-allow-credentials"]).toBe("true");
+});
+
+test("local frontend origin can use any dev port for credentialed cors requests", async () => {
+  const result = await supertest(backend.app)
+    .options("/users/login")
+    .set("Origin", "http://localhost:5174")
+    .set("Access-Control-Request-Method", "POST")
+    .expect(204);
+
+  expect(result.headers["access-control-allow-origin"]).toBe("http://localhost:5174");
+  expect(result.headers["access-control-allow-credentials"]).toBe("true");
+});
+
 test("protected api request without token is rejected", async () => {
   const result = await supertest(backend.app)
     .get("/users")
