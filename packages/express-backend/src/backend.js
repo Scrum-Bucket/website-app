@@ -20,9 +20,20 @@ const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 app.set("trust proxy", 1);
+
+function normalizeCorsOrigin(origin) {
+  if (!origin) return "";
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin.replace(/\/+$/, "");
+  }
+}
+
 const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_ORIGIN || "")
   .split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => normalizeCorsOrigin(origin.trim()))
   .filter(Boolean);
 
 const defaultAllowedOrigins = [
@@ -34,10 +45,13 @@ const defaultAllowedOrigins = [
 ];
 
 function isAllowedCorsOrigin(origin) {
-  const configuredOrigins = allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins;
+  const normalizedOrigin = normalizeCorsOrigin(origin);
+  const configuredOrigins = allowedOrigins.length
+    ? allowedOrigins
+    : defaultAllowedOrigins.map(normalizeCorsOrigin);
   const isLocalDevOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
 
-  return configuredOrigins.includes(origin) || isLocalDevOrigin;
+  return configuredOrigins.includes(normalizedOrigin) || isLocalDevOrigin;
 }
 
 app.use(

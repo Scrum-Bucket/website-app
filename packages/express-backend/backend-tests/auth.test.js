@@ -1,9 +1,11 @@
 const originalSkipDotenv = process.env.SKIP_DOTENV;
 const originalBackendAccessToken = process.env.BACKEND_ACCESS_TOKEN;
+const originalCorsOrigin = process.env.CORS_ORIGIN;
 const originalTokenSecret = process.env.TOKEN_SECRET;
 
 process.env.SKIP_DOTENV = "true";
 process.env.BACKEND_ACCESS_TOKEN = "test-backend-access-token";
+process.env.CORS_ORIGIN = "https://polite-sea-008d19c10.7.azurestaticapps.net/";
 process.env.TOKEN_SECRET = "test-token-secret";
 
 const supertest = require("supertest");
@@ -28,6 +30,7 @@ beforeEach(() => {
 afterAll(() => {
   restoreEnv("SKIP_DOTENV", originalSkipDotenv);
   restoreEnv("BACKEND_ACCESS_TOKEN", originalBackendAccessToken);
+  restoreEnv("CORS_ORIGIN", originalCorsOrigin);
   restoreEnv("TOKEN_SECRET", originalTokenSecret);
 });
 
