@@ -17,8 +17,8 @@ function getTokenExpiresIn() {
   return process.env.TOKEN_EXPIRES_IN || DEFAULT_TOKEN_EXPIRES_IN;
 }
 
-function generateAccessToken(username) {
-  return jwt.sign({ username }, getTokenSecret(), {
+function generateAccessToken() {
+  return jwt.sign({ type: "backend-access" }, getTokenSecret(), {
     expiresIn: getTokenExpiresIn(),
   });
 }
@@ -203,8 +203,6 @@ function renderSigninPage(res, { error = "", next = "/" } = {}) {
       ${error ? `<p class="error">${escapeHtml(error)}</p>` : ""}
       <form method="post" action="/signin">
         <input type="hidden" name="next" value="${escapeHtml(safeNextPath(next))}" />
-        <label for="username">Name</label>
-        <input id="username" name="username" autocomplete="username" />
         <label for="token">Access token</label>
         <input id="token" name="token" type="password" autocomplete="current-password" required />
         <button type="submit">Sign In</button>
@@ -230,7 +228,6 @@ function signinPage(req, res) {
 function signin(req, res) {
   const next = safeNextPath(req.body.next || req.query.next);
   const submittedToken = req.body.token || req.body.accessToken || req.body.password;
-  const username = (req.body.username || "backend-user").trim() || "backend-user";
   const sharedAccessToken = getSharedAccessToken();
 
   if (!sharedAccessToken) {
@@ -250,7 +247,7 @@ function signin(req, res) {
   }
 
   try {
-    const token = generateAccessToken(username);
+    const token = generateAccessToken();
     res.cookie(AUTH_COOKIE_NAME, token, getCookieOptions(req));
 
     if (wantsJson(req)) {

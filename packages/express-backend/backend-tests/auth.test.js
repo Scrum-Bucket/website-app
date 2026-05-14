@@ -81,7 +81,7 @@ test("signin returns a jwt that can access protected routes", async () => {
   const signinResult = await supertest(backend.app)
     .post("/signin")
     .set("Accept", "application/json")
-    .send({ username: "Chris", token: "test-backend-access-token" })
+    .send({ token: "test-backend-access-token" })
     .expect(200);
 
   expect(signinResult.body.tokenType).toBe("Bearer");
@@ -101,7 +101,7 @@ test("signin form sets an auth cookie for browser access", async () => {
   const signinResult = await supertest(backend.app)
     .post("/signin")
     .type("form")
-    .send({ username: "Chris", token: "test-backend-access-token", next: "/users" })
+    .send({ token: "test-backend-access-token", next: "/users" })
     .expect(302);
 
   expect(signinResult.headers.location).toBe("/users");
