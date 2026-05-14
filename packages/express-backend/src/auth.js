@@ -3,8 +3,10 @@ const crypto = require("crypto");
 const { requireEnv } = require("./env");
 
 const AUTH_COOKIE_NAME = "backendAuthToken";
+const USER_AUTH_COOKIE_NAME = "userAuthToken";
 const DEFAULT_TOKEN_EXPIRES_IN = "600s";
 const DEFAULT_USER_TOKEN_EXPIRES_IN = "2h";
+const DEFAULT_USER_TOKEN_COOKIE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 function getTokenSecret() {
   return requireEnv("TOKEN_SECRET");
@@ -80,7 +82,7 @@ function getBearerToken(req) {
 
 function getRequestToken(req) {
   const cookies = parseCookies(req.headers.cookie);
-  return getBearerToken(req) || cookies[AUTH_COOKIE_NAME] || null;
+  return getBearerToken(req) || cookies[AUTH_COOKIE_NAME] || cookies[USER_AUTH_COOKIE_NAME] || null;
 }
 
 function isPublicRequest(req) {
@@ -157,13 +159,43 @@ function safeNextPath(next) {
   return next;
 }
 
-function getCookieOptions(req) {
+function isSecureRequest(req) {
+  return req.secure || req.headers["x-forwarded-proto"] === "https";
+}
+
+function getCookieSameSite(req) {
+  if (process.env.AUTH_COOKIE_SAME_SITE) {
+    return process.env.AUTH_COOKIE_SAME_SITE;
+  }
+
+  return isSecureRequest(req) ? "none" : "lax";
+}
+
+function getCookieOptions(req, maxAge = 10 * 60 * 1000) {
   return {
     httpOnly: true,
-    sameSite: "lax",
-    secure: req.secure || req.headers["x-forwarded-proto"] === "https",
-    maxAge: 10 * 60 * 1000,
+    sameSite: getCookieSameSite(req),
+    secure: isSecureRequest(req),
+    maxAge,
+    path: "/",
   };
+}
+
+function getUserCookieOptions(req) {
+  const maxAge = Number(process.env.USER_TOKEN_COOKIE_MAX_AGE_MS);
+  return getCookieOptions(
+    req,
+    Number.isFinite(maxAge) && maxAge > 0 ? maxAge : DEFAULT_USER_TOKEN_COOKIE_MAX_AGE_MS
+  );
+}
+
+function setUserAuthCookie(req, res, user) {
+  const token = generateUserAccessToken(user);
+  res.cookie(USER_AUTH_COOKIE_NAME, token, getUserCookieOptions(req));
+}
+
+function clearUserAuthCookie(req, res) {
+  res.clearCookie(USER_AUTH_COOKIE_NAME, getUserCookieOptions(req));
 }
 
 function renderSigninPage(res, { error = "", next = "/" } = {}) {
@@ -306,6 +338,7 @@ function signin(req, res) {
 
 function signout(req, res) {
   res.clearCookie(AUTH_COOKIE_NAME, getCookieOptions(req));
+  clearUserAuthCookie(req, res);
   if (wantsJson(req)) {
     return res.status(204).send();
   }
@@ -317,7 +350,9 @@ module.exports = {
   generateAccessToken,
   generateUserAccessToken,
   getUserTokenExpiresIn,
+  clearUserAuthCookie,
   requireBackendAccess,
+  setUserAuthCookie,
   signin,
   signinPage,
   signout,

@@ -24,6 +24,7 @@ function MyApp({ onLogin }) {
     try {
       const response = await fetch(`${frontendLink}/users/login`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -43,9 +44,7 @@ function MyApp({ onLogin }) {
       setErrorMessage("");
 
       // Store username, userId, and admin status in localStorage
-      if (userData.accessToken) {
-        localStorage.setItem("authToken", userData.accessToken);
-      }
+      localStorage.removeItem("authToken");
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
       localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
@@ -105,7 +104,19 @@ function MyApp({ onLogin }) {
     }
   }
 
-  function handleGuestLogin() {
+  async function handleGuestLogin() {
+    try {
+      await fetch(`${frontendLink}/signout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+    } catch {
+      // Guest mode can continue even if the backend is unavailable.
+    }
+
     localStorage.removeItem("authToken");
     localStorage.removeItem("username");
     localStorage.removeItem("userId");

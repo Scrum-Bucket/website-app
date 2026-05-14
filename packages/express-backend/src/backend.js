@@ -4,9 +4,9 @@ const cors = require("cors"); //frontend to backend
 const { requireEnv } = require("./env");
 const {
   authenticateUser,
-  generateUserAccessToken,
-  getUserTokenExpiresIn,
+  clearUserAuthCookie,
   requireBackendAccess,
+  setUserAuthCookie,
   signin,
   signinPage,
   signout,
@@ -20,7 +20,33 @@ const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 app.set("trust proxy", 1);
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_ORIGIN || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+];
+
+app.use(
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+
+      const configuredOrigins = allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins;
+      if (configuredOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -35,15 +61,10 @@ function normalizeRoomCode(roomCode) {
   return (roomCode || "").trim().toUpperCase();
 }
 
-function userWithAccessToken(user) {
+function userResponse(user) {
   const userData = typeof user.toObject === "function" ? user.toObject() : user;
 
-  return {
-    ...userData,
-    accessToken: generateUserAccessToken(userData),
-    tokenType: "Bearer",
-    expiresIn: getUserTokenExpiresIn(),
-  };
+  return { ...userData, authenticated: true };
 }
 
 app.get("/signin", signinPage);
@@ -214,7 +235,10 @@ app.post("/users/login", async (req, res) => {
   const { username, password } = req.body;
   await userServices
     .loginUser(username, password)
-    .then((user) => res.json(userWithAccessToken(user)))
+    .then((user) => {
+      setUserAuthCookie(req, res, user);
+      res.json(userResponse(user));
+    })
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
@@ -222,7 +246,10 @@ app.post("/users/login", async (req, res) => {
 app.post("/users/:id/logout", async (req, res) => {
   await userServices
     .logoutUser(req.params.id)
-    .then((user) => res.json(user))
+    .then((user) => {
+      clearUserAuthCookie(req, res);
+      res.json(user);
+    })
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 

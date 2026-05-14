@@ -65,11 +65,11 @@ test("frontend login does not require backend access token", async () => {
     .expect(200);
 
   expect(result.body.status).toBe(1);
-  expect(result.body.accessToken).toBeTruthy();
-  expect(result.body.tokenType).toBe("Bearer");
+  expect(result.body.accessToken).toBeUndefined();
+  expect(result.headers["set-cookie"][0]).toContain("userAuthToken=");
 });
 
-test("frontend user jwt can access protected routes", async () => {
+test("frontend user auth cookie can access protected routes", async () => {
   const existingUser = {
     _id: "507f1f77bcf86cd799439011",
     userName: "frontend-user",
@@ -91,7 +91,7 @@ test("frontend user jwt can access protected routes", async () => {
 
   const usersResult = await supertest(backend.app)
     .get("/users")
-    .set("Authorization", `Bearer ${loginResult.body.accessToken}`)
+    .set("Cookie", loginResult.headers["set-cookie"])
     .expect(200);
 
   expect(usersResult.body).toStrictEqual([]);
@@ -179,9 +179,10 @@ test("signin form sets an auth cookie for browser access", async () => {
 test("signout link clears the auth cookie and redirects to signin", async () => {
   const result = await supertest(backend.app)
     .get("/signout")
-    .set("Cookie", "backendAuthToken=test-token")
+    .set("Cookie", ["backendAuthToken=test-token", "userAuthToken=test-user-token"])
     .expect(302);
 
   expect(result.headers.location).toBe("/signin");
-  expect(result.headers["set-cookie"][0]).toContain("backendAuthToken=");
+  expect(result.headers["set-cookie"].join(";")).toContain("backendAuthToken=");
+  expect(result.headers["set-cookie"].join(";")).toContain("userAuthToken=");
 });
