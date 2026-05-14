@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors"); //frontend to backend
 const { requireEnv } = require("./env");
+const { authenticateUser, signin, signinPage, signout } = require("./auth");
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
 const roomServices = require("./rooms/room-services.js");
@@ -10,8 +11,10 @@ const app = express();
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
+app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 function generateRoomCode() {
   return Array.from({ length: ROOM_CODE_LENGTH }, () => {
@@ -24,6 +27,15 @@ function normalizeRoomCode(roomCode) {
   return (roomCode || "").trim().toUpperCase();
 }
 
+app.get("/signin", signinPage);
+app.post("/signin", signin);
+app.post("/signout", signout);
+
+app.get("/", (req, res) => {
+  res.send("Backend running.");
+});
+
+app.use(authenticateUser);
 
 app.get("/youtube/:link", async (req, res) => {
   const { link } = req.params;
@@ -272,10 +284,6 @@ app.get("/users/:id/admin-status", async (req, res) => {
     .isAdmin(req.params.id)
     .then((isAdminStatus) => res.json({ isAdmin: isAdminStatus }))
     .catch((err) => res.status(400).json({ error: err.message }));
-});
-
-app.get("/", (req, res) => {
-  res.send("Backend running.");
 });
 
 // ── Songs ─────────────────────────────────────────────────────────────────────

@@ -1,10 +1,12 @@
 const path = require("path");
 const dotenv = require("dotenv");
 
-dotenv.config({
-  path: path.resolve(__dirname, "..", "..", "..", "config", "database.env"),
-  quiet: true,
-});
+if (process.env.SKIP_DOTENV !== "true") {
+  dotenv.config({
+    path: path.resolve(__dirname, "..", "..", "..", "config", "database.env"),
+    quiet: true,
+  });
+}
 
 function requireEnv(name) {
   const value = process.env[name];
