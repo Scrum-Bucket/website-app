@@ -114,3 +114,13 @@ test("signin form sets an auth cookie for browser access", async () => {
 
   expect(usersResult.body).toStrictEqual([]);
 });
+
+test("signout link clears the auth cookie and redirects to signin", async () => {
+  const result = await supertest(backend.app)
+    .get("/signout")
+    .set("Cookie", "backendAuthToken=test-token")
+    .expect(302);
+
+  expect(result.headers.location).toBe("/signin");
+  expect(result.headers["set-cookie"][0]).toContain("backendAuthToken=");
+});

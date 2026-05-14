@@ -29,6 +29,7 @@ function normalizeRoomCode(roomCode) {
 
 app.get("/signin", signinPage);
 app.post("/signin", signin);
+app.get("/signout", signout);
 app.post("/signout", signout);
 
 app.get("/", (req, res) => {
