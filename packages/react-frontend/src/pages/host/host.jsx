@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./host.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 
 function createRoomCode() {
@@ -25,7 +26,7 @@ function Host({ username }) {
     };
 
     try {
-      const response = await fetch(`${frontendLink}/rooms`, {
+      const response = await authFetch(`${frontendLink}/rooms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomCode, host }),

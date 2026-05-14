@@ -2,7 +2,15 @@
 const express = require("express");
 const cors = require("cors"); //frontend to backend
 const { requireEnv } = require("./env");
-const { authenticateUser, signin, signinPage, signout } = require("./auth");
+const {
+  authenticateUser,
+  generateUserAccessToken,
+  getUserTokenExpiresIn,
+  requireBackendAccess,
+  signin,
+  signinPage,
+  signout,
+} = require("./auth");
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
 const roomServices = require("./rooms/room-services.js");
@@ -25,6 +33,17 @@ function generateRoomCode() {
 
 function normalizeRoomCode(roomCode) {
   return (roomCode || "").trim().toUpperCase();
+}
+
+function userWithAccessToken(user) {
+  const userData = typeof user.toObject === "function" ? user.toObject() : user;
+
+  return {
+    ...userData,
+    accessToken: generateUserAccessToken(userData),
+    tokenType: "Bearer",
+    expiresIn: getUserTokenExpiresIn(),
+  };
 }
 
 app.get("/signin", signinPage);
@@ -159,7 +178,7 @@ app.get("/users/:id", async (req, res) => {
 });
 
 // createUser
-app.post("/users", async (req, res) => {
+app.post("/users", requireBackendAccess, async (req, res) => {
   console.log("Received create user request with body:", req.body);
   const userName = req.body.username;
   const passWord = req.body.password;
@@ -195,7 +214,7 @@ app.post("/users/login", async (req, res) => {
   const { username, password } = req.body;
   await userServices
     .loginUser(username, password)
-    .then((user) => res.json(user))
+    .then((user) => res.json(userWithAccessToken(user)))
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 

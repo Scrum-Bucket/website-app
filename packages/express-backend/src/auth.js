@@ -4,6 +4,7 @@ const { requireEnv } = require("./env");
 
 const AUTH_COOKIE_NAME = "backendAuthToken";
 const DEFAULT_TOKEN_EXPIRES_IN = "600s";
+const DEFAULT_USER_TOKEN_EXPIRES_IN = "2h";
 
 function getTokenSecret() {
   return requireEnv("TOKEN_SECRET");
@@ -17,10 +18,29 @@ function getTokenExpiresIn() {
   return process.env.TOKEN_EXPIRES_IN || DEFAULT_TOKEN_EXPIRES_IN;
 }
 
+function getUserTokenExpiresIn() {
+  return process.env.USER_TOKEN_EXPIRES_IN || DEFAULT_USER_TOKEN_EXPIRES_IN;
+}
+
 function generateAccessToken() {
   return jwt.sign({ type: "backend-access" }, getTokenSecret(), {
     expiresIn: getTokenExpiresIn(),
   });
+}
+
+function generateUserAccessToken(user) {
+  return jwt.sign(
+    {
+      type: "frontend-user",
+      userId: user._id?.toString(),
+      username: user.userName,
+      isAdmin: user.isAdmin === true,
+    },
+    getTokenSecret(),
+    {
+      expiresIn: getUserTokenExpiresIn(),
+    }
+  );
 }
 
 function parseCookies(cookieHeader = "") {
@@ -63,6 +83,10 @@ function getRequestToken(req) {
   return getBearerToken(req) || cookies[AUTH_COOKIE_NAME] || null;
 }
 
+function isPublicRequest(req) {
+  return req.method === "POST" && req.path === "/users/login";
+}
+
 function wantsHtml(req) {
   return req.method === "GET" && req.accepts(["html", "json"]) === "html";
 }
@@ -81,7 +105,7 @@ function rejectUnauthenticated(req, res, message = "Authentication required.") {
 }
 
 function authenticateUser(req, res, next) {
-  if (req.method === "OPTIONS") {
+  if (req.method === "OPTIONS" || isPublicRequest(req)) {
     return next();
   }
 
@@ -98,12 +122,24 @@ function authenticateUser(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, getTokenSecret());
-    req.auth = { type: "jwt", ...decoded };
+    if (decoded.type !== "backend-access" && decoded.type !== "frontend-user") {
+      return rejectUnauthenticated(req, res, "Invalid access token.");
+    }
+
+    req.auth = decoded;
     return next();
   } catch (error) {
     console.log("Token authentication failed:", error.message);
     return rejectUnauthenticated(req, res, "Invalid or expired access token.");
   }
+}
+
+function requireBackendAccess(req, res, next) {
+  if (req.auth?.type === "shared-token" || req.auth?.type === "backend-access") {
+    return next();
+  }
+
+  return res.status(403).json({ error: "Backend access token required." });
 }
 
 function escapeHtml(value) {
@@ -279,6 +315,9 @@ function signout(req, res) {
 module.exports = {
   authenticateUser,
   generateAccessToken,
+  generateUserAccessToken,
+  getUserTokenExpiresIn,
+  requireBackendAccess,
   signin,
   signinPage,
   signout,

@@ -10,6 +10,7 @@ const supertest = require("supertest");
 const mockingoose = require("mockingoose").default;
 const backend = require("../src/backend.js");
 const userModel = require("../src/user/user.js");
+const bcrypt = require("bcrypt");
 
 function restoreEnv(name, value) {
   if (value === undefined) {
@@ -40,6 +41,66 @@ test("protected api request without token is rejected", async () => {
   const result = await supertest(backend.app)
     .get("/users")
     .set("Accept", "application/json")
+    .expect(401);
+
+  expect(result.body.error).toBe("Authentication required.");
+});
+
+test("frontend login does not require backend access token", async () => {
+  const existingUser = {
+    _id: "507f1f77bcf86cd799439011",
+    userName: "frontend-user",
+    passWord: await bcrypt.hash("password123", 10),
+    status: 0,
+    favorites: [],
+    crab: [],
+  };
+
+  mockingoose(userModel).toReturn(existingUser, "findOne");
+  mockingoose(userModel).toReturn({ ...existingUser, status: 1 }, "findOneAndUpdate");
+
+  const result = await supertest(backend.app)
+    .post("/users/login")
+    .send({ username: "frontend-user", password: "password123" })
+    .expect(200);
+
+  expect(result.body.status).toBe(1);
+  expect(result.body.accessToken).toBeTruthy();
+  expect(result.body.tokenType).toBe("Bearer");
+});
+
+test("frontend user jwt can access protected routes", async () => {
+  const existingUser = {
+    _id: "507f1f77bcf86cd799439011",
+    userName: "frontend-user",
+    passWord: await bcrypt.hash("password123", 10),
+    status: 0,
+    favorites: [],
+    crab: [],
+  };
+
+  mockingoose(userModel).toReturn(existingUser, "findOne");
+  mockingoose(userModel).toReturn({ ...existingUser, status: 1 }, "findOneAndUpdate");
+
+  const loginResult = await supertest(backend.app)
+    .post("/users/login")
+    .send({ username: "frontend-user", password: "password123" })
+    .expect(200);
+
+  mockingoose(userModel).toReturn([], "find");
+
+  const usersResult = await supertest(backend.app)
+    .get("/users")
+    .set("Authorization", `Bearer ${loginResult.body.accessToken}`)
+    .expect(200);
+
+  expect(usersResult.body).toStrictEqual([]);
+});
+
+test("frontend signup requires backend authentication", async () => {
+  const result = await supertest(backend.app)
+    .post("/users")
+    .send({ username: "new-frontend-user", password: "password123" })
     .expect(401);
 
   expect(result.body.error).toBe("Authentication required.");

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 import {
   getSongArtist,
@@ -45,7 +46,7 @@ function Playlist({ username }) {
     }
 
     try {
-      const res = await fetch(`${frontendLink}/youtube/${parsedId}`);
+      const res = await authFetch(`${frontendLink}/youtube/${parsedId}`);
       if (!res.ok) {
         setError("Invalid playlist URL or ID."); // handle bad response from backend
         return;
