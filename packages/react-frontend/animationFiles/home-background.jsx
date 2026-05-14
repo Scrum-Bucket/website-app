@@ -16,7 +16,7 @@ const FISH_IMAGE_SOURCES = [
   copperbandImage,
   swordfishImage,
   clowntriggerImage,
-  seamanImage,
+  
 ];
 
 export default function HomeBackground() {
