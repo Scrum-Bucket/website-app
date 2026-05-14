@@ -26,11 +26,19 @@ const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_ORIGIN |
   .filter(Boolean);
 
 const defaultAllowedOrigins = [
+  "https://polite-sea-008d19c10.7.azurestaticapps.net",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:4173",
   "http://127.0.0.1:4173",
 ];
+
+function isAllowedCorsOrigin(origin) {
+  const configuredOrigins = allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins;
+  const isLocalDevOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
+  return configuredOrigins.includes(origin) || isLocalDevOrigin;
+}
 
 app.use(
   cors({
@@ -38,8 +46,7 @@ app.use(
     origin(origin, callback) {
       if (!origin) return callback(null, true);
 
-      const configuredOrigins = allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins;
-      if (configuredOrigins.includes(origin)) {
+      if (isAllowedCorsOrigin(origin)) {
         return callback(null, true);
       }
 
