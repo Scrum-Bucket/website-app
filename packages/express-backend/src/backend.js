@@ -53,14 +53,11 @@ app.post("/users/:id/playlists/youtube/:playlistId", async (req, res) => {
 
   try {
     const playlistItems = await getSongs(playlistId, undefined);
-    const songs = await compileSongs(playlistItems, playlistId);
+    const songs = (await compileSongs(playlistItems, playlistId)).slice(0, 20);
 
-    const savedSongs = [];
-
-    for (const songData of songs) {
-      const savedSong = await songServices.findOrCreateSong(songData);
-      savedSongs.push(savedSong);
-    }
+    const savedSongs = await Promise.all(
+      songs.map((songData) => songServices.findOrCreateSong(songData))
+    );
 
     const songIds = savedSongs.map((song) => song._id);
 
@@ -106,15 +103,12 @@ async function compileSongs(playlistItems, playlistId) {
   for (const item of playlistItems["items"]) {
     if (
       item.snippet.title !== "Private video" &&
-      item.snippet.title !== "Deleted video" &&
-      item.snippet.thumbnails?.default?.url
+      item.snippet.title !== "Deleted video" 
     ) {
       songs.push({
         songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
         details: {
           title: item.snippet.title,
-          thumbnail: item.snippet.thumbnails.default.url,
-          description: item.snippet.description,
         },
       });
     }
@@ -132,8 +126,6 @@ async function compileSongs(playlistItems, playlistId) {
           songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
           details: {
             title: item.snippet.title,
-            thumbnail: item.snippet.thumbnails.default.url,
-            description: item.snippet.description,
           },
         });
       }
