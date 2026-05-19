@@ -123,28 +123,46 @@ app.use(authenticateUser);
 
 app.get("/youtube/:link", async (req, res) => {
   const { link } = req.params;
-  let apikey;
 
   try {
-    apikey = requireEnv("YOUTUBE_API_KEY");
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+    const apikey = requireEnv("YOUTUBE_API_KEY");
 
-  const promise = fetch(
-    `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${link}&maxResults=1&key=${apikey}`,
-    { method: "GET" }
-  )
-    .then(async (response) => {
-      const content = await response.json();
-      const playlistId = content["items"][0]["id"];
-      const playlistItems = await getSongs(playlistId, undefined);
-      console.log("YouTube API Response:", content);
-      const songs = await compileSongs(playlistItems, playlistId);
-      res.status(200).send(songs);
-    })
-    .catch((error) => res.status(500).json({ error: error.message }));
-  return promise;
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${link}&maxResults=1&key=${apikey}`,
+      { method: "GET" }
+    );
+
+    const content = await response.json();
+    const playlistId = content["items"][0]["id"];
+    const playlistItems = await getSongs(playlistId, undefined);
+    const songs = await compileSongs(playlistItems, playlistId);
+
+    res.status(200).send(songs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/users/:id/playlists/youtube/:playlistId", async (req, res) => {
+  const { id, playlistId } = req.params;
+  const { playlistName = "My Playlist" } = req.body;
+
+  try {
+    const playlistItems = await getSongs(playlistId, undefined);
+    const songs = (await compileSongs(playlistItems, playlistId)).slice(0, 20);
+
+    const savedSongs = await Promise.all(
+      songs.map((songData) => songServices.findOrCreateSong(songData))
+    );
+
+    const songIds = savedSongs.map((song) => song._id);
+
+    await userServices.addSongsToPlaylist(id, playlistName, songIds);
+
+    res.status(200).json(savedSongs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 async function getSongs(id, pageToken) {
@@ -181,15 +199,12 @@ async function compileSongs(playlistItems, playlistId) {
   for (const item of playlistItems["items"]) {
     if (
       item.snippet.title !== "Private video" &&
-      item.snippet.title !== "Deleted video" &&
-      item.snippet.thumbnails?.default?.url
+      item.snippet.title !== "Deleted video" 
     ) {
       songs.push({
         songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
         details: {
           title: item.snippet.title,
-          thumbnail: item.snippet.thumbnails.default.url,
-          description: item.snippet.description,
         },
       });
     }
@@ -207,8 +222,6 @@ async function compileSongs(playlistItems, playlistId) {
           songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
           details: {
             title: item.snippet.title,
-            thumbnail: item.snippet.thumbnails.default.url,
-            description: item.snippet.description,
           },
         });
       }

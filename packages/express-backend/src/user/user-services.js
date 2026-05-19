@@ -89,6 +89,40 @@ async function unbanUser(id) {
   return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
 }
 
+// id is user id
+async function addSongsToPlaylist(id, playlistName, songIds) {
+
+  // get the user
+  const user = await userModel.findById(id);
+
+  // Cant find the user
+  if (!user){
+     throw new Error("User not found");
+  }
+
+  // p = one playlist (possibly multiple playlists)
+  let playlist = user.playlists.find((p) => p.name === playlistName);
+
+  // if playlist doesnt exist
+  if (!playlist) {
+    // add new one to user's list of playlists
+    user.playlists.push({
+      name: playlistName,
+      songs: songIds,
+    });
+  } else {
+    // if it does exist go through each song
+    for (const songId of songIds) {
+      // avoid duplicates
+      if (!playlist.songs.some((existingId) => existingId.toString() === songId.toString())) {
+        playlist.songs.push(songId);
+      }
+    }
+  }
+
+  return await user.save();
+}
+
 // changePrefs: update playlist and/or crab lists
 async function changePrefs(id, { playlist, crab }) {
   const user = await userModel.findById(id);
@@ -157,6 +191,7 @@ module.exports = {
   logoutUser,
   timeoutUser,
   unbanUser,
+  addSongsToPlaylist,
   changePrefs,
   renameUser,
   changePassword,
