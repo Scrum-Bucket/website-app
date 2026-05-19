@@ -64,6 +64,20 @@ test("local frontend origin can use any dev port for credentialed cors requests"
   expect(result.headers["access-control-allow-credentials"]).toBe("true");
 });
 
+test("backend same-origin signin form post is not blocked by cors", async () => {
+  const result = await supertest(backend.app)
+    .post("/signin")
+    .set("Host", "crabrave-g0ave8bxcmgxasa0.westus3-01.azurewebsites.net")
+    .set("X-Forwarded-Proto", "https")
+    .set("Origin", "https://crabrave-g0ave8bxcmgxasa0.westus3-01.azurewebsites.net")
+    .type("form")
+    .send({ token: "test-backend-access-token", next: "/users" })
+    .expect(302);
+
+  expect(result.headers.location).toBe("/users");
+  expect(result.headers["set-cookie"][0]).toContain("backendAuthToken=");
+});
+
 test("protected api request without token is rejected", async () => {
   const result = await supertest(backend.app)
     .get("/users")

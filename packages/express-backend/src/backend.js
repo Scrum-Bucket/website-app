@@ -30,6 +30,19 @@ function normalizeCorsOrigin(origin) {
   }
 }
 
+function firstHeaderValue(value) {
+  return String(value || "")
+    .split(",")[0]
+    .trim();
+}
+
+function getRequestOrigin(req) {
+  const protocol = firstHeaderValue(req.headers["x-forwarded-proto"]) || req.protocol;
+  const host = firstHeaderValue(req.headers["x-forwarded-host"]) || req.headers.host;
+
+  return host ? `${protocol}://${host}` : "";
+}
+
 const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_ORIGIN || "")
   .split(",")
   .map((origin) => normalizeCorsOrigin(origin.trim()))
@@ -53,19 +66,28 @@ function isAllowedCorsOrigin(origin) {
   return configuredOrigins.includes(normalizedOrigin) || isLocalDevOrigin;
 }
 
-app.use(
+function isSameOriginRequest(origin, req) {
+  return normalizeCorsOrigin(origin) === normalizeCorsOrigin(getRequestOrigin(req));
+}
+
+app.use((req, res, next) =>
   cors({
     credentials: true,
     origin(origin, callback) {
       if (!origin) return callback(null, true);
 
-      if (isAllowedCorsOrigin(origin)) {
+      if (isAllowedCorsOrigin(origin) || isSameOriginRequest(origin, req)) {
         return callback(null, true);
       }
 
+      console.warn("Rejected CORS origin:", {
+        origin,
+        requestOrigin: getRequestOrigin(req),
+        allowedOrigins: allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins,
+      });
       return callback(new Error("Not allowed by CORS"));
     },
-  })
+  })(req, res, next)
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
