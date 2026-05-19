@@ -1,45 +1,104 @@
+/* ── Container ───────────────────────────────────────────────────────────── */
+
 .vote-box-game {
+  position: relative;   /* canvas + cards are absolutely positioned inside */
   width: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 18px;
   padding: 18px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 12px;
 }
 
+/* ── Card ────────────────────────────────────────────────────────────────── */
+
 .vote-box-card {
-  min-width: 0;
-  background: rgba(47, 80, 189, 0.58);
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  height: 120px;
+  z-index: 1;          /* sit above the background canvas */
+
+  background: rgba(47, 80, 189, 0.72);
   border: 2px solid rgba(231, 244, 255, 0.32);
   border-radius: 12px;
-  padding: 14px;
   color: #e7f4ff;
+
+  /* smooth vertical slide when rank changes */
+  transition: transform 0.4s cubic-bezier(0.34, 1.26, 0.64, 1);
+  will-change: transform;
+}
+
+.vote-box-inner {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+
+/* ── Crab ────────────────────────────────────────────────────────────────── */
+
+.vote-box-crab {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* ── Info ────────────────────────────────────────────────────────────────── */
+
+.vote-box-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vote-box-user-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #e7f4ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .vote-box-score {
-  min-width: 48px;
-  min-height: 36px;
-  border-radius: 10px;
+  min-width: 44px;
+  height: 32px;
+  border-radius: 8px;
   background: #203c9b;
   color: #f7b244;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
+  padding: 0 8px;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.vote-box-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .vote-box-button {
-  min-width: 52px;
-  min-height: 36px;
+  width: 52px;
+  height: 36px;
   border: none;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #ffffff;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease;
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
 }
 
 .vote-box-button--up {
@@ -61,64 +120,23 @@
   box-shadow: none;
 }
 
-.vote-box-stage {
-  height: 250px;
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(70px, auto);
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  overflow: hidden;
-  border-radius: 12px;
-  background: rgba(142, 214, 255, 0.28);
-  padding: 18px 12px;
-}
-
-.vote-box-bar {
-  width: min(100%, 250px);
-  min-height: 62px;
-  border-radius: 14px;
-  background: linear-gradient(90deg, #eefbff 0%, #9fd7e4 58%, #4aa6dd 100%);
-  border: 3px solid #083047;
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.18);
-  transition: transform 0.34s ease;
-  justify-self: center;
-  display: grid;
-  grid-template-columns: 1fr 54px 1fr;
-  align-items: center;
-  gap: 8px;
-  padding: 10px;
-}
-
-.vote-box-crabs {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.vote-box-crab {
-  width: clamp(42px, 7vw, 68px);
-  height: clamp(42px, 7vw, 68px);
-  object-fit: contain;
-}
-
-.vote-box-user-name {
-  margin: 12px 0 0;
-  text-align: center;
-  color: #e7f4ff;
-  font-size: 18px;
-  font-weight: 700;
-}
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 520px) {
-  .vote-box-game {
-    padding: 12px 0;
+  .vote-box-inner {
+    grid-template-columns: 56px 1fr auto;
+    gap: 10px;
+    padding: 10px 12px;
   }
 
-  .vote-box-stage {
-    height: 220px;
+  .vote-box-crab {
+    width: 48px;
+    height: 48px;
+  }
+
+  .vote-box-button {
+    width: 44px;
+    height: 32px;
+    font-size: 15px;
   }
 }

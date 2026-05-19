@@ -5,6 +5,17 @@
   padding: 12px;
 }
 
+/* GameBackground canvas fills the viewport behind everything */
+.room-page > canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
 /* ── Loading / Error ─────────────────────────────────────────────────────── */
 
 .room-loading,
@@ -18,6 +29,7 @@
   gap: 16px;
   color: #e7f4ff;
   font-size: 28px;
+  z-index: 1;
 }
 
 .room-error-box button {
@@ -30,20 +42,11 @@
   cursor: pointer;
 }
 
-/* ── Window ──────────────────────────────────────────────────────────────── */
-
-.room-window {
-  width: min(1280px, 100%);
-  margin: 0 auto;
-  background: rgba(67, 163, 232, 0.88);
-  border-radius: 10px;
-  padding: 10px;
-  backdrop-filter: blur(4px);
-}
-
 /* ── Header ──────────────────────────────────────────────────────────────── */
 
 .room-top-row {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 74px 1fr 42px;
   align-items: center;
@@ -63,10 +66,11 @@
 
 .room-id-bar {
   height: 74px;
-  background: #2f50bd;
+  background: rgba(47, 80, 189, 0.82);
   display: flex;
   align-items: center;
   padding: 8px 20px;
+  backdrop-filter: blur(4px);
 }
 
 .room-id-label {
@@ -91,6 +95,8 @@
 /* ── Lobby ───────────────────────────────────────────────────────────────── */
 
 .room-lobby {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -103,13 +109,15 @@
   color: #e7f4ff;
   font-size: clamp(22px, 3vw, 36px);
   text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .room-lobby-members {
   width: min(480px, 100%);
-  background: rgba(47, 80, 189, 0.7);
+  background: rgba(47, 80, 189, 0.82);
   border-radius: 10px;
   padding: 18px 24px;
+  backdrop-filter: blur(4px);
 }
 
 .room-lobby-members-label {
@@ -147,9 +155,7 @@
   font-weight: 700;
   border-radius: 8px;
   cursor: pointer;
-  transition:
-    transform 0.1s,
-    box-shadow 0.1s;
+  transition: transform 0.1s, box-shadow 0.1s;
   box-shadow: 0 4px 0 #0e8a22;
 }
 
@@ -169,222 +175,10 @@
   cursor: not-allowed;
 }
 
-/* ── Game layout ─────────────────────────────────────────────────────────── */
-
-.room-content {
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 16px;
-}
-
-.room-side-panel {
-  background: rgba(47, 80, 189, 0.7);
-  border-radius: 8px;
-  padding: 14px 12px;
-  min-height: 400px;
-}
-
-.room-side-label {
-  margin: 0 0 10px;
-  color: #c8e6ff;
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.room-members-list--side .room-member-item {
-  font-size: 15px;
-  padding: 6px 10px;
-}
-
-.room-main-panel {
-  padding: 0 8px 24px 0;
-}
-
-/* ── Now playing ─────────────────────────────────────────────────────────── */
-
-.room-now-playing {
-  background: #3e58dd;
-  border-radius: 4px;
-  padding: 22px 20px 14px;
-  margin-bottom: 14px;
-}
-
-.room-now-art {
-  width: 180px;
-  height: 180px;
-  border-radius: 50%;
-  margin: 0 auto 18px;
-  border: 4px solid #cfd8de;
-  background:
-    radial-gradient(circle at 35% 35%, #8ec5e5 0 16%, transparent 17%),
-    radial-gradient(circle at 70% 60%, #262626 0 16%, transparent 17%),
-    linear-gradient(145deg, #215b7d 0%, #8ac4e5 45%, #476680 100%);
-}
-
-.room-now-bars {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.room-now-bars span {
-  display: block;
-  height: 14px;
-  background: #cbd1d6;
-}
-
-/* ── Queue ───────────────────────────────────────────────────────────────── */
-
-.room-queue-hint {
-  margin: 0 0 10px;
-  color: #c8e6ff;
-  font-size: 14px;
-  letter-spacing: 0.05em;
-  text-align: center;
-}
-
-.room-queue-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.room-empty {
-  color: #c8e6ff;
-  text-align: center;
-  font-size: 18px;
-  padding: 24px 0;
-}
-
-.room-song-row {
-  background: #3e58dd;
-  min-height: 80px;
-  display: grid;
-  grid-template-columns: 48px 1fr 160px;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 6px;
-  border: 2px solid transparent;
-  transition:
-    border-color 0.2s,
-    transform 0.25s ease;
-}
-
-.room-song-row--top {
-  border-color: #f7b244;
-  background: #4a6aee;
-}
-
-.room-song-rank {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #c8e6ff;
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.room-song-meta {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-}
-
-.room-song-name {
-  color: #e7f4ff;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.room-song-artist {
-  color: #a8d4f0;
-  font-size: 14px;
-}
-
-.room-votes {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.room-vote-count {
-  color: #f7b244;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.room-upvote-btn {
-  border: none;
-  background: #19be35;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  padding: 6px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition:
-    transform 0.08s,
-    box-shadow 0.08s;
-  box-shadow: 0 3px 0 #0e8a22;
-}
-
-.room-upvote-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 0 #0e8a22;
-}
-
-.room-upvote-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 #0e8a22;
-}
-
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 
 @media (max-width: 860px) {
-  .room-content {
-    grid-template-columns: 1fr;
-  }
-
-  .room-side-panel {
-    min-height: auto;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .room-side-label {
-    width: 100%;
-    margin-bottom: 4px;
-  }
-
-  .room-members-list--side {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-
-  .room-song-row {
-    grid-template-columns: 40px 1fr 120px;
-  }
-}
-
-@media (max-width: 520px) {
-  .room-song-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .room-song-rank {
-    justify-content: flex-start;
-  }
-
-  .room-votes {
-    flex-direction: row;
-    justify-content: space-between;
+  .room-top-row {
+    grid-template-columns: 60px 1fr 42px;
   }
 }

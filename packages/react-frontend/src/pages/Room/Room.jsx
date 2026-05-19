@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./room.css";
-import OtherBackground from "../../../animationFiles/other-background.jsx";
+import GameBackground from "../../../animationFiles/game-background.jsx";
 import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
@@ -17,15 +17,22 @@ function Room({ username }) {
   const [room, setRoom] = useState(location.state?.room || null);
   const [localGameStarted, setLocalGameStarted] = useState(false);
 
+  const currentUser = username || "guest";
+
+  const fallbackRoom = useCallback(
+    () => ({
+      roomCode: roomCode || "TEST",
+      host: currentUser,
+      members: [currentUser, "Player 2", "Player 3"],
+      queue: [],
+      started: false,
+    }),
+    [currentUser, roomCode]
+  );
+
   const fetchRoom = useCallback(async () => {
     if (!roomCode) {
-      setRoom({
-        roomCode: "TEST",
-        host: username || "guest",
-        members: [username || "guest", "Player 2", "Player 3"],
-        queue: [],
-        started: false,
-      });
+      setRoom(fallbackRoom());
       return;
     }
 
@@ -36,27 +43,16 @@ function Room({ username }) {
     try {
       const res = await authFetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
-        setRoom({
-          roomCode,
-          host: username || "guest",
-          members: [username || "guest", "Player 2", "Player 3"],
-          queue: [],
-          started: false,
-        });
+        setRoom(fallbackRoom());
         return;
       }
+
       const data = await res.json();
       setRoom(data);
     } catch {
-      setRoom({
-        roomCode,
-        host: username || "guest",
-        members: [username || "guest", "Player 2", "Player 3"],
-        queue: [],
-        started: false,
-      });
+      setRoom(fallbackRoom());
     }
-  }, [location.state?.room, roomCode, username]);
+  }, [fallbackRoom, location.state?.room, roomCode]);
 
   useEffect(() => {
     const initialFetchId = setTimeout(fetchRoom, 0);
@@ -76,6 +72,7 @@ function Room({ username }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
+
       if (res.ok) {
         const updated = await res.json();
         setRoom(updated);
@@ -90,7 +87,7 @@ function Room({ username }) {
       await authFetch(`${API}/rooms/${roomCode}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userName: username || "guest" }),
+        body: JSON.stringify({ userName: currentUser }),
       });
     } finally {
       navigate("/home");
@@ -100,77 +97,27 @@ function Room({ username }) {
   if (!room) {
     return (
       <div className="room-page">
-        <OtherBackground />
+        <GameBackground />
         <div className="room-loading">Connecting...</div>
       </div>
     );
   }
 
-  const isHost = room.host === (username || "guest");
+  const isHost = room.host === currentUser;
   const gameStarted = room.started || localGameStarted;
+  const users = room.members.map((member) => ({ id: member, name: member }));
 
   if (!gameStarted) {
     return (
       <div className="room-page">
-        <OtherBackground />
-        <div className="room-window">
-          <header className="room-top-row">
-            <div className="room-logo" aria-label="logo">
-              <span>J</span>
-            </div>
-            <div className="room-id-bar">
-              <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
-            </div>
-            <button
-              className="room-menu-btn"
-              type="button"
-              aria-label="leave room"
-              onClick={handleLeave}
-            >
-              x
-            </button>
-          </header>
+        <GameBackground />
 
-          <div className="room-lobby">
-            <h2 className="room-lobby-title">Waiting for host to start...</h2>
-
-            <div className="room-lobby-members">
-              <p className="room-lobby-members-label">Players in room</p>
-              <ul className="room-members-list">
-                {room.members.map((member) => (
-                  <li key={member} className="room-member-item">
-                    {member}
-                    {member === room.host ? " Host" : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {isHost && (
-              <button
-                className="room-start-btn"
-                type="button"
-                onClick={handleStart}
-              >
-                Start Game
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="room-page">
-      <OtherBackground />
-      <div className="room-window">
         <header className="room-top-row">
           <div className="room-logo" aria-label="logo">
             <span>J</span>
           </div>
           <div className="room-id-bar">
-            <span className="room-id-label">ROOM: {room.roomCode}</span>
+            <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
           </div>
           <button
             className="room-menu-btn"
@@ -182,10 +129,12 @@ function Room({ username }) {
           </button>
         </header>
 
-        <section className="room-content">
-          <aside className="room-side-panel">
-            <p className="room-side-label">Players</p>
-            <ul className="room-members-list room-members-list--side">
+        <div className="room-lobby">
+          <h2 className="room-lobby-title">Waiting for host to start...</h2>
+
+          <div className="room-lobby-members">
+            <p className="room-lobby-members-label">Players in room</p>
+            <ul className="room-members-list">
               {room.members.map((member) => (
                 <li key={member} className="room-member-item">
                   {member}
@@ -193,15 +142,44 @@ function Room({ username }) {
                 </li>
               ))}
             </ul>
-          </aside>
+          </div>
 
-          <main className="room-main-panel">
-            <VoteMovingBox
-              users={room.members.map((member) => ({ id: member, name: member }))}
-            />
-          </main>
-        </section>
+          {isHost && (
+            <button
+              className="room-start-btn"
+              type="button"
+              onClick={handleStart}
+            >
+              Start Game
+            </button>
+          )}
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="room-page">
+      <GameBackground />
+
+      <header className="room-top-row">
+        <div className="room-logo" aria-label="logo">
+          <span>J</span>
+        </div>
+        <div className="room-id-bar">
+          <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
+        </div>
+        <button
+          className="room-menu-btn"
+          type="button"
+          aria-label="leave room"
+          onClick={handleLeave}
+        >
+          x
+        </button>
+      </header>
+
+      <VoteMovingBox users={users} />
     </div>
   );
 }
