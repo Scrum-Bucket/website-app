@@ -18,7 +18,9 @@ const DEFAULT_USERS = [
 
 const MIN_SCORE = -20;
 const MAX_SCORE = 40;
-const MAX_TRAVEL = 92;
+
+const CARD_HEIGHT = 120; // px — height of each card
+const CARD_GAP = 14;    // px — gap between cards
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -28,7 +30,8 @@ function normalizeUsers(users) {
   const sourceUsers = users?.length ? users : DEFAULT_USERS;
 
   return sourceUsers.map((user, index) => {
-    const name = typeof user === "string" ? user : user.name || user.userName || `User ${index + 1}`;
+    const name =
+      typeof user === "string" ? user : user.name || user.userName || `User ${index + 1}`;
 
     return {
       id: user.id || user.userId || name,
@@ -39,113 +42,110 @@ function normalizeUsers(users) {
   });
 }
 
-function getMoveOffset(score) {
-  const clampedScore = clamp(score, MIN_SCORE, MAX_SCORE);
-  const scoreRange = MAX_SCORE - MIN_SCORE;
-  const normalizedScore = (clampedScore - MIN_SCORE) / scoreRange;
-
-  return MAX_TRAVEL - normalizedScore * MAX_TRAVEL * 2;
-}
-
-function VoteMovingBoxItem({ user, score, crabIcon, onVote }) {
-  const moveOffset = getMoveOffset(score);
-
-  return (
-    <article className="vote-box-card">
-      <div className="vote-box-stage" aria-label={`${user.name} score position`}>
-        <div
-          className="vote-box-bar"
-          style={{ transform: `translateY(${moveOffset}px)` }}
-        >
-          <button
-            type="button"
-            className="vote-box-button vote-box-button--up"
-            onClick={() => onVote(user.id, 1)}
-            aria-label={`Upvote ${user.name}`}
-          >
-            Up
-          </button>
-          <span className="vote-box-score">{score}</span>
-          <button
-            type="button"
-            className="vote-box-button vote-box-button--down"
-            onClick={() => onVote(user.id, -1)}
-            aria-label={`Downvote ${user.name}`}
-          >
-            Down
-          </button>
-        </div>
-        <div className="vote-box-crabs">
-          {Array.from({ length: user.crabCount }).map((_, index) => (
-            <img
-              className="vote-box-crab"
-              src={crabIcon}
-              alt=""
-              aria-hidden="true"
-              key={`${user.id}-crab-${index}`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <p className="vote-box-user-name">{user.name}</p>
-    </article>
-  );
-}
-
 function VoteMovingBox({ users }) {
   const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
+
   const [scores, setScores] = useState(() =>
-    Object.fromEntries(normalizedUsers.map((user) => [user.id, user.initialScore]))
+    Object.fromEntries(normalizedUsers.map((u) => [u.id, u.initialScore]))
   );
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
 
+  // Keep scores in sync when users list changes
   useEffect(() => {
-    setScores((currentScores) =>
+    setScores((prev) =>
       Object.fromEntries(
-        normalizedUsers.map((user) => [
-          user.id,
-          currentScores[user.id] ?? user.initialScore,
-        ])
+        normalizedUsers.map((u) => [u.id, prev[u.id] ?? u.initialScore])
       )
     );
   }, [normalizedUsers]);
 
+  // Load tinted crab icon from localStorage
   useEffect(() => {
-    let isActive = true;
+    let active = true;
     const savedColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
     const savedHat = localStorage.getItem("profileCrabHat") || "";
     const hatSource = savedHat ? hatImages[`../../assets/hats/${savedHat}`] || "" : "";
 
-    createCrabIcon(UserCrabIcon, savedColor, hatSource).then((nextIcon) => {
-      if (isActive) {
-        setCrabIcon(nextIcon);
-      }
+    createCrabIcon(UserCrabIcon, savedColor, hatSource).then((icon) => {
+      if (active) setCrabIcon(icon);
     });
 
     return () => {
-      isActive = false;
+      active = false;
     };
   }, []);
 
-  const handleVote = (userId, amount) => {
-    setScores((currentScores) => ({
-      ...currentScores,
-      [userId]: clamp((currentScores[userId] ?? 0) + amount, MIN_SCORE, MAX_SCORE),
+  function handleVote(userId, amount) {
+    setScores((prev) => ({
+      ...prev,
+      [userId]: clamp((prev[userId] ?? 0) + amount, MIN_SCORE, MAX_SCORE),
     }));
-  };
+  }
+
+  // Sort users by score descending to get rank order (highest = top = index 0)
+  const ranked = useMemo(() => {
+    return [...normalizedUsers].sort(
+      (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
+    );
+  }, [normalizedUsers, scores]);
+
+  // Total container height so the parent can size itself
+  const containerHeight =
+    normalizedUsers.length * CARD_HEIGHT + (normalizedUsers.length - 1) * CARD_GAP;
 
   return (
-    <section className="vote-box-game" aria-label="Vote moving box game">
-      {normalizedUsers.map((user) => (
-        <VoteMovingBoxItem
-          user={user}
-          score={scores[user.id] ?? 0}
-          crabIcon={crabIcon}
-          onVote={handleVote}
-          key={user.id}
-        />
-      ))}
+    <section
+      className="vote-box-game"
+      aria-label="Vote moving box game"
+      style={{ height: containerHeight }}
+    >
+      {normalizedUsers.map((user) => {
+        const rank = ranked.findIndex((u) => u.id === user.id);
+        const topPx = rank * (CARD_HEIGHT + CARD_GAP);
+        const score = scores[user.id] ?? 0;
+
+        return (
+          <article
+            key={user.id}
+            className="vote-box-card"
+            style={{ transform: `translateY(${topPx}px)` }}
+            aria-label={`${user.name}, score ${score}`}
+          >
+            <div className="vote-box-inner">
+              <img
+                className="vote-box-crab"
+                src={crabIcon}
+                alt=""
+                aria-hidden="true"
+              />
+
+              <div className="vote-box-info">
+                <p className="vote-box-user-name">{user.name}</p>
+                <span className="vote-box-score">{score}</span>
+              </div>
+
+              <div className="vote-box-buttons">
+                <button
+                  type="button"
+                  className="vote-box-button vote-box-button--up"
+                  onClick={() => handleVote(user.id, 1)}
+                  aria-label={`Upvote ${user.name}`}
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  className="vote-box-button vote-box-button--down"
+                  onClick={() => handleVote(user.id, -1)}
+                  aria-label={`Downvote ${user.name}`}
+                >
+                  ▼
+                </button>
+              </div>
+            </div>
+          </article>
+        );
+      })}
     </section>
   );
 }
