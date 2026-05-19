@@ -86,7 +86,7 @@ function getRequestToken(req) {
 }
 
 function isPublicRequest(req) {
-  return req.method === "POST" && req.path === "/users/login";
+  return req.method === "POST" && (req.path === "/users/login" || req.path === "/users");
 }
 
 function wantsHtml(req) {

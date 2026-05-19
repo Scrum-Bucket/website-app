@@ -124,13 +124,28 @@ test("frontend user auth cookie can access protected routes", async () => {
   expect(usersResult.body).toStrictEqual([]);
 });
 
-test("frontend signup requires backend authentication", async () => {
+test("frontend signup creates an authenticated user session", async () => {
+  const createdUser = {
+    _id: "507f1f77bcf86cd799439012",
+    userName: "new-frontend-user",
+    passWord: "hashedpassword",
+    status: 0,
+    favorites: [],
+    crab: [],
+  };
+
+  mockingoose(userModel).toReturn(null, "findOne");
+  mockingoose(userModel).toReturn(createdUser, "save");
+
   const result = await supertest(backend.app)
     .post("/users")
     .send({ username: "new-frontend-user", password: "password123" })
-    .expect(401);
+    .expect(201);
 
-  expect(result.body.error).toBe("Authentication required.");
+  expect(result.body.userName).toBe("new-frontend-user");
+  expect(result.body.authenticated).toBe(true);
+  expect(result.body.passWord).toBeUndefined();
+  expect(result.headers["set-cookie"][0]).toContain("userAuthToken=");
 });
 
 test("protected browser request without token redirects to signin", async () => {

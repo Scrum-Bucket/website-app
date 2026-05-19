@@ -153,10 +153,12 @@ test("create user", async () => {
 
   expect(result.body._id).toBe("507f1f77bcf86cd799439011");
   expect(result.body.userName).toBe("Joe");
-  expect(result.body.passWord).toBe("hashedpassword");
+  expect(result.body.passWord).toBeUndefined();
   expect(result.body.status).toBe(0);
   expect(result.body.favorites).toStrictEqual([]);
   expect(result.body.crab).toStrictEqual([]);
+  expect(result.body.authenticated).toBe(true);
+  expect(result.headers["set-cookie"][0]).toContain("userAuthToken=");
 });
 
 test("create user fail - bad request", async () => {

@@ -5,7 +5,6 @@ const { requireEnv } = require("./env");
 const {
   authenticateUser,
   clearUserAuthCookie,
-  requireBackendAccess,
   setUserAuthCookie,
   signin,
   signinPage,
@@ -84,6 +83,7 @@ function normalizeRoomCode(roomCode) {
 
 function userResponse(user) {
   const userData = typeof user.toObject === "function" ? user.toObject() : user;
+  delete userData.passWord;
 
   return { ...userData, authenticated: true };
 }
@@ -220,14 +220,17 @@ app.get("/users/:id", async (req, res) => {
 });
 
 // createUser
-app.post("/users", requireBackendAccess, async (req, res) => {
+app.post("/users", async (req, res) => {
   console.log("Received create user request with body:", req.body);
   const userName = req.body.username;
   const passWord = req.body.password;
 
   await userServices
     .createUser(userName, passWord)
-    .then((created) => res.status(201).json(created))
+    .then((created) => {
+      setUserAuthCookie(req, res, created);
+      res.status(201).json(userResponse(created));
+    })
     .catch((err) => {
       if (
         err.message?.includes("already exists") ||
