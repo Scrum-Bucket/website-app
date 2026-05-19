@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
 
@@ -33,7 +34,7 @@ function Room({ username }) {
     }
 
     try {
-      const res = await fetch(`${API}/rooms/${roomCode}`);
+      const res = await authFetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
         setRoom({
           roomCode,
@@ -71,7 +72,7 @@ function Room({ username }) {
     setLocalGameStarted(true);
 
     try {
-      const res = await fetch(`${API}/rooms/${roomCode}/start`, {
+      const res = await authFetch(`${API}/rooms/${roomCode}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -86,7 +87,7 @@ function Room({ username }) {
 
   async function handleLeave() {
     try {
-      await fetch(`${API}/rooms/${roomCode}/leave`, {
+      await authFetch(`${API}/rooms/${roomCode}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName: username || "guest" }),

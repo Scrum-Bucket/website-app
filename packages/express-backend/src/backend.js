@@ -2,6 +2,14 @@
 const express = require("express");
 const cors = require("cors"); //frontend to backend
 const { requireEnv } = require("./env");
+const {
+  authenticateUser,
+  clearUserAuthCookie,
+  setUserAuthCookie,
+  signin,
+  signinPage,
+  signout,
+} = require("./auth");
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
 const roomServices = require("./rooms/room-services.js");
@@ -10,8 +18,79 @@ const app = express();
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
-app.use(cors());
+app.set("trust proxy", 1);
+
+function normalizeCorsOrigin(origin) {
+  if (!origin) return "";
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin.replace(/\/+$/, "");
+  }
+}
+
+function firstHeaderValue(value) {
+  return String(value || "")
+    .split(",")[0]
+    .trim();
+}
+
+function getRequestOrigin(req) {
+  const protocol = firstHeaderValue(req.headers["x-forwarded-proto"]) || req.protocol;
+  const host = firstHeaderValue(req.headers["x-forwarded-host"]) || req.headers.host;
+
+  return host ? `${protocol}://${host}` : "";
+}
+
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_ORIGIN || "")
+  .split(",")
+  .map((origin) => normalizeCorsOrigin(origin.trim()))
+  .filter(Boolean);
+
+const defaultAllowedOrigins = [
+  "https://polite-sea-008d19c10.7.azurestaticapps.net",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+];
+
+function isAllowedCorsOrigin(origin) {
+  const normalizedOrigin = normalizeCorsOrigin(origin);
+  const configuredOrigins = allowedOrigins.length
+    ? allowedOrigins
+    : defaultAllowedOrigins.map(normalizeCorsOrigin);
+  const isLocalDevOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
+  return configuredOrigins.includes(normalizedOrigin) || isLocalDevOrigin;
+}
+
+function isSameOriginRequest(origin, req) {
+  return normalizeCorsOrigin(origin) === normalizeCorsOrigin(getRequestOrigin(req));
+}
+
+app.use((req, res, next) =>
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (isAllowedCorsOrigin(origin) || isSameOriginRequest(origin, req)) {
+        return callback(null, true);
+      }
+
+      console.warn("Rejected CORS origin:", {
+        origin,
+        requestOrigin: getRequestOrigin(req),
+        allowedOrigins: allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins,
+      });
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })(req, res, next)
+);
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 function generateRoomCode() {
   return Array.from({ length: ROOM_CODE_LENGTH }, () => {
@@ -24,6 +103,23 @@ function normalizeRoomCode(roomCode) {
   return (roomCode || "").trim().toUpperCase();
 }
 
+function userResponse(user) {
+  const userData = typeof user.toObject === "function" ? user.toObject() : user;
+  delete userData.passWord;
+
+  return { ...userData, authenticated: true };
+}
+
+app.get("/signin", signinPage);
+app.post("/signin", signin);
+app.get("/signout", signout);
+app.post("/signout", signout);
+
+app.get("/", (req, res) => {
+  res.send("Backend running.");
+});
+
+app.use(authenticateUser);
 
 app.get("/youtube/:link", async (req, res) => {
   const { link } = req.params;
@@ -166,7 +262,10 @@ app.post("/users", async (req, res) => {
 
   await userServices
     .createUser(userName, passWord)
-    .then((created) => res.status(201).json(created))
+    .then((created) => {
+      setUserAuthCookie(req, res, created);
+      res.status(201).json(userResponse(created));
+    })
     .catch((err) => {
       if (
         err.message?.includes("already exists") ||
@@ -195,7 +294,10 @@ app.post("/users/login", async (req, res) => {
   const { username, password } = req.body;
   await userServices
     .loginUser(username, password)
-    .then((user) => res.json(user))
+    .then((user) => {
+      setUserAuthCookie(req, res, user);
+      res.json(userResponse(user));
+    })
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
@@ -203,7 +305,10 @@ app.post("/users/login", async (req, res) => {
 app.post("/users/:id/logout", async (req, res) => {
   await userServices
     .logoutUser(req.params.id)
-    .then((user) => res.json(user))
+    .then((user) => {
+      clearUserAuthCookie(req, res);
+      res.json(user);
+    })
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
@@ -285,10 +390,6 @@ app.get("/users/:id/admin-status", async (req, res) => {
     .isAdmin(req.params.id)
     .then((isAdminStatus) => res.json({ isAdmin: isAdminStatus }))
     .catch((err) => res.status(400).json({ error: err.message }));
-});
-
-app.get("/", (req, res) => {
-  res.send("Backend running.");
 });
 
 // ── Songs ─────────────────────────────────────────────────────────────────────

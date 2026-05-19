@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 
 import {
@@ -53,16 +54,16 @@ function Playlist({ username }) {
         return;
       }
 
-      const res = await fetch(`${frontendLink}/users/${userId}/playlists/youtube/${parsedId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          playlistName: "My Playlist",
-        }),
+      const res = await authFetch(`${frontendLink}/users/${userId}/playlists/youtube/${parsedId}`, {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+              playlistName: "My Playlist",
+          }),
       });
-
+      
       if (!res.ok) {
         setError("Invalid playlist URL or ID."); // handle bad response from backend
         return;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./admin.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 
 function Admin() {
@@ -14,7 +15,7 @@ function Admin() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${frontendLink}/users`);
+      const response = await authFetch(`${frontendLink}/users`);
       if (!response.ok) {
         throw new Error("Failed to fetch users");
       }
@@ -38,7 +39,7 @@ function Admin() {
 
     const verifyAdmin = async () => {
       try {
-        const response = await fetch(`${frontendLink}/users/${userId}/admin-status`);
+        const response = await authFetch(`${frontendLink}/users/${userId}/admin-status`);
         if (!response.ok) {
           throw new Error("Unable to verify admin status");
         }
@@ -60,7 +61,7 @@ function Admin() {
 
   const handlePromoteUser = async (userId) => {
     try {
-      const response = await fetch(`${frontendLink}/users/${userId}/promote`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}/promote`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +83,7 @@ function Admin() {
 
   const handleDemoteUser = async (userId) => {
     try {
-      const response = await fetch(`${frontendLink}/users/${userId}/demote`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}/demote`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +105,7 @@ function Admin() {
 
   const handleTimeoutUser = async (userId) => {
     try {
-      const response = await fetch(`${frontendLink}/users/${userId}/timeout`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}/timeout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -126,7 +127,7 @@ function Admin() {
 
   const handleUnbanUser = async (userId) => {
     try {
-      const response = await fetch(`${frontendLink}/users/${userId}/unban`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}/unban`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -156,7 +157,7 @@ function Admin() {
     }
 
     try {
-      const response = await fetch(`${frontendLink}/users/${userId}`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

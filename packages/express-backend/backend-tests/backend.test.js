@@ -1,14 +1,41 @@
 const originalYoutubeApiKey = process.env.YOUTUBE_API_KEY;
+const originalSkipDotenv = process.env.SKIP_DOTENV;
+const originalBackendAccessToken = process.env.BACKEND_ACCESS_TOKEN;
+const originalTokenSecret = process.env.TOKEN_SECRET;
+
+process.env.SKIP_DOTENV = "true";
 process.env.YOUTUBE_API_KEY = "test-youtube-api-key";
+process.env.BACKEND_ACCESS_TOKEN = "test-backend-access-token";
+process.env.TOKEN_SECRET = "test-token-secret";
 
 const backend = require("../src/backend.js");
-const supertest = require("supertest");
+const baseSupertest = require("supertest");
 const mockingoose = require("mockingoose").default;
 const userModel = require("../src/user/user.js");
 const songModel = require("../src/songs/song.js");
 const bcrypt = require("bcrypt");
 
 const originalFetch = global.fetch;
+const authHeader = `Bearer ${process.env.BACKEND_ACCESS_TOKEN}`;
+
+function supertest(app) {
+  const request = baseSupertest(app);
+
+  ["get", "post", "patch", "delete"].forEach((method) => {
+    const originalMethod = request[method].bind(request);
+    request[method] = (...args) => originalMethod(...args).set("Authorization", authHeader);
+  });
+
+  return request;
+}
+
+function restoreEnv(name, value) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -19,11 +46,10 @@ beforeEach(() => {
 
 afterAll(() => {
   global.fetch = originalFetch;
-  if (originalYoutubeApiKey === undefined) {
-    delete process.env.YOUTUBE_API_KEY;
-  } else {
-    process.env.YOUTUBE_API_KEY = originalYoutubeApiKey;
-  }
+  restoreEnv("YOUTUBE_API_KEY", originalYoutubeApiKey);
+  restoreEnv("SKIP_DOTENV", originalSkipDotenv);
+  restoreEnv("BACKEND_ACCESS_TOKEN", originalBackendAccessToken);
+  restoreEnv("TOKEN_SECRET", originalTokenSecret);
 });
 
 function youtubeJsonResponse(body) {
@@ -127,10 +153,12 @@ test("create user", async () => {
 
   expect(result.body._id).toBe("507f1f77bcf86cd799439011");
   expect(result.body.userName).toBe("Joe");
-  expect(result.body.passWord).toBe("hashedpassword");
+  expect(result.body.passWord).toBeUndefined();
   expect(result.body.status).toBe(0);
   expect(result.body.favorites).toStrictEqual([]);
   expect(result.body.crab).toStrictEqual([]);
+  expect(result.body.authenticated).toBe(true);
+  expect(result.headers["set-cookie"][0]).toContain("userAuthToken=");
 });
 
 test("create user fail - bad request", async () => {
