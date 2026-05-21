@@ -6,7 +6,6 @@ import spottedImage from "./animationAssets/spotted.png";
 import copperbandImage from "./animationAssets/copperband.png";
 import swordfishImage from "./animationAssets/swordfish.png";
 import clowntriggerImage from "./animationAssets/clown-trigger-unf.png";
-import seamanImage from "./animationAssets/seaman.png";
 
 const FISH_IMAGE_SOURCES = [
   bloodAngelImage,
@@ -16,7 +15,6 @@ const FISH_IMAGE_SOURCES = [
   copperbandImage,
   swordfishImage,
   clowntriggerImage,
-  seamanImage,
 ];
 
 export default function HomeBackground() {
