@@ -194,13 +194,15 @@ async function getSongs(id, pageToken) {
     });
 }
 
+function isValidSong(item) {
+  const title = item.snippet.title;
+  return title !== "Private video" && title !== "Deleted video";
+}
+
 async function compileSongs(playlistItems, playlistId) {
   const songs = [];
   for (const item of playlistItems["items"]) {
-    if (
-      item.snippet.title !== "Private video" &&
-      item.snippet.title !== "Deleted video" 
-    ) {
+    if (isValidSong(item)) {
       songs.push({
         songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
         details: {
@@ -217,7 +219,7 @@ async function compileSongs(playlistItems, playlistId) {
     console.log("Next Page token", nextPageResponse["nextPageToken"]);
 
     for (const item of nextPageResponse["items"]) {
-      if (item.snippet.title !== "Private video" && item.snippet.title !== "Deleted video") {
+      if (isValidSong(item)) {
         songs.push({
           songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
           details: {
@@ -425,6 +427,7 @@ app.get("/songs/:id", async (req, res) => {
 // addSong send { songLink, details } in body
 app.post("/songs", async (req, res) => {
   const { songLink, details } = req.body;
+  if (!songLink) return res.status(400).json({ error: "songLink is required." });
   await songServices
     .addSong(songLink, details)
     .then((created) => res.status(201).json(created))
@@ -551,6 +554,7 @@ app.post("/rooms/:roomCode/upvote", async (req, res) => {
 // POST /rooms/:roomCode/leave  – leave a room  { userName }
 app.post("/rooms/:roomCode/leave", async (req, res) => {
   const { userName } = req.body;
+  if (!userName) return res.status(400).json({ error: "userName is required." });
   await roomServices
     .leaveRoom(req.params.roomCode, userName)
     .then((room) => {
