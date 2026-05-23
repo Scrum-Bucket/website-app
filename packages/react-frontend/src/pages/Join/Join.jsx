@@ -21,18 +21,18 @@ function Join() {
 
   useEffect(() => {
     let active = true;
-    
-  function formatPublicRoom(room, index) {
-    const members = Array.isArray(room.members) ? room.members : [];
+      
+    function formatPublicRoom(room, index) {
+      const members = Array.isArray(room.members) ? room.members : [];
 
-    return {
-      id: room._id || room.id || index + 1,
-      name: room.currentSong || "No song playing",
-      host: room.host || "Host Name",
-      listeners: members.length,
-      code: room.roomCode || "Room Code",
-    };
-  }
+      return {
+        id: room._id || room.id || index + 1,
+        name: room.currentSong || "No song playing",
+        host: room.host || "Host Name",
+        listeners: members.length,
+        code: room.roomCode || "Room Code",
+      };
+    }
     async function loadPublicRooms() {
       const response = await authFetch(`${frontendLink}/rooms?privacy=public`);
       if (!response.ok) {
@@ -101,11 +101,16 @@ function Join() {
             <article className="join-song-row" key={room.id} onClick={() => navigate("/home/code")}>
               <div className="join-album-cover">{room.code}</div>
               <div className="join-song-meta">
+                <span>{room.code}</span>
                 <span>{room.name}</span>
                 <span>{room.host}</span>
                 <span>{room.listeners} listeners</span>
+                <span>{room.code}</span>
               </div>
+            <button>
+              Join
             </button>
+          </article>
           ))}
 
           {!filteredRooms.length && (
