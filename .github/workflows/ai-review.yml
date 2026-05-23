@@ -25,10 +25,28 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git diff origin/main...HEAD > diff.txt
-          DIFF=$(cat diff.txt)
-          RESPONSE=$(curl -s -X POST \
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d "{\"contents\":[{\"parts\":[{\"text\":\"Review this code diff:\n\n$DIFF\"}]}]}")
-          COMMENT=$(echo $RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin)['candidates'][0]['content']['parts'][0]['text'])")
-          gh pr comment ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --body "$COMMENT"
+          python3 - <<'EOF'
+import json, os, sys, urllib.request
+with open('diff.txt') as f:
+    diff = f.read()
+if not diff.strip():
+    print("No diff to review.")
+    sys.exit(0)
+payload = json.dumps({
+    "contents": [{"parts": [{"text": f"Review this code diff:\n\n{diff}"}]}]
+}).encode()
+api_key = os.environ['GEMINI_API_KEY']
+req = urllib.request.Request(
+    f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}",
+    data=payload,
+    headers={"Content-Type": "application/json"}
+)
+with urllib.request.urlopen(req) as resp:
+    data = json.load(resp)
+comment = data['candidates'][0]['content']['parts'][0]['text']
+with open('comment.txt', 'w') as f:
+    f.write(comment)
+EOF
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "$(cat comment.txt)"
