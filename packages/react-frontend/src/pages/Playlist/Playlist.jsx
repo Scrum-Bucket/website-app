@@ -34,7 +34,6 @@ function Playlist({ username }) {
   const [error, setError] = useState("");
 
   async function handleAddSong() {
-
     // clear previous errors
     setError("");
 
@@ -55,15 +54,15 @@ function Playlist({ username }) {
       }
 
       const res = await authFetch(`${frontendLink}/users/${userId}/playlists/youtube/${parsedId}`, {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-              playlistName: "My Playlist",
-          }),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playlistName: "My Playlist",
+        }),
       });
-      
+
       if (!res.ok) {
         setError("Invalid playlist URL or ID."); // handle bad response from backend
         return;
@@ -73,17 +72,16 @@ function Playlist({ username }) {
 
       // ensure backend returned expected format/list of songs
       if (!Array.isArray(data)) {
-        setError("Invalid playlist response."); 
+        setError("Invalid playlist response.");
         return;
       }
 
       setSongs(data);
       setPlaylistId("");
-
     } catch (err) {
       console.error(err);
       // handle unexpected errors
-      setError("Could not load playlist. Please check the URL or ID."); 
+      setError("Could not load playlist. Please check the URL or ID.");
     }
   }
 

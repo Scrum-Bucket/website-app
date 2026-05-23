@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./join.css";
 import logoImage from "../../assets/logo.png";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
+import frontendLink from "../../frontendLink";
 
 const publicRooms = [
   { id: 1, name: "Beach Mix", host: "Nick", listeners: 5, code: "BEACH1" },
@@ -13,7 +15,44 @@ const publicRooms = [
 
 function Join() {
   const navigate = useNavigate();
+  
+  const [rooms, setRooms] = useState(publicRooms);
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    
+  function formatPublicRoom(room, index) {
+    const members = Array.isArray(room.members) ? room.members : [];
+
+    return {
+      id: room._id || room.id || index + 1,
+      name: room.currentSong || "No song playing",
+      host: room.host || "Host Name",
+      listeners: members.length,
+      code: room.roomCode || "Room Code",
+    };
+  }
+    async function loadPublicRooms() {
+      const response = await authFetch(`${frontendLink}/rooms?privacy=public`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch public rooms");
+      }
+
+      const publicRooms = await response.json();
+      const formattedRooms = publicRooms.map(formatPublicRoom);
+
+      if (active) {
+        setRooms((roomList) => [...roomList, ...formattedRooms]);
+      }
+    }
+
+    loadPublicRooms().catch((error) => console.error(error));
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredRooms = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -58,17 +97,12 @@ function Join() {
         </section>
 
         <section className="join-list">
-          {filteredRooms.map((room) => (
-            <button
-              className="join-room-row"
-              key={room.id}
-              onClick={() => navigate("/home/code")}
-              type="button"
-            >
-              <div className="join-room-code">{room.code}</div>
-              <div className="join-room-meta">
+          {rooms.map((room) => (
+            <article className="join-song-row" key={room.id} onClick={() => navigate("/home/code")}>
+              <div className="join-album-cover">{room.code}</div>
+              <div className="join-song-meta">
                 <span>{room.name}</span>
-                <span>Hosted by {room.host}</span>
+                <span>{room.host}</span>
                 <span>{room.listeners} listeners</span>
               </div>
             </button>

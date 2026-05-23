@@ -163,10 +163,7 @@ test("frontend signup creates an authenticated user session", async () => {
 });
 
 test("protected browser request without token redirects to signin", async () => {
-  const result = await supertest(backend.app)
-    .get("/users")
-    .set("Accept", "text/html")
-    .expect(302);
+  const result = await supertest(backend.app).get("/users").set("Accept", "text/html").expect(302);
 
   expect(result.headers.location).toBe("/signin?next=%2Fusers");
 });

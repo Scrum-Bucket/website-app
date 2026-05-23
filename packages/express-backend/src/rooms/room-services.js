@@ -5,6 +5,10 @@ function getRooms(roomCode) {
   return Room.find({ roomCode });
 }
 
+function getPublicRooms() {
+  return Room.find({ privacy: "public" });
+}
+
 function findRoomById(id) {
   return Room.findById(id);
 }
@@ -83,4 +87,5 @@ module.exports = {
   upvoteSong,
   leaveRoom,
   deleteRoom,
+  getPublicRooms,
 };
