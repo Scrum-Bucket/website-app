@@ -68,7 +68,7 @@ export async function createCrabIcon(imageSource, hexColor, hatSource = "") {
       const hatWidth = canvas.width * 0.25;
       const hatHeight = hatWidth * (hat.naturalHeight / hat.naturalWidth);
       const hatX = (canvas.width - hatWidth) / 2;
-      const hatY = canvas.height* 0.175;
+      const hatY = canvas.height * 0.175;
 
       context.drawImage(hat, hatX, hatY, hatWidth, hatHeight);
     }

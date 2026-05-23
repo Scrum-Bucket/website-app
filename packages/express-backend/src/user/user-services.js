@@ -91,13 +91,12 @@ async function unbanUser(id) {
 
 // id is user id
 async function addSongsToPlaylist(id, playlistName, songIds) {
-
   // get the user
   const user = await userModel.findById(id);
 
   // Cant find the user
-  if (!user){
-     throw new Error("User not found");
+  if (!user) {
+    throw new Error("User not found");
   }
 
   // p = one playlist (possibly multiple playlists)

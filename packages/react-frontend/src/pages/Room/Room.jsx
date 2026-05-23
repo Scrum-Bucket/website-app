@@ -147,11 +147,7 @@ function Room({ username }) {
             </div>
 
             {isHost && (
-              <button
-                className="room-start-btn"
-                type="button"
-                onClick={handleStart}
-              >
+              <button className="room-start-btn" type="button" onClick={handleStart}>
                 Start Game
               </button>
             )}
@@ -196,9 +192,7 @@ function Room({ username }) {
           </aside>
 
           <main className="room-main-panel">
-            <VoteMovingBox
-              users={room.members.map((member) => ({ id: member, name: member }))}
-            />
+            <VoteMovingBox users={room.members.map((member) => ({ id: member, name: member }))} />
           </main>
         </section>
       </div>

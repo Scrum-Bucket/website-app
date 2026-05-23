@@ -24,7 +24,6 @@ function deleteSong(id) {
 
 //
 async function findOrCreateSong(songData) {
-
   // returns song object
   const existingSong = await song.findOne({ songLink: songData.songLink });
 

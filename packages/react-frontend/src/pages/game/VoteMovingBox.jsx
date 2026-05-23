@@ -28,7 +28,8 @@ function normalizeUsers(users) {
   const sourceUsers = users?.length ? users : DEFAULT_USERS;
 
   return sourceUsers.map((user, index) => {
-    const name = typeof user === "string" ? user : user.name || user.userName || `User ${index + 1}`;
+    const name =
+      typeof user === "string" ? user : user.name || user.userName || `User ${index + 1}`;
 
     return {
       id: user.id || user.userId || name,
@@ -53,10 +54,7 @@ function VoteMovingBoxItem({ user, score, crabIcon, onVote }) {
   return (
     <article className="vote-box-card">
       <div className="vote-box-stage" aria-label={`${user.name} score position`}>
-        <div
-          className="vote-box-bar"
-          style={{ transform: `translateY(${moveOffset}px)` }}
-        >
+        <div className="vote-box-bar" style={{ transform: `translateY(${moveOffset}px)` }}>
           <button
             type="button"
             className="vote-box-button vote-box-button--up"
