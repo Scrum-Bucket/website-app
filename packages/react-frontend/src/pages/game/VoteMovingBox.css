@@ -24,10 +24,12 @@
 }
 
 .vote-song-picker {
-  max-height: calc(100vh - 120px);
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
   padding: 16px;
-  align-self: stretch;
-  overflow-y: auto;
+  align-self: start;
+  overflow: hidden;
   background: rgba(8, 48, 71, 0.86);
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
 }
@@ -54,13 +56,29 @@
 }
 
 .vote-song-list {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.vote-song-empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(231, 244, 255, 0.42);
+  border-radius: 8px;
+  font-size: 18px;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
 }
 
 .vote-song-option {
-  min-height: 74px;
+  min-height: 90px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -72,8 +90,9 @@
   color: #ffffff;
   cursor: pointer;
   font: inherit;
-  padding: 10px 12px;
+  padding: 18px 12px;
   text-align: left;
+  white-space: normal;
 }
 
 .vote-song-option:hover,
@@ -86,12 +105,16 @@
   color: #083047;
   font-size: 16px;
   font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .vote-song-option small {
   color: #2f50bd;
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .vote-arena {

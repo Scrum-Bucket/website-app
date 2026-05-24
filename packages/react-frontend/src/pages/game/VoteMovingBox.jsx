@@ -1,6 +1,12 @@
 import React, { useEffect, useMemo, useReducer, useState } from "react";
 import "./VoteMovingBox.css";
 import UserCrabIcon from "../../assets/user-crab.png";
+import {
+  getSongArtist,
+  getSongId,
+  getSongTitle,
+  readAccountPlaylist,
+} from "../Playlist/playlistStorage";
 import { createCrabIcon } from "../profile/crabColor";
 
 const hatImages = import.meta.glob("../../assets/hats/*.png", {
@@ -14,17 +20,6 @@ const DEFAULT_USERS = [
   { id: "sailor", name: "Sailor" },
   { id: "dj", name: "DJ" },
   { id: "guest", name: "Guest" },
-];
-
-const DEFAULT_SONGS = [
-  { id: "dummy-lagoon", name: "Lagoon Lights", artist: "Blue Reef", source: "Dummy" },
-  { id: "dummy-tide", name: "High Tide", artist: "The Shells", source: "Dummy" },
-  { id: "dummy-dock", name: "Dock Party", artist: "Captain Keys", source: "Dummy" },
-  { id: "dummy-sunset", name: "Sunset Queue", artist: "Marina Mix", source: "Dummy" },
-  { id: "dummy-current", name: "Current Drift", artist: "Waveform", source: "Dummy" },
-  { id: "dummy-reef", name: "Reef Rush", artist: "Coral Club", source: "Dummy" },
-  { id: "dummy-bass", name: "Bass Boat", artist: "Harbor Sound", source: "Dummy" },
-  { id: "dummy-moon", name: "Moonlit Marina", artist: "Night Wake", source: "Dummy" },
 ];
 
 const ROUND_SECONDS = 120;
@@ -52,13 +47,13 @@ function normalizeUsers(users) {
 }
 
 function normalizeSongs(songs) {
-  const sourceSongs = songs?.length ? [...songs, ...DEFAULT_SONGS] : DEFAULT_SONGS;
+  const sourceSongs = Array.isArray(songs) ? songs : [];
 
   return sourceSongs.map((song, index) => ({
-    id: song.songId || song.id || `${song.name || "song"}-${index}`,
-    name: song.name || song.title || song.details?.title || `Song ${index + 1}`,
-    artist: song.artist || song.details?.artist || "Unknown artist",
-    source: song.source || (song.songId ? "Room queue" : "Dummy"),
+    id: getSongId(song) || `${getSongTitle(song)}-${index}`,
+    name: getSongTitle(song),
+    artist: getSongArtist(song) || "Unknown artist",
+    source: song.source || "My Playlist",
   }));
 }
 
@@ -170,22 +165,26 @@ function SongPicker({ songs, onAddSong }) {
     <aside className="vote-song-picker" aria-label="Choose songs">
       <div className="vote-panel-heading">
         <p className="vote-panel-kicker">Song window</p>
-        <h2>Add dummy songs</h2>
+        <h2>Add songs</h2>
       </div>
 
-      <div className="vote-song-list">
-        {songs.map((song) => (
-          <button
-            className="vote-song-option"
-            type="button"
-            onClick={() => onAddSong(song)}
-            key={song.id}
-          >
-            <span>{song.name}</span>
-            <small>{song.artist} / {song.source}</small>
-          </button>
-        ))}
-      </div>
+      {songs.length ? (
+        <div className="vote-song-list">
+          {songs.map((song) => (
+            <button
+              className="vote-song-option"
+              type="button"
+              onClick={() => onAddSong(song)}
+              key={song.id}
+            >
+              <span>{song.name}</span>
+              <small>{song.artist} / {song.source}</small>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="vote-song-empty">No songs available</p>
+      )}
     </aside>
   );
 }
@@ -209,9 +208,9 @@ function CrabLane({ users, crabIcon }) {
   );
 }
 
-function VoteMovingBox({ users, availableSongs }) {
+function VoteMovingBox({ users, username }) {
   const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
-  const songs = useMemo(() => normalizeSongs(availableSongs), [availableSongs]);
+  const songs = useMemo(() => normalizeSongs(readAccountPlaylist(username)), [username]);
   const [{ entries, timeLeft, nowPlaying }, dispatch] = useReducer(gameReducer, {
     entries: [],
     timeLeft: ROUND_SECONDS,

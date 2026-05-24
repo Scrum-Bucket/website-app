@@ -186,7 +186,7 @@ function Room({ username }) {
 
       <VoteMovingBox
         users={room.members.map((member) => ({ id: member, name: member }))}
-        availableSongs={room.queue}
+        username={username}
       />
     </div>
   );
