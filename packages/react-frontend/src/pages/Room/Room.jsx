@@ -214,7 +214,10 @@ function Room({ username }) {
         </button>
       </header>
 
-      <VoteMovingBox users={room.members.map((member) => ({ id: member, name: member }))} />
+      <VoteMovingBox
+        users={room.members.map((member) => ({ id: member, name: member }))}
+        availableSongs={room.queue}
+      />
     </div>
   );
 }
