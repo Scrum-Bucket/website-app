@@ -24,7 +24,8 @@
 }
 
 .vote-song-picker {
-  max-height: 500px;
+  height: 675px;
+  max-height: calc(100vh - 120px);
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -53,6 +54,28 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.vote-song-search {
+  box-sizing: border-box;
+  width: 100%;
+  flex: 0 0 auto;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #eefbff;
+  color: #083047;
+  font: inherit;
+  margin-bottom: 10px;
+  padding: 12px;
+}
+
+.vote-song-search:focus {
+  border-color: #f7b244;
+  outline: none;
+}
+
+.vote-song-search::placeholder {
+  color: #2f50bd;
 }
 
 .vote-song-list {
@@ -357,6 +380,8 @@
 
   .vote-song-picker {
     align-self: auto;
+    height: auto;
+    max-height: 500px;
   }
 
   .vote-song-list {

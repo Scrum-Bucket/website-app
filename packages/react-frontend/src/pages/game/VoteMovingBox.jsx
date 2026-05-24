@@ -161,6 +161,17 @@ function VoteMovingBoxItem({ entry, stackIndex, onVote }) {
 }
 
 function SongPicker({ songs, onAddSong }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const filteredSongs = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearch) {
+      return songs;
+    }
+
+    return songs.filter((song) => song.name.toLowerCase().includes(normalizedSearch));
+  }, [songs, searchTerm]);
+
   return (
     <aside className="vote-song-picker" aria-label="Choose songs">
       <div className="vote-panel-heading">
@@ -169,19 +180,36 @@ function SongPicker({ songs, onAddSong }) {
       </div>
 
       {songs.length ? (
-        <div className="vote-song-list">
-          {songs.map((song) => (
-            <button
-              className="vote-song-option"
-              type="button"
-              onClick={() => onAddSong(song)}
-              key={song.id}
-            >
-              <span>{song.name}</span>
-              <small>{song.artist} / {song.source}</small>
-            </button>
-          ))}
-        </div>
+        <>
+          <input
+            className="vote-song-search"
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search songs"
+            aria-label="Search songs by title"
+          />
+
+          {filteredSongs.length ? (
+            <div className="vote-song-list">
+              {filteredSongs.map((song) => (
+                <button
+                  className="vote-song-option"
+                  type="button"
+                  onClick={() => onAddSong(song)}
+                  key={song.id}
+                >
+                  <span>{song.name}</span>
+                  <small>
+                    {song.artist} / {song.source}
+                  </small>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="vote-song-empty">No matching songs</p>
+          )}
+        </>
       ) : (
         <p className="vote-song-empty">No songs available</p>
       )}
