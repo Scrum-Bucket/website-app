@@ -99,20 +99,6 @@ function Room({ username }) {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
-  if (error) {
-    return (
-      <div className="room-page">
-        <GameBackground />
-        <div className="room-error-box">
-          <p>{error}</p>
-          <button type="button" onClick={() => navigate("/home")}>
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   if (!room) {
     return (
       <div className="room-page">

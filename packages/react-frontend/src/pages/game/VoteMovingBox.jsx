@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useReducer, useState } from "react";
 import "./VoteMovingBox.css";
 import UserCrabIcon from "../../assets/user-crab.png";
 import { createCrabIcon } from "../profile/crabColor";
@@ -75,6 +75,59 @@ function createEntry(song) {
     song,
     score: 0,
   };
+}
+
+function finishRound(entries) {
+  if (!entries.length) {
+    return { entries, nowPlaying: null };
+  }
+
+  const winningEntry = entries.reduce((leader, entry) =>
+    entry.score > leader.score ? entry : leader
+  );
+
+  return {
+    entries: [],
+    nowPlaying: {
+      ...winningEntry.song,
+      score: winningEntry.score,
+    },
+  };
+}
+
+function gameReducer(state, action) {
+  switch (action.type) {
+    case "tick": {
+      if (state.timeLeft > 1) {
+        return { ...state, timeLeft: state.timeLeft - 1 };
+      }
+
+      const nextRound = finishRound(state.entries);
+
+      return {
+        ...state,
+        entries: nextRound.entries,
+        nowPlaying: nextRound.nowPlaying || state.nowPlaying,
+        timeLeft: ROUND_SECONDS,
+      };
+    }
+    case "addSong":
+      return {
+        ...state,
+        entries: [...state.entries, createEntry(action.song)],
+      };
+    case "vote":
+      return {
+        ...state,
+        entries: state.entries.map((entry) =>
+          entry.entryId === action.entryId
+            ? { ...entry, score: clamp(entry.score + action.amount, MIN_SCORE, MAX_SCORE) }
+            : entry
+        ),
+      };
+    default:
+      return state;
+  }
 }
 
 function VoteMovingBoxItem({ entry, stackIndex, onVote }) {
@@ -157,9 +210,11 @@ function CrabLane({ users, crabIcon }) {
 function VoteMovingBox({ users, availableSongs }) {
   const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
   const songs = useMemo(() => normalizeSongs(availableSongs), [availableSongs]);
-  const [entries, setEntries] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(ROUND_SECONDS);
-  const [nowPlaying, setNowPlaying] = useState(null);
+  const [{ entries, timeLeft, nowPlaying }, dispatch] = useReducer(gameReducer, {
+    entries: [],
+    timeLeft: ROUND_SECONDS,
+    nowPlaying: null,
+  });
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
   const rankedEntries = useMemo(
     () => [...entries].sort((a, b) => b.score - a.score),
@@ -186,50 +241,20 @@ function VoteMovingBox({ users, availableSongs }) {
     };
   }, []);
 
-  const completeRound = useCallback(() => {
-    setEntries((currentEntries) => {
-      if (!currentEntries.length) return currentEntries;
-
-      const winningEntry = currentEntries.reduce((leader, entry) =>
-        entry.score > leader.score ? entry : leader
-      );
-
-      setNowPlaying({
-        ...winningEntry.song,
-        score: winningEntry.score,
-      });
-
-      return [];
-    });
-  }, []);
-
   useEffect(() => {
     const timerId = setInterval(() => {
-      setTimeLeft((currentTime) => Math.max(currentTime - 1, 0));
+      dispatch({ type: "tick" });
     }, 1000);
 
     return () => clearInterval(timerId);
   }, []);
 
-  useEffect(() => {
-    if (timeLeft !== 0) return;
-
-    completeRound();
-    setTimeLeft(ROUND_SECONDS);
-  }, [completeRound, timeLeft]);
-
   const handleAddSong = (song) => {
-    setEntries((currentEntries) => [...currentEntries, createEntry(song)]);
+    dispatch({ type: "addSong", song });
   };
 
   const handleVote = (entryId, amount) => {
-    setEntries((currentEntries) =>
-      currentEntries.map((entry) =>
-        entry.entryId === entryId
-          ? { ...entry, score: clamp(entry.score + amount, MIN_SCORE, MAX_SCORE) }
-          : entry
-      )
-    );
+    dispatch({ type: "vote", entryId, amount });
   };
 
   return (
