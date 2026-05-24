@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useReducer, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./VoteMovingBox.css";
 import UserCrabIcon from "../../assets/user-crab.png";
 import {
@@ -161,6 +162,8 @@ function VoteMovingBoxItem({ entry, stackIndex, onVote }) {
 }
 
 function SongPicker({ songs, onAddSong }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const filteredSongs = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -171,12 +174,21 @@ function SongPicker({ songs, onAddSong }) {
 
     return songs.filter((song) => song.name.toLowerCase().includes(normalizedSearch));
   }, [songs, searchTerm]);
+  const handleOpenPlaylist = () => {
+    navigate("/home/playlist", {
+      state: {
+        returnTo: `${location.pathname}${location.search}`,
+      },
+    });
+  };
 
   return (
     <aside className="vote-song-picker" aria-label="Choose songs">
       <div className="vote-panel-heading">
         <p className="vote-panel-kicker">Song window</p>
-        <h2>Add songs</h2>
+        <button className="vote-add-songs-link" type="button" onClick={handleOpenPlaylist}>
+          Add songs
+        </button>
       </div>
 
       {songs.length ? (

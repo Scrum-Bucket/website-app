@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { readAccountPlaylist, writeAccountPlaylist } from "./playlistStorage";
 
 function MyPlaylist({ username }) {
+  const location = useLocation();
   const navigate = useNavigate();
+  const returnTo = location.state?.returnTo || "/home";
   const [songs, setSongs] = useState(() => readAccountPlaylist(username));
 
   function handleRemoveSong(songId) {
@@ -20,11 +22,14 @@ function MyPlaylist({ username }) {
       <div className="playlist-window">
         <header className="playlist-header">
           <h1>My Playlist</h1>
-          <button type="button" onClick={() => navigate("/home/playlist")}>
+          <button
+            type="button"
+            onClick={() => navigate("/home/playlist", { state: { returnTo } })}
+          >
             Add Songs
           </button>
-          <button type="button" onClick={() => navigate("/home")}>
-            Back to Home
+          <button type="button" onClick={() => navigate(returnTo)}>
+            Back
           </button>
         </header>
 

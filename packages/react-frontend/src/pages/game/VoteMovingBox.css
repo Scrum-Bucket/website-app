@@ -39,13 +39,31 @@
   margin-bottom: 16px;
 }
 
-.vote-panel-heading h2,
 .vote-panel-kicker {
   margin: 0;
 }
 
-.vote-panel-heading h2 {
-  font-size: 24px;
+.vote-add-songs-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 999px;
+  background: #2f50bd;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 6px 0 0;
+  padding: 8px 18px;
+}
+
+.vote-add-songs-link:hover,
+.vote-add-songs-link:focus-visible {
+  border-color: #f7b244;
+  outline: none;
 }
 
 .vote-panel-kicker {
