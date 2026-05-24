@@ -24,9 +24,7 @@ const hats = Object.entries(hatImages).map(([path, source]) => {
 
 function EditCrab() {
   const navigate = useNavigate();
-  const [crabColor, setCrabColor] = useState(
-    localStorage.getItem("profileCrabColor") || "#e74c3c"
-  );
+  const [crabColor, setCrabColor] = useState(localStorage.getItem("profileCrabColor") || "#e74c3c");
   const [crabHat, setCrabHat] = useState(localStorage.getItem("profileCrabHat") || "");
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
 
@@ -68,17 +66,17 @@ function EditCrab() {
       <div className="edit-crab-window">
         <header className="edit-crab-header">
           <h1>Edit Icon</h1>
-          <button type="button" className="edit-crab-home-btn" onClick={() => navigate("/home/profile")}>
+          <button
+            type="button"
+            className="edit-crab-home-btn"
+            onClick={() => navigate("/home/profile")}
+          >
             <img src={HouseIcon} alt="Back to Profile" />
           </button>
         </header>
 
         <section className="edit-crab-preview-wrap">
-          <img
-            className="edit-crab-preview"
-            src={crabIcon}
-            alt="Profile icon preview"
-          />
+          <img className="edit-crab-preview" src={crabIcon} alt="Profile icon preview" />
         </section>
 
         <section className="edit-crab-controls">
@@ -113,7 +111,11 @@ function EditCrab() {
               </button>
             ))}
           </div>
-          <button type="button" className="edit-crab-save-btn" onClick={() => navigate("/home/profile")}>
+          <button
+            type="button"
+            className="edit-crab-save-btn"
+            onClick={() => navigate("/home/profile")}
+          >
             Save
           </button>
         </section>

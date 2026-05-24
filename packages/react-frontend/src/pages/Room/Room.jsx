@@ -1,10 +1,13 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import GameBackground from "../../../animationFiles/game-background.jsx";
+import OtherBackground from "../../../animationFiles/other-background.jsx";
+import { authFetch } from "../../authFetch";
+import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
 
-const API = "http://localhost:8000";
+const API = frontendLink;
 const POLL_MS = 2000;
 
 function Room({ username }) {
@@ -13,11 +16,8 @@ function Room({ username }) {
   const navigate = useNavigate();
 
   const [room, setRoom] = useState(location.state?.room || null);
-  const [error, setError] = useState("");
   const [localGameStarted, setLocalGameStarted] = useState(false);
-  const pollRef = useRef(null);
 
-  // ── Fetch room state ──────────────────────────────────────────────────────
   const fetchRoom = useCallback(async () => {
     if (!roomCode) {
       setRoom({
@@ -35,7 +35,7 @@ function Room({ username }) {
     }
 
     try {
-      const res = await fetch(`${API}/rooms/${roomCode}`);
+      const res = await authFetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
         setRoom({
           roomCode,
@@ -60,34 +60,20 @@ function Room({ username }) {
   }, [location.state?.room, roomCode, username]);
 
   useEffect(() => {
-    fetchRoom();
-    pollRef.current = setInterval(fetchRoom, POLL_MS);
-    return () => clearInterval(pollRef.current);
+    const initialFetchId = setTimeout(fetchRoom, 0);
+    const pollId = setInterval(fetchRoom, POLL_MS);
+
+    return () => {
+      clearTimeout(initialFetchId);
+      clearInterval(pollId);
+    };
   }, [fetchRoom]);
 
-  // ── Upvote ────────────────────────────────────────────────────────────────
-  async function handleUpvote(songId) {
-    try {
-      const res = await fetch(`${API}/rooms/${roomCode}/upvote`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songId }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setRoom(updated);
-      }
-    } catch {
-      // silent — next poll will sync
-    }
-  }
-
-  // ── Host: start game ──────────────────────────────────────────────────────
   async function handleStart() {
     setLocalGameStarted(true);
 
     try {
-      const res = await fetch(`${API}/rooms/${roomCode}/start`, {
+      const res = await authFetch(`${API}/rooms/${roomCode}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -96,14 +82,13 @@ function Room({ username }) {
         setRoom(updated);
       }
     } catch {
-      // silent
+      // Local test mode can still start without the backend.
     }
   }
 
-  // ── Leave room ────────────────────────────────────────────────────────────
   async function handleLeave() {
     try {
-      await fetch(`${API}/rooms/${roomCode}/leave`, {
+      await authFetch(`${API}/rooms/${roomCode}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName: username || "guest" }),
@@ -140,7 +125,6 @@ function Room({ username }) {
   const isHost = room.host === (username || "guest");
   const gameStarted = room.started || localGameStarted;
 
-  // ── Lobby ─────────────────────────────────────────────────────────────────
   if (!gameStarted) {
     return (
       <div className="room-page">
@@ -159,7 +143,7 @@ function Room({ username }) {
             aria-label="leave room"
             onClick={handleLeave}
           >
-            ✕
+            x
           </button>
         </header>
 

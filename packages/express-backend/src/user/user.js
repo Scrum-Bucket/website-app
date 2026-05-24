@@ -22,6 +22,25 @@ const UserSchema = new mongoose.Schema(
       unique: false,
       index: true,
     },
+    playlists: {
+      type: [
+        {
+          name: {
+            type: String,
+            required: true,
+            trim: true,
+            default: "Untitled Playlist",
+          },
+          songs: [
+            {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "Song",
+            },
+          ],
+        },
+      ],
+      default: [],
+    },
     // 0 = logged out, 1 = logged in, 2 = timed out
     status: {
       type: Number,
@@ -34,6 +53,10 @@ const UserSchema = new mongoose.Schema(
     crab: {
       type: [Number],
       default: [],
+    },
+    isAdmin: {
+      type: Boolean,
+      default: false,
     },
   },
   {

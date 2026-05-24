@@ -1,5 +1,12 @@
 # website-app
 
+This app is currently in CI/CD as of 05/09/2026. As a result, you can look at the website here:
+frontend: https://polite-sea-008d19c10.7.azurestaticapps.net/
+backend: https://crabrave-g0ave8bxcmgxasa0.westus3-01.azurewebsites.net/users
+(The rest of this README shall be for running locally)
+
+At the present time, accessing the backend requires an authentication token (from an .env file) which will be required for accessing or modifying data in the backend.
+
 To test api endpoints, install supertest: `npm install supertest`
 
 To run backend and frontend at once in root, install concurrently: `npm install concurrently`
@@ -7,6 +14,7 @@ To run backend and frontend at once in root, install concurrently: `npm install 
 Style: JS Style Guide
 
 To initialize the packages:
+Install jsonwebtokens to root by running: `npm install jsonwebtokens`
 Install vite in frontend by running `npm install vite` in packages/react-frontend
 Then, in stall express in backend by running `npm install express` and `npm install bcrypt` in packages/express-backend
 

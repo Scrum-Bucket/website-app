@@ -1,6 +1,8 @@
 // src/MyApp.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { authFetch } from "../authFetch";
+import frontendLink from "../frontendLink";
 
 function MyApp({ onLogin }) {
   const location = useLocation();
@@ -20,8 +22,9 @@ function MyApp({ onLogin }) {
     const trimmedUsername = username.trim();
 
     try {
-      const response = await fetch(`http://localhost:8000/users/login`, {
+      const response = await fetch(`${frontendLink}/users/login`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -39,11 +42,13 @@ function MyApp({ onLogin }) {
 
       const userData = await response.json();
       setErrorMessage("");
-      
-      // Store username and userId in localStorage
+
+      // Store username, userId, and admin status in localStorage
+      localStorage.removeItem("authToken");
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
-      
+      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {
@@ -66,7 +71,7 @@ function MyApp({ onLogin }) {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/users`, {
+      const response = await authFetch(`${frontendLink}/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -85,11 +90,12 @@ function MyApp({ onLogin }) {
 
       const userData = await response.json();
       setErrorMessage("");
-      
-      // Store username and userId in localStorage
+
+      // Store username, userId, and admin status in localStorage
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
-      
+      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+
       onLogin(trimmedUsername);
       navigate("/home");
     } catch (error) {
@@ -98,7 +104,23 @@ function MyApp({ onLogin }) {
     }
   }
 
-  function handleGuestLogin() {
+  async function handleGuestLogin() {
+    try {
+      await fetch(`${frontendLink}/signout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      });
+    } catch {
+      // Guest mode can continue even if the backend is unavailable.
+    }
+
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("username");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("isAdmin");
     onLogin("Guest");
     navigate("/home");
   }
@@ -110,7 +132,7 @@ function MyApp({ onLogin }) {
 
   return (
     <div className="page">
-      <div className="floating" style={{ minWidth: '840px', padding: '48px' }}>
+      <div className="floating" style={{ minWidth: "840px", padding: "48px" }}>
         <form className="login-row" onSubmit={handleSubmit}>
           <input
             type="text"
@@ -142,7 +164,9 @@ function MyApp({ onLogin }) {
         <button type="button" className="other-button" onClick={handleSignup}>
           Sign Up
         </button>
-        {(errorMessage || redirectError) ? <p className="auth-error">{errorMessage || redirectError}</p> : null}
+        {errorMessage || redirectError ? (
+          <p className="auth-error">{errorMessage || redirectError}</p>
+        ) : null}
         <p className="demo-accounts">Demo accounts: nick/music123 or demo/password1</p>
       </div>
     </div>

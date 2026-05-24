@@ -42,7 +42,9 @@
   border: none;
   cursor: pointer;
   border-radius: 12px;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -120,7 +122,10 @@
   justify-content: center;
   padding: 8px;
   font-size: 0.9rem;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .edit-crab-hat-btn img {
@@ -144,7 +149,10 @@
   border-radius: 20px;
   cursor: pointer;
   font-size: 1rem;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .edit-crab-save-btn:hover {

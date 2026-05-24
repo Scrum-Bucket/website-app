@@ -1,50 +1,172 @@
 //backend.js
 const express = require("express");
 const cors = require("cors"); //frontend to backend
-const path = require("path");
-const dotenv = require("dotenv");
+const { requireEnv } = require("./env");
+const {
+  authenticateUser,
+  clearUserAuthCookie,
+  setUserAuthCookie,
+  signin,
+  signinPage,
+  signout,
+} = require("./auth");
 const userServices = require("./user/user-services.js");
 const songServices = require("./songs/song-services.js");
 const roomServices = require("./rooms/room-services.js");
 
-dotenv.config({
-  path: path.resolve(__dirname, "..", "..", "..", "config", "database.env"),
+const app = express();
+const ROOM_CODE_LENGTH = 6;
+const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+app.set("trust proxy", 1);
+
+function normalizeCorsOrigin(origin) {
+  if (!origin) return "";
+
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin.replace(/\/+$/, "");
+  }
+}
+
+function firstHeaderValue(value) {
+  return String(value || "")
+    .split(",")[0]
+    .trim();
+}
+
+function getRequestOrigin(req) {
+  const protocol = firstHeaderValue(req.headers["x-forwarded-proto"]) || req.protocol;
+  const host = firstHeaderValue(req.headers["x-forwarded-host"]) || req.headers.host;
+
+  return host ? `${protocol}://${host}` : "";
+}
+
+const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_ORIGIN || "")
+  .split(",")
+  .map((origin) => normalizeCorsOrigin(origin.trim()))
+  .filter(Boolean);
+
+const defaultAllowedOrigins = [
+  "https://polite-sea-008d19c10.7.azurestaticapps.net",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+];
+
+function isAllowedCorsOrigin(origin) {
+  const normalizedOrigin = normalizeCorsOrigin(origin);
+  const configuredOrigins = allowedOrigins.length
+    ? allowedOrigins
+    : defaultAllowedOrigins.map(normalizeCorsOrigin);
+  const isLocalDevOrigin = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
+  return configuredOrigins.includes(normalizedOrigin) || isLocalDevOrigin;
+}
+
+function isSameOriginRequest(origin, req) {
+  return normalizeCorsOrigin(origin) === normalizeCorsOrigin(getRequestOrigin(req));
+}
+
+app.use((req, res, next) =>
+  cors({
+    credentials: true,
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (isAllowedCorsOrigin(origin) || isSameOriginRequest(origin, req)) {
+        return callback(null, true);
+      }
+
+      console.warn("Rejected CORS origin:", {
+        origin,
+        requestOrigin: getRequestOrigin(req),
+        allowedOrigins: allowedOrigins.length ? allowedOrigins : defaultAllowedOrigins,
+      });
+      return callback(new Error("Not allowed by CORS"));
+    },
+  })(req, res, next)
+);
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+function generateRoomCode() {
+  return Array.from({ length: ROOM_CODE_LENGTH }, () => {
+    const index = Math.floor(Math.random() * ROOM_CODE_CHARS.length);
+    return ROOM_CODE_CHARS[index];
+  }).join("");
+}
+
+function normalizeRoomCode(roomCode) {
+  return (roomCode || "").trim().toUpperCase();
+}
+
+function userResponse(user) {
+  const userData = typeof user.toObject === "function" ? user.toObject() : user;
+  delete userData.passWord;
+
+  return { ...userData, authenticated: true };
+}
+
+app.get("/signin", signinPage);
+app.post("/signin", signin);
+app.get("/signout", signout);
+app.post("/signout", signout);
+
+app.get("/", (req, res) => {
+  res.send("Backend running.");
 });
 
-const app = express();
+app.use(authenticateUser);
 
-app.use(cors());
-app.use(express.json());
-
-// ── YouTube ───────────────────────────────────────────────────────────────────
-
-/*
-Note about these changes:
-- The URL says :link, yet the code reads req.body.id
-- Also makes front end call simple -> 'fetch("/youtube/PLAYLIST_ID")'
-- Now it reads the playlist value from the URL, rather than looking in req.body
-*/
 app.get("/youtube/:link", async (req, res) => {
   const { link } = req.params;
-  const apikey = process.env.YOUTUBE_API_KEY;
-  const promise = fetch(
-    `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${link}&maxResults=1&key=${apikey}`,
-    { method: "GET" }
-  )
-    .then(async (response) => {
-      const content = await response.json();
-      const playlistId = content["items"][0]["id"];
-      const playlistItems = await getSongs(playlistId, undefined);
-      console.log("YouTube API Response:", content);
-      const songs = await compileSongs(playlistItems, playlistId);
-      res.status(200).send(songs);
-    })
-    .catch((error) => res.status(500).json({ error: error.message }));
-  return promise;
+
+  try {
+    const apikey = requireEnv("YOUTUBE_API_KEY");
+
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${link}&maxResults=1&key=${apikey}`,
+      { method: "GET" }
+    );
+
+    const content = await response.json();
+    const playlistId = content["items"][0]["id"];
+    const playlistItems = await getSongs(playlistId, undefined);
+    const songs = await compileSongs(playlistItems, playlistId);
+
+    res.status(200).send(songs);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/users/:id/playlists/youtube/:playlistId", async (req, res) => {
+  const { id, playlistId } = req.params;
+  const { playlistName = "My Playlist" } = req.body;
+
+  try {
+    const playlistItems = await getSongs(playlistId, undefined);
+    const songs = (await compileSongs(playlistItems, playlistId)).slice(0, 20);
+
+    const savedSongs = await Promise.all(
+      songs.map((songData) => songServices.findOrCreateSong(songData))
+    );
+
+    const songIds = savedSongs.map((song) => song._id);
+
+    await userServices.addSongsToPlaylist(id, playlistName, songIds);
+
+    res.status(200).json(savedSongs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 async function getSongs(id, pageToken) {
-  const apikey = process.env.YOUTUBE_API_KEY;
+  const apikey = requireEnv("YOUTUBE_API_KEY");
   if (pageToken !== undefined) {
     return fetch(
       `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${id}&maxResults=50&key=${apikey}&pageToken=${pageToken}`,
@@ -72,20 +194,19 @@ async function getSongs(id, pageToken) {
     });
 }
 
+function isValidSong(item) {
+  const title = item.snippet.title;
+  return title !== "Private video" && title !== "Deleted video";
+}
+
 async function compileSongs(playlistItems, playlistId) {
   const songs = [];
   for (const item of playlistItems["items"]) {
-    if (
-      item.snippet.title !== "Private video" &&
-      item.snippet.title !== "Deleted video" &&
-      item.snippet.thumbnails?.default?.url
-    ) {
+    if (isValidSong(item)) {
       songs.push({
         songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
         details: {
           title: item.snippet.title,
-          thumbnail: item.snippet.thumbnails.default.url,
-          description: item.snippet.description,
         },
       });
     }
@@ -98,13 +219,11 @@ async function compileSongs(playlistItems, playlistId) {
     console.log("Next Page token", nextPageResponse["nextPageToken"]);
 
     for (const item of nextPageResponse["items"]) {
-      if (item.snippet.title !== "Private video" && item.snippet.title !== "Deleted video") {
+      if (isValidSong(item)) {
         songs.push({
           songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
           details: {
             title: item.snippet.title,
-            thumbnail: item.snippet.thumbnails.default.url,
-            description: item.snippet.description,
           },
         });
       }
@@ -145,7 +264,10 @@ app.post("/users", async (req, res) => {
 
   await userServices
     .createUser(userName, passWord)
-    .then((created) => res.status(201).json(created))
+    .then((created) => {
+      setUserAuthCookie(req, res, created);
+      res.status(201).json(userResponse(created));
+    })
     .catch((err) => {
       if (
         err.message?.includes("already exists") ||
@@ -174,7 +296,10 @@ app.post("/users/login", async (req, res) => {
   const { username, password } = req.body;
   await userServices
     .loginUser(username, password)
-    .then((user) => res.json(user))
+    .then((user) => {
+      setUserAuthCookie(req, res, user);
+      res.json(userResponse(user));
+    })
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
@@ -182,7 +307,10 @@ app.post("/users/login", async (req, res) => {
 app.post("/users/:id/logout", async (req, res) => {
   await userServices
     .logoutUser(req.params.id)
-    .then((user) => res.json(user))
+    .then((user) => {
+      clearUserAuthCookie(req, res);
+      res.json(user);
+    })
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
@@ -224,6 +352,14 @@ app.post("/users/:id/timeout", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
+// unbanUser - remove timeout status
+app.post("/users/:id/unban", async (req, res) => {
+  await userServices
+    .unbanUser(req.params.id)
+    .then((user) => res.json(user))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 // changePrefs: send { favorites: [...], crab: [...] } in body, both optional
 app.patch("/users/:id/prefs", async (req, res) => {
   await userServices
@@ -232,8 +368,30 @@ app.patch("/users/:id/prefs", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
-app.get("/", (req, res) => {
-  res.send("Backend running.");
+// promoteToAdmin - promote user to admin
+app.post("/users/:id/promote", async (req, res) => {
+  // Verify that the requester is an admin (optional - implement your own auth check)
+  await userServices
+    .promoteToAdmin(req.params.id)
+    .then((user) => res.json(user))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// demoteFromAdmin - demote admin to regular user
+app.post("/users/:id/demote", async (req, res) => {
+  // Verify that the requester is an admin (optional - implement your own auth check)
+  await userServices
+    .demoteFromAdmin(req.params.id)
+    .then((user) => res.json(user))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// isAdmin - check if user is admin
+app.get("/users/:id/admin-status", async (req, res) => {
+  await userServices
+    .isAdmin(req.params.id)
+    .then((isAdminStatus) => res.json({ isAdmin: isAdminStatus }))
+    .catch((err) => res.status(400).json({ error: err.message }));
 });
 
 // ── Songs ─────────────────────────────────────────────────────────────────────
@@ -269,6 +427,7 @@ app.get("/songs/:id", async (req, res) => {
 // addSong send { songLink, details } in body
 app.post("/songs", async (req, res) => {
   const { songLink, details } = req.body;
+  if (!songLink) return res.status(400).json({ error: "songLink is required." });
   await songServices
     .addSong(songLink, details)
     .then((created) => res.status(201).json(created))
@@ -290,10 +449,19 @@ app.delete("/songs/:id", async (req, res) => {
 // GET /rooms  – list all rooms (optionally filter by ?roomCode=)
 app.get("/rooms", async (req, res) => {
   const { roomCode } = req.query;
-  await roomServices
-    .getRooms(roomCode)
-    .then((rooms) => res.json(rooms))
-    .catch((err) => res.status(500).json({ error: err.message }));
+  const { privacy } = req.query;
+
+  if (!roomCode && privacy === "public") {
+    await roomServices
+      .getPublicRooms()
+      .then((rooms) => res.json(rooms))
+      .catch((err) => res.status(500).json({ error: err.message }));
+  } else {
+    await roomServices
+      .getRooms(roomCode)
+      .then((rooms) => res.json(rooms))
+      .catch((err) => res.status(500).json({ error: err.message }));
+  }
 });
 
 // GET /rooms/:roomCode  – get a single room by its code
@@ -307,17 +475,41 @@ app.get("/rooms/:roomCode", async (req, res) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 });
 
-// POST /rooms  – create a room  { roomCode, host }
+// POST /rooms/:roomCode/join  – join a room  { userName }
 app.post("/rooms", async (req, res) => {
-  const { roomCode, host } = req.body;
-  if (!roomCode) return res.status(400).json({ error: "roomCode is required." });
-  await roomServices
-    .addRoom(roomCode, host)
-    .then((created) => res.status(201).json(created))
-    .catch((err) => res.status(400).json({ error: err.message }));
+  const requestedRoomCode = normalizeRoomCode(req.body.roomCode);
+  const host = (req.body.host || req.body.userName || req.body.username || "").trim() || null;
+  const maxAttempts = requestedRoomCode ? 1 : 5;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const roomCode = requestedRoomCode || generateRoomCode();
+
+    try {
+      const existingRoom = await roomServices.findRoomByCode(roomCode);
+      if (existingRoom) {
+        if (requestedRoomCode) {
+          return res.status(409).json({ error: "Room code already exists." });
+        }
+        continue;
+      }
+
+      const created = await roomServices.addRoom(roomCode, host);
+      return res.status(201).json(created);
+    } catch (err) {
+      if (err.code === 11000) {
+        if (requestedRoomCode) {
+          return res.status(409).json({ error: "Room code already exists." });
+        }
+        continue;
+      }
+
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  return res.status(500).json({ error: "Could not create a unique room code." });
 });
 
-// POST /rooms/:roomCode/join  – join a room  { userName }
 app.post("/rooms/:roomCode/join", async (req, res) => {
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });
@@ -332,8 +524,10 @@ app.post("/rooms/:roomCode/join", async (req, res) => {
 
 // POST /rooms/:roomCode/start  – host starts the game
 app.post("/rooms/:roomCode/start", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+
   await roomServices
-    .startRoom(req.params.roomCode)
+    .startRoom(roomCode)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -343,10 +537,11 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { songId, name, artist } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
-    .addSongToQueue(req.params.roomCode, songId, name || "Unknown", artist || "Unknown")
+    .addSongToQueue(roomCode, songId, name || "Unknown", artist || "Unknown")
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -356,10 +551,11 @@ app.post("/rooms/:roomCode/queue", async (req, res) => {
 
 // POST /rooms/:roomCode/upvote  – upvote a song  { songId }
 app.post("/rooms/:roomCode/upvote", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { songId } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
-    .upvoteSong(req.params.roomCode, songId)
+    .upvoteSong(roomCode, songId)
     .then((room) => res.json(room))
     .catch((err) => res.status(400).json({ error: err.message }));
 });
@@ -367,6 +563,7 @@ app.post("/rooms/:roomCode/upvote", async (req, res) => {
 // POST /rooms/:roomCode/leave  – leave a room  { userName }
 app.post("/rooms/:roomCode/leave", async (req, res) => {
   const { userName } = req.body;
+  if (!userName) return res.status(400).json({ error: "userName is required." });
   await roomServices
     .leaveRoom(req.params.roomCode, userName)
     .then((room) => {

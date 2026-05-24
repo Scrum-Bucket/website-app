@@ -56,7 +56,9 @@
   border: none;
   cursor: pointer;
   border-radius: 12px;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -97,7 +99,10 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .profile-edit-crab-btn img {
@@ -154,7 +159,9 @@
   font-size: 1rem;
   flex: 1;
   max-width: 160px;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
   background: var(--btn-color);
 }
 
@@ -162,4 +169,18 @@
   background: var(--btn-hover-color);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.Admin-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.Admin-actions .profile-action-btn {
+  flex: 0 0 auto;
+  width: 33%;
+  min-width: 160px;
+  max-width: 220px;
+  padding: 20px 24px;
+  margin: 24px 0 8px;
 }

@@ -1,0 +1,271 @@
+.admin-page {
+  position: relative;
+  width: 100vw;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 18px 12px;
+  overflow-x: hidden;
+  background: #0a2a4a;
+}
+
+.bg-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.admin-page > :not(.bg-canvas) {
+  position: relative;
+  z-index: 2;
+}
+
+.admin-container {
+  width: 100%;
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  padding: 26px;
+  animation: slideIn 0.5s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #667eea;
+}
+
+.admin-header h1 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.85em;
+}
+
+.admin-home-btn {
+  background: #4aa6dd;
+  border: none;
+  cursor: pointer;
+  padding: 10px 16px;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.admin-home-btn:hover {
+  background: #3e8fc0;
+  transform: translateY(-2px);
+}
+
+.admin-error {
+  background-color: #e74c3c;
+  color: white;
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.admin-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.admin-control-btn {
+  padding: 10px 20px;
+  background-color: var(--btn-color, #3498db);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95em;
+  transition: background-color 0.3s ease;
+}
+
+.admin-control-btn:hover {
+  background-color: var(--btn-hover-color, #2980b9);
+}
+
+.admin-users h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.5em;
+}
+
+.admin-loading,
+.admin-no-users {
+  text-align: center;
+  padding: 40px;
+  color: #7f8c8d;
+  font-size: 1.1em;
+}
+
+.admin-users-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.admin-user-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 18px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-user-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.admin-user-info {
+  margin-bottom: 15px;
+}
+
+.admin-user-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+}
+
+.admin-badge {
+  background-color: #9b59b6;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.admin-user-details {
+  color: #7f8c8d;
+  font-size: 0.9em;
+  line-height: 1.6;
+}
+
+.admin-user-details div {
+  margin: 4px 0;
+}
+
+.admin-user-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admin-action-btn {
+  padding: 10px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.85em;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.admin-action-btn.promote {
+  background-color: #27ae60;
+  grid-column: 1 / 2;
+}
+
+.admin-action-btn.promote:hover {
+  background-color: #229954;
+  transform: translateY(-2px);
+}
+
+.admin-action-btn.demote {
+  background-color: #d35400;
+  grid-column: 1 / 2;
+}
+
+.admin-action-btn.demote:hover {
+  background-color: #ba4a00;
+  transform: translateY(-2px);
+}
+
+.admin-action-btn.timeout {
+  background-color: #f39c12;
+  grid-column: 2 / 3;
+}
+
+.admin-action-btn.timeout:hover {
+  background-color: #d68910;
+  transform: translateY(-2px);
+}
+
+.admin-action-btn.unban {
+  background-color: #3498db;
+  grid-column: 2 / 3;
+}
+
+.admin-action-btn.unban:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+}
+
+.admin-action-btn.delete {
+  background-color: #e74c3c;
+  grid-column: 1 / 3;
+}
+
+.admin-action-btn.delete:hover {
+  background-color: #c0392b;
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    padding: 20px;
+  }
+
+  .admin-header h1 {
+    font-size: 1.5em;
+  }
+
+  .admin-users-list {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-user-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-action-btn.delete {
+    grid-column: 1;
+  }
+}

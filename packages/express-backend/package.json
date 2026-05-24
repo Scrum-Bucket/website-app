@@ -10,16 +10,22 @@
   "scripts": {
     "test": "jest",
     "dev": "npx nodemon src/startup.js",
-    "start": "node src/startup.js"
+    "start": "node src/startup.js",
+    "lint": "eslint ."
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "dunder-proto": "^1.0.1",
     "ee-first": "^1.1.1",
     "express": "^5.2.1",
     "jest": "^30.3.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.2",
     "supertest": "^7.2.2"
+  },
+  "devDependencies": {
+    "mockingoose": "^3.0.0"
   }
 }

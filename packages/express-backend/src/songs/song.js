@@ -10,7 +10,7 @@ const SongSchema = new mongoose.Schema(
     },
 
     details: {
-      type: [String],
+      type: mongoose.Schema.Types.Mixed,
       default: [],
     },
   },

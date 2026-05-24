@@ -30,14 +30,19 @@ async function createUser(userName, passWord) {
   if (existingUser) {
     throw new Error("An account with this username already exists.");
   }
-  
+
   const hashedPassword = await bcrypt.hash(passWord, 10);
   const newUser = new userModel({ userName, passWord: hashedPassword });
   try {
     return await newUser.save();
   } catch (err) {
-    if (err.code === 11000 || (err.message && err.message.toLowerCase().includes("duplicate key"))) {
-      throw new Error("An account with this username already exists. Please choose a different username or log in.");
+    if (
+      err.code === 11000 ||
+      (err.message && err.message.toLowerCase().includes("duplicate key"))
+    ) {
+      throw new Error(
+        "An account with this username already exists. Please choose a different username or log in."
+      );
     }
     throw err;
   }
@@ -77,13 +82,53 @@ async function timeoutUser(id) {
   return await userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
 }
 
-// changePrefs: update favorites and/or crab lists
-async function changePrefs(id, { favorites, crab }) {
+// unbanUser: remove timeout by setting status back to 0
+async function unbanUser(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+}
+
+// id is user id
+async function addSongsToPlaylist(id, playlistName, songIds) {
+  // get the user
+  const user = await userModel.findById(id);
+
+  // Cant find the user
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // p = one playlist (possibly multiple playlists)
+  let playlist = user.playlists.find((p) => p.name === playlistName);
+
+  // if playlist doesnt exist
+  if (!playlist) {
+    // add new one to user's list of playlists
+    user.playlists.push({
+      name: playlistName,
+      songs: songIds,
+    });
+  } else {
+    // if it does exist go through each song
+    for (const songId of songIds) {
+      // avoid duplicates
+      if (!playlist.songs.some((existingId) => existingId.toString() === songId.toString())) {
+        playlist.songs.push(songId);
+      }
+    }
+  }
+
+  return await user.save();
+}
+
+// changePrefs: update playlist and/or crab lists
+async function changePrefs(id, { playlist, crab }) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
 
   const update = {};
-  if (favorites !== undefined) update.favorites = favorites;
+  if (playlist !== undefined) update.playlist = playlist;
   if (crab !== undefined) update.crab = crab;
 
   return await userModel.findByIdAndUpdate(id, update, { new: true });
@@ -115,6 +160,27 @@ async function changePassword(id, newPassword) {
   return await userModel.findByIdAndUpdate(id, { passWord: hashedPassword }, { new: true });
 }
 
+// promoteToAdmin: set isAdmin to true
+async function promoteToAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { isAdmin: true }, { new: true });
+}
+
+// demoteFromAdmin: set isAdmin to false
+async function demoteFromAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return await userModel.findByIdAndUpdate(id, { isAdmin: false }, { new: true });
+}
+
+// isAdmin: check if user is admin
+async function isAdmin(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  return user.isAdmin;
+}
+
 module.exports = {
   getUsers,
   findUserById,
@@ -123,7 +189,12 @@ module.exports = {
   loginUser,
   logoutUser,
   timeoutUser,
+  unbanUser,
+  addSongsToPlaylist,
   changePrefs,
   renameUser,
   changePassword,
+  promoteToAdmin,
+  demoteFromAdmin,
+  isAdmin,
 };

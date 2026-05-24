@@ -4,6 +4,8 @@ import "./profile.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
+import { authFetch } from "../../authFetch";
+import frontendLink from "../../frontendLink";
 import { createCrabIcon } from "./crabColor";
 
 const hatImages = import.meta.glob("../../assets/hats/*.png", {
@@ -15,6 +17,30 @@ const hatImages = import.meta.glob("../../assets/hats/*.png", {
 function Profile({ username }) {
   const navigate = useNavigate();
   const [displayName, setDisplayName] = useState(username || "Guest");
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem("isAdmin") === "true");
+
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    const verifyAdmin = async () => {
+      try {
+        const response = await authFetch(`${frontendLink}/users/${userId}/admin-status`);
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        const isAdminStatus = data.isAdmin === true;
+        setIsAdmin(isAdminStatus);
+        localStorage.setItem("isAdmin", isAdminStatus ? "true" : "false");
+      } catch (err) {
+        console.error("Failed to verify admin status:", err);
+      }
+    };
+
+    verifyAdmin();
+  }, []);
+
   const savedCrabColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
   const savedCrabHat = localStorage.getItem("profileCrabHat") || "";
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
@@ -36,7 +62,7 @@ function Profile({ username }) {
 
   const handleLogout = async () => {
     const userId = localStorage.getItem("userId");
-    
+
     if (!userId) {
       // If no userId, just navigate to login
       navigate("/");
@@ -45,7 +71,7 @@ function Profile({ username }) {
 
     try {
       // Call backend logout endpoint
-      const response = await fetch(`http://localhost:8000/users/${userId}/logout`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -60,7 +86,8 @@ function Profile({ username }) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
-      
+      localStorage.removeItem("isAdmin");
+
       // Navigate to login screen
       navigate("/");
     } catch (error) {
@@ -69,14 +96,19 @@ function Profile({ username }) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
+      localStorage.removeItem("isAdmin");
       navigate("/");
     }
+  };
+
+  const handleAdminPanel = () => {
+    navigate("/home/admin");
   };
 
   const handleRenameUser = async () => {
     const userId = localStorage.getItem("userId");
     const currentUsername = localStorage.getItem("username");
-    
+
     if (!userId) {
       console.error("No user ID found");
       return;
@@ -84,7 +116,7 @@ function Profile({ username }) {
 
     // Prompt user for new username
     const newUsername = prompt("Enter your new username:", currentUsername);
-    
+
     // User cancelled the prompt
     if (newUsername === null) {
       return;
@@ -104,7 +136,7 @@ function Profile({ username }) {
 
     try {
       // Call backend rename endpoint
-      const response = await fetch(`http://localhost:8000/users/${userId}/rename`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}/rename`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -119,7 +151,7 @@ function Profile({ username }) {
 
       // Update localStorage with new username
       localStorage.setItem("username", trimmedUsername);
-      
+
       // Update the display name state to show the new username immediately
       setDisplayName(trimmedUsername);
     } catch (error) {
@@ -149,7 +181,7 @@ function Profile({ username }) {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/users/${userId}/password`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}/password`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +202,7 @@ function Profile({ username }) {
 
   const handleDeleteUser = async () => {
     const userId = localStorage.getItem("userId");
-    
+
     if (!userId) {
       console.error("No user ID found");
       return;
@@ -187,7 +219,7 @@ function Profile({ username }) {
 
     try {
       // Call backend delete endpoint
-      const response = await fetch(`http://localhost:8000/users/${userId}`, {
+      const response = await authFetch(`${frontendLink}/users/${userId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -202,7 +234,7 @@ function Profile({ username }) {
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
-      
+
       // Navigate to login screen
       navigate("/");
     } catch (error) {
@@ -240,15 +272,58 @@ function Profile({ username }) {
           </div>
           <div className="profile-row">
             <span>Account type</span>
-            <strong>{displayName === "Guest" ? "Guest" : "User"}</strong>
+            <strong>{displayName === "Guest" ? "Guest" : isAdmin ? "Admin" : "User"}</strong>
           </div>
         </section>
 
         <section className="profile-actions">
-          <button className="profile-action-btn" style={{'--btn-color': '#e74c3c', '--btn-hover-color': '#c0392b'}} type="button" onClick={handleDeleteUser}>Delete User</button>
-          <button className="profile-action-btn" style={{'--btn-color': '#4aa6dd', '--btn-hover-color': '#2980b9'}} type="button" onClick={handleLogout}>Logout</button>
-          <button className="profile-action-btn" style={{'--btn-color': '#27ae60', '--btn-hover-color': '#229954'}} type="button" onClick={handleRenameUser}>Rename User</button>
-          <button className="profile-action-btn" style={{'--btn-color': '#f1c40f', '--btn-hover-color': '#d4b10f'}} type="button" onClick={handleChangePassword}>Change Password</button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#e74c3c", "--btn-hover-color": "#c0392b" }}
+            type="button"
+            onClick={handleDeleteUser}
+          >
+            Delete User
+          </button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#4aa6dd", "--btn-hover-color": "#2980b9" }}
+            type="button"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#27ae60", "--btn-hover-color": "#229954" }}
+            type="button"
+            onClick={handleRenameUser}
+          >
+            Rename User
+          </button>
+          <button
+            className="profile-action-btn"
+            style={{ "--btn-color": "#f1c40f", "--btn-hover-color": "#d4b10f" }}
+            type="button"
+            onClick={handleChangePassword}
+          >
+            Change Password
+          </button>
+        </section>
+
+        <section className="Admin-actions">
+          {isAdmin && (
+            <>
+              <button
+                className="profile-action-btn"
+                style={{ "--btn-color": "#a4a4a4", "--btn-hover-color": "#838383" }}
+                type="button"
+                onClick={handleAdminPanel}
+              >
+                Admin Panel
+              </button>
+            </>
+          )}
         </section>
       </div>
     </div>
