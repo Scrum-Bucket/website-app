@@ -200,7 +200,9 @@ function CrabLane({ users, crabIcon }) {
           key={user.id}
         >
           <img src={crabIcon} alt="" aria-hidden="true" />
-          <span>{user.name}</span>
+          <div className="vote-player-card">
+            <span>{user.name}</span>
+          </div>
         </div>
       ))}
     </div>
