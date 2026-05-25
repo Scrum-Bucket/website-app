@@ -15,17 +15,36 @@ const RoomSchema = new mongoose.Schema(
     queue: {
       type: [
         {
+          entryId: { type: String },
           songId: { type: String, required: true },
           name: { type: String, default: "Unknown" },
           artist: { type: String, default: "Unknown" },
+          score: { type: Number, default: 0 },
           upvotes: { type: Number, default: 0 },
+          addedBy: { type: String, default: null },
         },
       ],
       default: [],
     },
     currentSong: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       default: null,
+    },
+    roundSeconds: {
+      type: Number,
+      default: 120,
+    },
+    roundEndsAt: {
+      type: Date,
+      default: null,
+    },
+    timerPaused: {
+      type: Boolean,
+      default: false,
+    },
+    timerRemainingSeconds: {
+      type: Number,
+      default: 120,
     },
     host: {
       type: String,

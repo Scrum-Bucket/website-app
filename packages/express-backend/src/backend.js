@@ -538,10 +538,10 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
-  const { songId, name, artist } = req.body;
+  const { songId, name, artist, addedBy } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
-    .addSongToQueue(roomCode, songId, name || "Unknown", artist || "Unknown")
+    .addSongToQueue(roomCode, songId, name || "Unknown", artist || "Unknown", addedBy || null)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -550,6 +550,17 @@ app.post("/rooms/:roomCode/queue", async (req, res) => {
 });
 
 // POST /rooms/:roomCode/upvote  – upvote a song  { songId }
+// POST /rooms/:roomCode/vote - vote on a song  { entryId, amount }
+app.post("/rooms/:roomCode/vote", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { entryId, amount } = req.body;
+  if (!entryId) return res.status(400).json({ error: "entryId is required." });
+  await roomServices
+    .voteSong(roomCode, entryId, Number(amount) || 0)
+    .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.post("/rooms/:roomCode/upvote", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
   const { songId } = req.body;
@@ -561,6 +572,26 @@ app.post("/rooms/:roomCode/upvote", async (req, res) => {
 });
 
 // POST /rooms/:roomCode/leave  – leave a room  { userName }
+// DELETE /rooms/:roomCode/queue/:entryId - delete a queued song
+app.delete("/rooms/:roomCode/queue/:entryId", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { userName } = req.body;
+  await roomServices
+    .deleteSongFromQueue(roomCode, req.params.entryId, userName)
+    .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/timer - host pauses/resumes timer  { paused, userName }
+app.post("/rooms/:roomCode/timer", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { paused, userName } = req.body;
+  await roomServices
+    .setTimerPaused(roomCode, Boolean(paused), userName)
+    .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.post("/rooms/:roomCode/leave", async (req, res) => {
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });

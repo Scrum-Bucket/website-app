@@ -30,10 +30,6 @@ function Room({ username }) {
       return;
     }
 
-    if (location.state?.room) {
-      return;
-    }
-
     try {
       const res = await authFetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
@@ -71,6 +67,18 @@ function Room({ username }) {
 
   async function handleStart() {
     setLocalGameStarted(true);
+
+    if (!roomCode) {
+      setRoom((currentRoom) => ({
+        ...currentRoom,
+        started: true,
+        roundSeconds: 120,
+        roundEndsAt: new Date(Date.now() + 120000).toISOString(),
+        timerPaused: false,
+        timerRemainingSeconds: 120,
+      }));
+      return;
+    }
 
     try {
       const res = await authFetch(`${API}/rooms/${roomCode}/start`, {
@@ -185,6 +193,9 @@ function Room({ username }) {
       </header>
 
       <VoteMovingBox
+        room={room}
+        roomCode={roomCode}
+        onRoomUpdate={setRoom}
         users={room.members.map((member) => ({ id: member, name: member }))}
         hostName={room.host}
         username={username}

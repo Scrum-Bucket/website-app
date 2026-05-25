@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useReducer, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./VoteMovingBox.css";
 import UserCrabIcon from "../../assets/user-crab.png";
 import CrownIcon from "../../assets/hats/crown.png";
+import { authFetch } from "../../authFetch";
+import frontendLink from "../../frontendLink";
 import {
   getSongArtist,
   getSongId,
@@ -24,6 +26,7 @@ const DEFAULT_USERS = [
   { id: "guest", name: "Guest" },
 ];
 
+const API = frontendLink;
 const ROUND_SECONDS = 120;
 const MIN_SCORE = -20;
 const MAX_SCORE = 40;
@@ -69,71 +72,62 @@ function formatTime(seconds) {
   return `${minutes}:${remainingSeconds}`;
 }
 
-function createEntry(song, addedBy) {
+function makeLocalEntryId() {
+  return `entry-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function getQueueEntryScore(entry) {
+  return Number.isFinite(entry?.score) ? entry.score : entry?.upvotes || 0;
+}
+
+function normalizeQueueEntries(queue) {
+  const sourceQueue = Array.isArray(queue) ? queue : [];
+
+  return sourceQueue.map((entry, index) => {
+    const songId = entry.songId || entry.id || `${entry.name || "song"}-${index}`;
+
+    return {
+      entryId: entry.entryId || songId,
+      song: {
+        id: songId,
+        name: entry.name || entry.title || "Untitled song",
+        artist: entry.artist || "Unknown artist",
+        source: entry.source || "Room queue",
+      },
+      score: getQueueEntryScore(entry),
+      addedBy: entry.addedBy || null,
+    };
+  });
+}
+
+function normalizeCurrentSong(song) {
+  if (!song) {
+    return null;
+  }
+
+  if (typeof song === "string") {
+    return { name: song, artist: "" };
+  }
+
   return {
-    entryId: `${song.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    song,
-    score: 0,
-    addedBy,
+    name: song.name || song.title || "Untitled song",
+    artist: song.artist || "",
+    score: getQueueEntryScore(song),
   };
 }
 
-function finishRound(entries) {
-  if (!entries.length) {
-    return { entries, nowPlaying: null };
+function getRoomTimeLeft(room, now) {
+  const roundSeconds = room?.roundSeconds || ROUND_SECONDS;
+
+  if (room?.timerPaused) {
+    return clamp(room.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
   }
 
-  const winningEntry = entries.reduce((leader, entry) =>
-    entry.score > leader.score ? entry : leader
-  );
-
-  return {
-    entries: [],
-    nowPlaying: {
-      ...winningEntry.song,
-      score: winningEntry.score,
-    },
-  };
-}
-
-function gameReducer(state, action) {
-  switch (action.type) {
-    case "tick": {
-      if (state.timeLeft > 1) {
-        return { ...state, timeLeft: state.timeLeft - 1 };
-      }
-
-      const nextRound = finishRound(state.entries);
-
-      return {
-        ...state,
-        entries: nextRound.entries,
-        nowPlaying: nextRound.nowPlaying || state.nowPlaying,
-        timeLeft: ROUND_SECONDS,
-      };
-    }
-    case "addSong":
-      return {
-        ...state,
-        entries: [...state.entries, createEntry(action.song, action.addedBy)],
-      };
-    case "vote":
-      return {
-        ...state,
-        entries: state.entries.map((entry) =>
-          entry.entryId === action.entryId
-            ? { ...entry, score: clamp(entry.score + action.amount, MIN_SCORE, MAX_SCORE) }
-            : entry
-        ),
-      };
-    case "deleteSong":
-      return {
-        ...state,
-        entries: state.entries.filter((entry) => entry.entryId !== action.entryId),
-      };
-    default:
-      return state;
+  if (room?.roundEndsAt) {
+    return clamp(Math.ceil((new Date(room.roundEndsAt).getTime() - now) / 1000), 0, roundSeconds);
   }
+
+  return clamp(room?.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
 }
 
 function VoteMovingBoxItem({ canDelete, entry, onDelete, onVote, stackIndex }) {
@@ -285,18 +279,19 @@ function CrabLane({ crabIcon, hostName, users }) {
   );
 }
 
-function VoteMovingBox({ hostName, users, username }) {
+function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username }) {
   const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
   const songs = useMemo(() => normalizeSongs(readAccountPlaylist(username)), [username]);
-  const [{ entries, timeLeft, nowPlaying }, dispatch] = useReducer(gameReducer, {
-    entries: [],
-    timeLeft: ROUND_SECONDS,
-    nowPlaying: null,
-  });
+  const [localRoom, setLocalRoom] = useState(room);
+  const [now, setNow] = useState(Date.now());
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
-  const [isTimerPaused, setIsTimerPaused] = useState(false);
   const currentUserName = username || "guest";
   const isCurrentUserHost = hostName === currentUserName;
+  const activeRoom = roomCode ? room : localRoom;
+  const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
+  const timeLeft = getRoomTimeLeft(activeRoom, now);
+  const isTimerPaused = Boolean(activeRoom?.timerPaused);
+  const nowPlaying = normalizeCurrentSong(activeRoom?.currentSong);
   const rankedEntries = useMemo(
     () => [...entries].sort((a, b) => b.score - a.score),
     [entries]
@@ -309,6 +304,10 @@ function VoteMovingBox({ hostName, users, username }) {
     VOTE_ARENA_MIN_HEIGHT,
     VOTE_ARENA_MAX_HEIGHT
   );
+
+  useEffect(() => {
+    setLocalRoom(room);
+  }, [room]);
 
   useEffect(() => {
     let isActive = true;
@@ -328,31 +327,147 @@ function VoteMovingBox({ hostName, users, username }) {
   }, []);
 
   useEffect(() => {
-    if (isTimerPaused) {
-      return undefined;
-    }
-
     const timerId = setInterval(() => {
-      dispatch({ type: "tick" });
+      setNow(Date.now());
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [isTimerPaused]);
+  }, []);
 
-  const handleAddSong = (song) => {
-    dispatch({ type: "addSong", song, addedBy: currentUserName });
+  const applyRoomUpdate = (nextRoom) => {
+    if (!nextRoom) return;
+
+    if (!roomCode) {
+      setLocalRoom(nextRoom);
+    }
+
+    onRoomUpdate?.(nextRoom);
   };
 
-  const handleVote = (entryId, amount) => {
-    dispatch({ type: "vote", entryId, amount });
+  const updateRoomFromResponse = async (response) => {
+    if (response.ok) {
+      applyRoomUpdate(await response.json());
+    }
   };
 
-  const handleDeleteSong = (entryId) => {
+  const updateLocalRoom = (updater) => {
+    const nextRoom = updater(activeRoom || {});
+    applyRoomUpdate(nextRoom);
+  };
+
+  const handleAddSong = async (song) => {
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/queue`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            songId: song.id,
+            name: song.name,
+            artist: song.artist,
+            addedBy: currentUserName,
+          }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      queue: [
+        ...(currentRoom.queue || []),
+        {
+          entryId: makeLocalEntryId(),
+          songId: song.id,
+          name: song.name,
+          artist: song.artist,
+          score: 0,
+          upvotes: 0,
+          addedBy: currentUserName,
+        },
+      ],
+    }));
+  };
+
+  const handleVote = async (entryId, amount) => {
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entryId, amount }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      queue: (currentRoom.queue || []).map((entry) =>
+        (entry.entryId || entry.songId) === entryId
+          ? {
+              ...entry,
+              score: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
+              upvotes: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
+            }
+          : entry
+      ),
+    }));
+  };
+
+  const handleDeleteSong = async (entryId) => {
     const entry = entries.find((candidate) => candidate.entryId === entryId);
 
-    if (isCurrentUserHost || entry?.addedBy === currentUserName) {
-      dispatch({ type: "deleteSong", entryId });
+    if (!isCurrentUserHost && entry?.addedBy !== currentUserName) {
+      return;
     }
+
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/queue/${encodeURIComponent(entryId)}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userName: currentUserName }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      queue: (currentRoom.queue || []).filter((queuedSong) => {
+        const queuedEntryId = queuedSong.entryId || queuedSong.songId;
+        return queuedEntryId !== entryId;
+      }),
+    }));
+  };
+
+  const handleTimerToggle = async () => {
+    if (!isCurrentUserHost) {
+      return;
+    }
+
+    const paused = !isTimerPaused;
+
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/timer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paused, userName: currentUserName }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      timerPaused: paused,
+      timerRemainingSeconds: paused ? timeLeft : currentRoom.timerRemainingSeconds || timeLeft,
+      roundEndsAt: paused
+        ? null
+        : new Date(Date.now() + (currentRoom.timerRemainingSeconds || timeLeft) * 1000).toISOString(),
+    }));
   };
 
   return (
@@ -372,7 +487,7 @@ function VoteMovingBox({ hostName, users, username }) {
                 <button
                   className="vote-timer-toggle"
                   type="button"
-                  onClick={() => setIsTimerPaused((isPaused) => !isPaused)}
+                  onClick={handleTimerToggle}
                 >
                   {isTimerPaused ? "Resume" : "Pause"}
                 </button>
