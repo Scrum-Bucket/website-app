@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./VoteMovingBox.css";
 import UserCrabIcon from "../../assets/user-crab.png";
@@ -504,15 +504,18 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
     return () => clearInterval(timerId);
   }, []);
 
-  const applyRoomUpdate = (nextRoom) => {
-    if (!nextRoom) return;
+  const applyRoomUpdate = useCallback(
+    (nextRoom) => {
+      if (!nextRoom) return;
 
-    if (!roomCode) {
-      setLocalRoom(nextRoom);
-    }
+      if (!roomCode) {
+        setLocalRoom(nextRoom);
+      }
 
-    onRoomUpdate?.(nextRoom);
-  };
+      onRoomUpdate?.(nextRoom);
+    },
+    [onRoomUpdate, roomCode]
+  );
 
   const updateRoomFromResponse = async (response) => {
     if (response.ok) {
@@ -520,10 +523,13 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
     }
   };
 
-  const updateLocalRoom = (updater) => {
-    const nextRoom = updater(activeRoom || {});
-    applyRoomUpdate(nextRoom);
-  };
+  const updateLocalRoom = useCallback(
+    (updater) => {
+      const nextRoom = updater(activeRoom || {});
+      applyRoomUpdate(nextRoom);
+    },
+    [activeRoom, applyRoomUpdate]
+  );
 
   useEffect(() => {
     completedPlaybackRef.current = null;
@@ -543,27 +549,31 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
 
     const winningEntry = getWinningQueueEntry(activeRoom.queue);
 
-    updateLocalRoom((currentRoom) => {
-      if (winningEntry) {
+    const updateTimerId = setTimeout(() => {
+      updateLocalRoom((currentRoom) => {
+        if (winningEntry) {
+          return {
+            ...currentRoom,
+            currentSong: makeCurrentSongFromQueueEntry(winningEntry),
+            queue: [],
+            timerPaused: true,
+            timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
+            roundEndsAt: null,
+          };
+        }
+
         return {
           ...currentRoom,
-          currentSong: makeCurrentSongFromQueueEntry(winningEntry),
-          queue: [],
-          timerPaused: true,
           timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
-          roundEndsAt: null,
+          roundEndsAt: new Date(
+            Date.now() + (currentRoom.roundSeconds || ROUND_SECONDS) * 1000
+          ).toISOString(),
         };
-      }
+      });
+    }, 0);
 
-      return {
-        ...currentRoom,
-        timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
-        roundEndsAt: new Date(
-          Date.now() + (currentRoom.roundSeconds || ROUND_SECONDS) * 1000
-        ).toISOString(),
-      };
-    });
-  }, [activeRoom, now, roomCode, timeLeft]);
+    return () => clearTimeout(updateTimerId);
+  }, [activeRoom, now, roomCode, timeLeft, updateLocalRoom]);
 
   const handleAddSong = async (song) => {
     if (roomCode) {
