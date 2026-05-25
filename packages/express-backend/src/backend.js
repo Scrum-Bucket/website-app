@@ -110,6 +110,17 @@ function userResponse(user) {
   return { ...userData, authenticated: true };
 }
 
+function getAuthenticatedUserId(req, res) {
+  const userId = req.auth?.type === "frontend-user" ? req.auth.userId : null;
+
+  if (!userId) {
+    res.status(401).json({ error: "User session required." });
+    return null;
+  }
+
+  return userId;
+}
+
 app.get("/signin", signinPage);
 app.post("/signin", signin);
 app.get("/signout", signout);
@@ -246,6 +257,91 @@ app.get("/users", async (req, res) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 });
 
+app.get("/users/me", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .findUserById(userId)
+    .then((user) => {
+      if (!user) return res.status(404).send("User not found.");
+      res.json(userResponse(user));
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.delete("/users/me", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .deleteUser(userId)
+    .then((deleted) => {
+      if (!deleted) return res.status(404).send("User not found.");
+      clearUserAuthCookie(req, res);
+      res.status(204).send();
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.post("/users/me/logout", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .logoutUser(userId)
+    .then((user) => {
+      clearUserAuthCookie(req, res);
+      res.json(userResponse(user));
+    })
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.patch("/users/me/rename", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const { newUserName } = req.body;
+  if (!newUserName) {
+    return res.status(400).json({ error: "newUserName is required" });
+  }
+
+  await userServices
+    .renameUser(userId, newUserName)
+    .then((user) => res.json(userResponse(user)))
+    .catch((err) => {
+      if (err.message.includes("already taken")) {
+        return res.status(409).json({ error: err.message });
+      }
+      res.status(400).json({ error: err.message });
+    });
+});
+
+app.patch("/users/me/password", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const { newPassword } = req.body;
+  if (!newPassword) {
+    return res.status(400).json({ error: "newPassword is required" });
+  }
+
+  await userServices
+    .changePassword(userId, newPassword)
+    .then((user) => res.json(userResponse(user)))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.patch("/users/me/prefs", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .changePrefs(userId, req.body)
+    .then((user) => res.json(userResponse(user)))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.get("/users/:id", async (req, res) => {
   await userServices
     .findUserById(req.params.id)
@@ -360,7 +456,7 @@ app.post("/users/:id/unban", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
-// changePrefs: send { favorites: [...], crab: [...] } in body, both optional
+// changePrefs: send { favorites: [...], crab: { color, hat } } in body, both optional
 app.patch("/users/:id/prefs", async (req, res) => {
   await userServices
     .changePrefs(req.params.id, req.body)

@@ -11,7 +11,12 @@ import {
   getSongTitle,
   readAccountPlaylist,
 } from "../Playlist/playlistStorage";
-import { createCrabIcon } from "../profile/crabColor";
+import {
+  createCrabIcon,
+  getHatSourceForCrab,
+  normalizeCrabProfile,
+  readStoredCrabProfile,
+} from "../profile/crabColor";
 
 const hatImages = import.meta.glob("../../assets/hats/*.png", {
   eager: true,
@@ -40,16 +45,23 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function normalizeUsers(users) {
+function normalizeUsers(users, currentUserName) {
   const sourceUsers = users?.length ? users : DEFAULT_USERS;
 
   return sourceUsers.map((user, index) => {
     const name =
       typeof user === "string" ? user : user.name || user.userName || `User ${index + 1}`;
+    const savedCrab =
+      typeof user === "object" && user?.crab
+        ? user.crab
+        : name === currentUserName
+          ? readStoredCrabProfile()
+          : {};
 
     return {
       id: user.id || user.userId || name,
       name,
+      crab: normalizeCrabProfile(savedCrab),
     };
   });
 }
@@ -121,6 +133,10 @@ function getRoomTimeLeft(room, now) {
 
   if (room?.timerPaused) {
     return clamp(room.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
+  }
+
+  if (now == null) {
+    return clamp(room?.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
   }
 
   if (room?.roundEndsAt) {
@@ -245,7 +261,30 @@ function SongPicker({ songs, onAddSong }) {
   );
 }
 
-function CrabLane({ crabIcon, hostName, users }) {
+function CrabLane({ hostName, users }) {
+  const [crabIcons, setCrabIcons] = useState({});
+
+  useEffect(() => {
+    let isActive = true;
+
+    Promise.all(
+      users.map(async (user) => {
+        const hatSource = getHatSourceForCrab(user.crab, hatImages);
+        const crabIcon = await createCrabIcon(UserCrabIcon, user.crab.color, hatSource);
+
+        return [user.id, crabIcon];
+      })
+    ).then((nextCrabIcons) => {
+      if (isActive) {
+        setCrabIcons(Object.fromEntries(nextCrabIcons));
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [users]);
+
   return (
     <div className="vote-crab-lane" aria-label="Players">
       {users.map((user, index) => {
@@ -257,7 +296,7 @@ function CrabLane({ crabIcon, hostName, users }) {
             style={{ animationDelay: `${index * 0.18}s` }}
             key={user.id}
           >
-            <img src={crabIcon} alt="" aria-hidden="true" />
+            <img src={crabIcons[user.id] || UserCrabIcon} alt="" aria-hidden="true" />
             <div
               className={`vote-player-card${isHost ? " vote-player-card--host" : ""}`}
               aria-label={isHost ? `${user.name}, host` : user.name}
@@ -280,12 +319,14 @@ function CrabLane({ crabIcon, hostName, users }) {
 }
 
 function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username }) {
-  const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
+  const currentUserName = username || "guest";
+  const normalizedUsers = useMemo(
+    () => normalizeUsers(users, currentUserName),
+    [users, currentUserName]
+  );
   const songs = useMemo(() => normalizeSongs(readAccountPlaylist(username)), [username]);
   const [localRoom, setLocalRoom] = useState(room);
-  const [now, setNow] = useState(Date.now());
-  const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
-  const currentUserName = username || "guest";
+  const [now, setNow] = useState(null);
   const isCurrentUserHost = hostName === currentUserName;
   const activeRoom = roomCode ? room : localRoom;
   const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
@@ -306,30 +347,12 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
   );
 
   useEffect(() => {
-    setLocalRoom(room);
-  }, [room]);
-
-  useEffect(() => {
-    let isActive = true;
-    const savedColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
-    const savedHat = localStorage.getItem("profileCrabHat") || "";
-    const hatSource = savedHat ? hatImages[`../../assets/hats/${savedHat}`] || "" : "";
-
-    createCrabIcon(UserCrabIcon, savedColor, hatSource).then((nextIcon) => {
-      if (isActive) {
-        setCrabIcon(nextIcon);
-      }
-    });
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    const timerId = setInterval(() => {
+    const updateNow = () => {
       setNow(Date.now());
-    }, 1000);
+    };
+    updateNow();
+
+    const timerId = setInterval(updateNow, 1000);
 
     return () => clearInterval(timerId);
   }, []);
@@ -530,7 +553,7 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
           </div>
         </main>
 
-        <CrabLane users={normalizedUsers} crabIcon={crabIcon} hostName={hostName} />
+        <CrabLane users={normalizedUsers} hostName={hostName} />
       </div>
     </section>
   );

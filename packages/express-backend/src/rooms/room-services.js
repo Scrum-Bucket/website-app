@@ -1,4 +1,6 @@
 const Room = require("./room.js");
+const User = require("../user/user.js");
+const { normalizeCrabProfile } = require("../user/user-services.js");
 
 const ROUND_SECONDS = 120;
 const MIN_SCORE = -20;
@@ -26,6 +28,52 @@ function getWinningEntry(queue) {
 
 function secondsUntil(date, now = Date.now()) {
   return Math.max(0, Math.ceil((new Date(date).getTime() - now) / 1000));
+}
+
+function getMemberName(member, index) {
+  if (typeof member === "string") {
+    return member;
+  }
+
+  return member?.name || member?.userName || member?.id || `User ${index + 1}`;
+}
+
+function getMemberId(member, index) {
+  if (typeof member === "string") {
+    return member;
+  }
+
+  return member?.id || member?.userId || member?._id || getMemberName(member, index);
+}
+
+async function attachMemberProfiles(room) {
+  if (!room) return room;
+
+  const roomObject = typeof room.toObject === "function" ? room.toObject() : { ...room };
+  const members = Array.isArray(roomObject.members) ? roomObject.members : [];
+  const memberNames = members.map(getMemberName).filter(Boolean);
+  const users = memberNames.length
+    ? await User.find({ userName: { $in: memberNames } })
+    : [];
+  const crabsByUserName = new Map(
+    users.map((user) => [user.userName, normalizeCrabProfile(user.crab)])
+  );
+
+  roomObject.memberProfiles = members.map((member, index) => {
+    const name = getMemberName(member, index);
+
+    return {
+      id: getMemberId(member, index),
+      name,
+      crab: crabsByUserName.get(name) || normalizeCrabProfile(member?.crab),
+    };
+  });
+
+  return roomObject;
+}
+
+async function attachMemberProfilesToRooms(rooms) {
+  return Promise.all(rooms.map((room) => attachMemberProfiles(room)));
 }
 
 async function syncRoomGameState(room) {
@@ -79,12 +127,12 @@ async function syncRooms(rooms) {
 
 async function getRooms(roomCode) {
   const rooms = roomCode ? await Room.find({ roomCode }) : await Room.find();
-  return syncRooms(rooms);
+  return attachMemberProfilesToRooms(await syncRooms(rooms));
 }
 
 async function getPublicRooms() {
   const rooms = await Room.find({ privacy: "public" });
-  return syncRooms(rooms);
+  return attachMemberProfilesToRooms(await syncRooms(rooms));
 }
 
 function findRoomById(id) {
@@ -93,10 +141,10 @@ function findRoomById(id) {
 
 async function findRoomByCode(roomCode) {
   const room = await Room.findOne({ roomCode });
-  return syncRoomGameState(room);
+  return attachMemberProfiles(await syncRoomGameState(room));
 }
 
-function addRoom(roomCode, host = null) {
+async function addRoom(roomCode, host = null) {
   const newRoom = new Room({
     roomCode,
     host,
@@ -109,11 +157,16 @@ function addRoom(roomCode, host = null) {
     timerRemainingSeconds: ROUND_SECONDS,
     started: false,
   });
-  return newRoom.save();
+  return attachMemberProfiles(await newRoom.save());
 }
 
-function joinRoom(roomCode, userName) {
-  return Room.findOneAndUpdate({ roomCode }, { $addToSet: { members: userName } }, { new: true });
+async function joinRoom(roomCode, userName) {
+  const room = await Room.findOneAndUpdate(
+    { roomCode },
+    { $addToSet: { members: userName } },
+    { new: true }
+  );
+  return attachMemberProfiles(await syncRoomGameState(room));
 }
 
 async function startRoom(roomCode) {
@@ -126,7 +179,7 @@ async function startRoom(roomCode) {
   room.timerRemainingSeconds = room.roundSeconds;
   room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
 
-  return room.save();
+  return attachMemberProfiles(await room.save());
 }
 
 async function addSongToQueue(roomCode, songId, name, artist, addedBy = null) {
@@ -143,7 +196,7 @@ async function addSongToQueue(roomCode, songId, name, artist, addedBy = null) {
     addedBy,
   });
 
-  return room.save();
+  return attachMemberProfiles(await room.save());
 }
 
 async function voteSong(roomCode, entryId, amount) {
@@ -160,7 +213,7 @@ async function voteSong(roomCode, entryId, amount) {
   room.queue.sort((a, b) => getEntryScore(b) - getEntryScore(a));
 
   room.markModified("queue");
-  return room.save();
+  return attachMemberProfiles(await room.save());
 }
 
 function upvoteSong(roomCode, songId) {
@@ -183,7 +236,7 @@ async function deleteSongFromQueue(roomCode, entryId, userName) {
     return song.songId !== entry.songId;
   });
   room.markModified("queue");
-  return room.save();
+  return attachMemberProfiles(await room.save());
 }
 
 async function setTimerPaused(roomCode, paused, userName) {
@@ -202,11 +255,16 @@ async function setTimerPaused(roomCode, paused, userName) {
     room.roundEndsAt = new Date(Date.now() + room.timerRemainingSeconds * 1000);
   }
 
-  return room.save();
+  return attachMemberProfiles(await room.save());
 }
 
-function leaveRoom(roomCode, userName) {
-  return Room.findOneAndUpdate({ roomCode }, { $pull: { members: userName } }, { new: true });
+async function leaveRoom(roomCode, userName) {
+  const room = await Room.findOneAndUpdate(
+    { roomCode },
+    { $pull: { members: userName } },
+    { new: true }
+  );
+  return attachMemberProfiles(room);
 }
 
 function deleteRoom(id) {

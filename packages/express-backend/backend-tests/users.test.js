@@ -5,6 +5,9 @@ const songsServices = require("../src/songs/song-services.js");
 const mockingoose = require("mockingoose").default;
 const bcrypt = require("bcrypt");
 
+const defaultCrab = { color: "#e74c3c", hat: "" };
+const pirateCrab = { color: "#3498db", hat: "pirate_captain_hat.png" };
+
 //initialize database models
 let userModel;
 let songModel;
@@ -118,7 +121,7 @@ test("Create user", async () => {
     passWord: "hashedpassword",
     status: 0,
     favorites: [],
-    crab: [],
+    crab: defaultCrab,
   };
   const toBeAdded = {
     _id: "1234",
@@ -126,7 +129,7 @@ test("Create user", async () => {
     passWord: "hashedpassword",
     status: 0,
     favorites: [],
-    crab: [],
+    crab: defaultCrab,
   };
 
   //mock mongoose save function with mockingoose instead of jest.fn()
@@ -313,18 +316,23 @@ test("change preferences test", async () => {
     userName: "John Doe",
     status: 1,
     favorites: ["Viva La Vida"],
-    crab: ["crab 1"],
+    crab: pirateCrab,
   };
   userModel.findByIdAndUpdate = jest.fn().mockResolvedValue(expectedUser);
 
   const result = await userServices.changePrefs(dummyUser._id, {
     favorites: ["Viva La Vida"],
-    crab: ["crab 1"],
+    crab: pirateCrab,
   });
 
   expect(result).toBeDefined();
   expect(result.favorites).toStrictEqual(["Viva La Vida"]);
-  expect(result.crab).toStrictEqual(["crab 1"]);
+  expect(result.crab).toStrictEqual(pirateCrab);
+  expect(userModel.findByIdAndUpdate).toHaveBeenCalledWith(
+    dummyUser._id,
+    { favorites: ["Viva La Vida"], crab: pirateCrab },
+    { new: true }
+  );
 });
 
 test("change preferences fail - user not found", async () => {

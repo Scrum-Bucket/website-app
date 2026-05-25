@@ -80,9 +80,14 @@ function getBearerToken(req) {
   return token;
 }
 
-function getRequestToken(req) {
+function getRequestTokens(req) {
+  const bearerToken = getBearerToken(req);
+  if (bearerToken) {
+    return [bearerToken];
+  }
+
   const cookies = parseCookies(req.headers.cookie);
-  return getBearerToken(req) || cookies[AUTH_COOKIE_NAME] || cookies[USER_AUTH_COOKIE_NAME] || null;
+  return [cookies[USER_AUTH_COOKIE_NAME], cookies[AUTH_COOKIE_NAME]].filter(Boolean);
 }
 
 function isPublicRequest(req) {
@@ -111,29 +116,36 @@ function authenticateUser(req, res, next) {
     return next();
   }
 
-  const token = getRequestToken(req);
-  if (!token) {
+  const tokens = getRequestTokens(req);
+  if (!tokens.length) {
     return rejectUnauthenticated(req, res);
   }
 
   const sharedAccessToken = getSharedAccessToken();
-  if (sharedAccessToken && tokenMatches(token, sharedAccessToken)) {
-    req.auth = { type: "shared-token", username: "shared-token" };
-    return next();
-  }
+  let authError = null;
 
-  try {
-    const decoded = jwt.verify(token, getTokenSecret());
-    if (decoded.type !== "backend-access" && decoded.type !== "frontend-user") {
-      return rejectUnauthenticated(req, res, "Invalid access token.");
+  for (const token of tokens) {
+    if (sharedAccessToken && tokenMatches(token, sharedAccessToken)) {
+      req.auth = { type: "shared-token", username: "shared-token" };
+      return next();
     }
 
-    req.auth = decoded;
-    return next();
-  } catch (error) {
-    console.log("Token authentication failed:", error.message);
-    return rejectUnauthenticated(req, res, "Invalid or expired access token.");
+    try {
+      const decoded = jwt.verify(token, getTokenSecret());
+      if (decoded.type !== "backend-access" && decoded.type !== "frontend-user") {
+        authError = new Error("Invalid access token.");
+        continue;
+      }
+
+      req.auth = decoded;
+      return next();
+    } catch (error) {
+      authError = error;
+    }
   }
+
+  console.log("Token authentication failed:", authError?.message || "No valid token");
+  return rejectUnauthenticated(req, res, "Invalid or expired access token.");
 }
 
 function requireBackendAccess(req, res, next) {
