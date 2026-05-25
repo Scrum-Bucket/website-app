@@ -4,15 +4,7 @@ import { useEffect, useRef } from "react";
 // Use as a background by placing it as the first child of a position:relative container.
 
 const VIEW = { width: 320, height: 180, horizon: 60, shore: 126 };
-
-const LIGHTS = [
-  { x: 56,  y: 88,  color: "#ff2fd6", phase: 0.0, size: 16 },
-  { x: 104, y: 99,  color: "#16f7ff", phase: 1.2, size: 18 },
-  { x: 152, y: 81,  color: "#c6ff2f", phase: 2.3, size: 15 },
-  { x: 202, y: 102, color: "#8a4dff", phase: 3.4, size: 19 },
-  { x: 248, y: 88,  color: "#ff7b2f", phase: 4.5, size: 16 },
-  { x: 288, y: 108, color: "#27ff78", phase: 5.4, size: 15 },
-];
+const BACKGROUND_ANIMATION_SPEED = 0.3;
 
 const CLOUDS = [
   { x: 30,  y: 22, w: 50, speed: 0.004 },
@@ -74,7 +66,7 @@ export default function GameBackground() {
         const depth = row / 14;
         const perspectivePush = wavePush * depth * depth;
         const y = VIEW.horizon + 4 + row * 4.8 + perspectivePush;
-        const speed = 0.01 + row * 0.002;
+        const speed = 0.01;
         const horizontal = Math.sin(time * speed + row * 0.9) * (7 + row * 0.65);
         const color = row % 3 === 0 ? "#d6ffff" : row % 3 === 1 ? "#6fddeb" : "#168caf";
         const segmentWidth = 10 + row * 1.35 + incoming * row * 0.4;
@@ -119,40 +111,6 @@ export default function GameBackground() {
         r(x + roll,     foamY + 6  + incoming * 5, 19 + incoming * 5, 2, "#d8ffff");
         r(x + roll + 8, foamY + 11 + incoming * 7, 11,                1, "#ffffff");
       }
-    }
-
-    function drawRaveLights(time) {
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      for (const light of LIGHTS) {
-        const rawPulse = (Math.sin(time * 0.0065 + light.phase) + 1) / 2;
-        const pulse = rawPulse < 0.42 ? 0 : Math.pow((rawPulse - 0.42) / 0.58, 1.7);
-        if (pulse <= 0.01) continue;
-
-        const waveDrift = Math.sin(time * 0.0014 + light.phase) * 7;
-        const x = light.x + waveDrift;
-        const y = light.y + Math.sin(time * 0.002 + light.phase) * 4;
-        const size = light.size + pulse * 18;
-
-        ctx.globalAlpha = 0.06 + pulse * 0.18;
-        r(x - size,        y - size * 0.48, size * 2,    size * 0.95, light.color);
-        ctx.globalAlpha = 0.12 + pulse * 0.28;
-        r(x - size * 0.58, y - size * 0.28, size * 1.16, size * 0.56, light.color);
-        ctx.globalAlpha = 0.45 + pulse * 0.45;
-        r(x - 4, y - 4, 8, 8, light.color);
-        r(x - 1, y - 10, 2, 20, "#ffffff");
-        r(x - 10, y - 1, 20, 2, "#ffffff");
-
-        for (let i = 0; i < 9; i++) {
-          const ry = y + 8 + i * 5;
-          const rw = Math.max(3, size * (1 - i * 0.095));
-          const jitter = Math.sin(time * 0.006 + light.phase + i) * 8;
-          ctx.globalAlpha = Math.max(0.02, 0.32 * pulse - i * 0.026);
-          r(x - rw / 2 + jitter, ry, rw, 2, light.color);
-        }
-      }
-      ctx.restore();
-      ctx.globalAlpha = 1;
     }
 
     function drawBeach(time) {
@@ -223,13 +181,14 @@ export default function GameBackground() {
     }
 
     function draw(time = 0) {
+      const sceneTime = time * BACKGROUND_ANIMATION_SPEED;
+
       ctx.clearRect(0, 0, VIEW.width, VIEW.height);
-      drawSky(time);
-      drawOceanBase(time);
-      drawRaveLights(time);
-      drawBeach(time);
-      drawWaveWash(time);
-      drawPalmLayer(time);
+      drawSky(sceneTime);
+      drawOceanBase(sceneTime);
+      drawBeach(sceneTime);
+      drawWaveWash(sceneTime);
+      drawPalmLayer(sceneTime);
       drawVignette();
       animationFrameId = requestAnimationFrame(draw);
     }

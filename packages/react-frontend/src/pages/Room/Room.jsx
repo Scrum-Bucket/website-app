@@ -6,9 +6,33 @@ import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
+import { readStoredCrabProfile } from "../profile/crabColor";
 
 const API = frontendLink;
 const POLL_MS = 2000;
+
+function getMemberName(member, index) {
+  if (typeof member === "string") {
+    return member;
+  }
+
+  return member?.name || member?.userName || member?.id || `Player ${index + 1}`;
+}
+
+function getRoomMemberProfiles(room, username) {
+  const sourceMembers = room?.memberProfiles?.length ? room.memberProfiles : room?.members || [];
+  const currentUserName = username || "guest";
+
+  return sourceMembers.map((member, index) => {
+    const name = getMemberName(member, index);
+
+    return {
+      id: typeof member === "string" ? member : member.id || member.userId || name,
+      name,
+      crab: member.crab || (name === currentUserName ? readStoredCrabProfile() : undefined),
+    };
+  });
+}
 
 function Room({ username }) {
   const { roomCode } = useParams();
@@ -27,10 +51,6 @@ function Room({ username }) {
         queue: [],
         started: false,
       });
-      return;
-    }
-
-    if (location.state?.room) {
       return;
     }
 
@@ -57,7 +77,7 @@ function Room({ username }) {
         started: false,
       });
     }
-  }, [location.state?.room, roomCode, username]);
+  }, [roomCode, username]);
 
   useEffect(() => {
     const initialFetchId = setTimeout(fetchRoom, 0);
@@ -71,6 +91,18 @@ function Room({ username }) {
 
   async function handleStart() {
     setLocalGameStarted(true);
+
+    if (!roomCode) {
+      setRoom((currentRoom) => ({
+        ...currentRoom,
+        started: true,
+        roundSeconds: 120,
+        roundEndsAt: new Date(Date.now() + 120000).toISOString(),
+        timerPaused: false,
+        timerRemainingSeconds: 120,
+      }));
+      return;
+    }
 
     try {
       const res = await authFetch(`${API}/rooms/${roomCode}/start`, {
@@ -110,6 +142,7 @@ function Room({ username }) {
 
   const isHost = room.host === (username || "guest");
   const gameStarted = room.started || localGameStarted;
+  const memberProfiles = getRoomMemberProfiles(room, username);
 
   if (!gameStarted) {
     return (
@@ -139,10 +172,10 @@ function Room({ username }) {
           <div className="room-lobby-members">
             <p className="room-lobby-members-label">Players in room</p>
             <ul className="room-members-list">
-              {room.members.map((m) => (
-                <li key={m} className="room-member-item">
-                  {m}
-                  {m === room.host ? " 👑" : ""}
+              {memberProfiles.map((member) => (
+                <li key={member.id} className="room-member-item">
+                  {member.name}
+                  {member.name === room.host ? " 👑" : ""}
                 </li>
               ))}
             </ul>
@@ -185,8 +218,12 @@ function Room({ username }) {
       </header>
 
       <VoteMovingBox
-        users={room.members.map((member) => ({ id: member, name: member }))}
-        availableSongs={room.queue}
+        room={room}
+        roomCode={roomCode}
+        onRoomUpdate={setRoom}
+        users={memberProfiles}
+        hostName={room.host}
+        username={username}
       />
     </div>
   );

@@ -110,6 +110,17 @@ function userResponse(user) {
   return { ...userData, authenticated: true };
 }
 
+function getAuthenticatedUserId(req, res) {
+  const userId = req.auth?.type === "frontend-user" ? req.auth.userId : null;
+
+  if (!userId) {
+    res.status(401).json({ error: "User session required." });
+    return null;
+  }
+
+  return userId;
+}
+
 app.get("/signin", signinPage);
 app.post("/signin", signin);
 app.get("/signout", signout);
@@ -203,10 +214,13 @@ async function compileSongs(playlistItems, playlistId) {
   const songs = [];
   for (const item of playlistItems["items"]) {
     if (isValidSong(item)) {
+      const videoId = item.snippet.resourceId.videoId;
+
       songs.push({
-        songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+        songLink: `https://www.youtube.com/watch?v=${videoId}`,
         details: {
           title: item.snippet.title,
+          videoId,
         },
       });
     }
@@ -220,10 +234,13 @@ async function compileSongs(playlistItems, playlistId) {
 
     for (const item of nextPageResponse["items"]) {
       if (isValidSong(item)) {
+        const videoId = item.snippet.resourceId.videoId;
+
         songs.push({
-          songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+          songLink: `https://www.youtube.com/watch?v=${videoId}`,
           details: {
             title: item.snippet.title,
+            videoId,
           },
         });
       }
@@ -244,6 +261,91 @@ app.get("/users", async (req, res) => {
     .getUsers(userName)
     .then((users) => res.json(users))
     .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.get("/users/me", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .findUserById(userId)
+    .then((user) => {
+      if (!user) return res.status(404).send("User not found.");
+      res.json(userResponse(user));
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.delete("/users/me", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .deleteUser(userId)
+    .then((deleted) => {
+      if (!deleted) return res.status(404).send("User not found.");
+      clearUserAuthCookie(req, res);
+      res.status(204).send();
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.post("/users/me/logout", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .logoutUser(userId)
+    .then((user) => {
+      clearUserAuthCookie(req, res);
+      res.json(userResponse(user));
+    })
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.patch("/users/me/rename", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const { newUserName } = req.body;
+  if (!newUserName) {
+    return res.status(400).json({ error: "newUserName is required" });
+  }
+
+  await userServices
+    .renameUser(userId, newUserName)
+    .then((user) => res.json(userResponse(user)))
+    .catch((err) => {
+      if (err.message.includes("already taken")) {
+        return res.status(409).json({ error: err.message });
+      }
+      res.status(400).json({ error: err.message });
+    });
+});
+
+app.patch("/users/me/password", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const { newPassword } = req.body;
+  if (!newPassword) {
+    return res.status(400).json({ error: "newPassword is required" });
+  }
+
+  await userServices
+    .changePassword(userId, newPassword)
+    .then((user) => res.json(userResponse(user)))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.patch("/users/me/prefs", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .changePrefs(userId, req.body)
+    .then((user) => res.json(userResponse(user)))
+    .catch((err) => res.status(400).json({ error: err.message }));
 });
 
 app.get("/users/:id", async (req, res) => {
@@ -360,7 +462,7 @@ app.post("/users/:id/unban", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
-// changePrefs: send { favorites: [...], crab: [...] } in body, both optional
+// changePrefs: send { favorites: [...], crab: { color, hat } } in body, both optional
 app.patch("/users/:id/prefs", async (req, res) => {
   await userServices
     .changePrefs(req.params.id, req.body)
@@ -538,10 +640,17 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
-  const { songId, name, artist } = req.body;
+  const { songId, name, artist, addedBy, songLink } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
-    .addSongToQueue(roomCode, songId, name || "Unknown", artist || "Unknown")
+    .addSongToQueue(
+      roomCode,
+      songId,
+      name || "Unknown",
+      artist || "Unknown",
+      addedBy || null,
+      songLink || ""
+    )
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -550,6 +659,17 @@ app.post("/rooms/:roomCode/queue", async (req, res) => {
 });
 
 // POST /rooms/:roomCode/upvote  – upvote a song  { songId }
+// POST /rooms/:roomCode/vote - vote on a song  { entryId, amount }
+app.post("/rooms/:roomCode/vote", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { entryId, amount } = req.body;
+  if (!entryId) return res.status(400).json({ error: "entryId is required." });
+  await roomServices
+    .voteSong(roomCode, entryId, Number(amount) || 0)
+    .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.post("/rooms/:roomCode/upvote", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
   const { songId } = req.body;
@@ -561,6 +681,39 @@ app.post("/rooms/:roomCode/upvote", async (req, res) => {
 });
 
 // POST /rooms/:roomCode/leave  – leave a room  { userName }
+// DELETE /rooms/:roomCode/queue/:entryId - delete a queued song
+app.delete("/rooms/:roomCode/queue/:entryId", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { userName } = req.body;
+  await roomServices
+    .deleteSongFromQueue(roomCode, req.params.entryId, userName)
+    .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+// POST /rooms/:roomCode/timer - host pauses/resumes timer  { paused, userName }
+app.post("/rooms/:roomCode/timer", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { paused, userName } = req.body;
+  await roomServices
+    .setTimerPaused(roomCode, Boolean(paused), userName)
+    .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.post("/rooms/:roomCode/current-song/complete", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { entryId, userName } = req.body;
+
+  await roomServices
+    .completeCurrentSong(roomCode, entryId, userName)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.post("/rooms/:roomCode/leave", async (req, res) => {
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });

@@ -1,5 +1,92 @@
+export const DEFAULT_CRAB_PROFILE = Object.freeze({
+  color: "#e74c3c",
+  hat: "",
+});
+
+const CRAB_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const MAX_CRAB_HAT_LENGTH = 80;
+const LEGACY_CRAB_COLOR_KEY = "profileCrabColor";
+const LEGACY_CRAB_HAT_KEY = "profileCrabHat";
+
+function getCrabStorageScope(userKey) {
+  if (userKey) {
+    return String(userKey);
+  }
+
+  if (typeof localStorage === "undefined") {
+    return "guest";
+  }
+
+  return localStorage.getItem("userId") || localStorage.getItem("username") || "guest";
+}
+
+function getCrabStorageKey(field, userKey) {
+  return `profileCrab:${encodeURIComponent(getCrabStorageScope(userKey))}:${field}`;
+}
+
+export function normalizeCrabProfile(crab = {}) {
+  if (!crab || typeof crab !== "object" || Array.isArray(crab)) {
+    return { ...DEFAULT_CRAB_PROFILE };
+  }
+
+  const color =
+    typeof crab.color === "string" && CRAB_COLOR_PATTERN.test(crab.color)
+      ? crab.color
+      : DEFAULT_CRAB_PROFILE.color;
+  const hat = typeof crab.hat === "string" ? crab.hat.trim().slice(0, MAX_CRAB_HAT_LENGTH) : "";
+
+  return { color, hat };
+}
+
+export function readStoredCrabProfile(userKey) {
+  if (typeof localStorage === "undefined") {
+    return { ...DEFAULT_CRAB_PROFILE };
+  }
+
+  return normalizeCrabProfile({
+    color: localStorage.getItem(getCrabStorageKey("color", userKey)),
+    hat: localStorage.getItem(getCrabStorageKey("hat", userKey)) || "",
+  });
+}
+
+export function writeStoredCrabProfile(crab, userKey) {
+  const normalizedCrab = normalizeCrabProfile(crab);
+
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem(getCrabStorageKey("color", userKey), normalizedCrab.color);
+
+    if (normalizedCrab.hat) {
+      localStorage.setItem(getCrabStorageKey("hat", userKey), normalizedCrab.hat);
+    } else {
+      localStorage.removeItem(getCrabStorageKey("hat", userKey));
+    }
+
+    localStorage.removeItem(LEGACY_CRAB_COLOR_KEY);
+    localStorage.removeItem(LEGACY_CRAB_HAT_KEY);
+  }
+
+  return normalizedCrab;
+}
+
+export function clearStoredCrabProfile(userKey) {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+
+  localStorage.removeItem(getCrabStorageKey("color", userKey));
+  localStorage.removeItem(getCrabStorageKey("hat", userKey));
+  localStorage.removeItem(LEGACY_CRAB_COLOR_KEY);
+  localStorage.removeItem(LEGACY_CRAB_HAT_KEY);
+}
+
+export function getHatSourceForCrab(crab, hatImages) {
+  const normalizedCrab = normalizeCrabProfile(crab);
+
+  return normalizedCrab.hat ? hatImages[`../../assets/hats/${normalizedCrab.hat}`] || "" : "";
+}
+
 function hexToRgb(hexColor) {
-  const normalizedColor = hexColor.replace("#", "");
+  const normalizedColor = normalizeCrabProfile({ color: hexColor }).color.replace("#", "");
 
   return {
     red: parseInt(normalizedColor.slice(0, 2), 16),

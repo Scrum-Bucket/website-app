@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./playlist.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
@@ -8,7 +8,9 @@ import frontendLink from "../../frontendLink";
 import {
   getSongArtist,
   getSongId,
+  getSongLink,
   getSongTitle,
+  getSongVideoId,
   readAccountPlaylist,
   writeAccountPlaylist,
 } from "./playlistStorage";
@@ -23,7 +25,9 @@ function getPlaylistId(input) {
 }
 
 function Playlist({ username }) {
+  const location = useLocation();
   const navigate = useNavigate();
+  const returnTo = location.state?.returnTo || "/home";
   // Now its a PlaylistID
   const [playlistId, setPlaylistId] = useState("");
   const [songs, setSongs] = useState([]);
@@ -90,6 +94,8 @@ function Playlist({ username }) {
       id: getSongId(song),
       title: getSongTitle(song),
       artist: getSongArtist(song),
+      songLink: getSongLink(song),
+      videoId: getSongVideoId(song),
     };
 
     if (!nextSong.id) {
@@ -113,10 +119,13 @@ function Playlist({ username }) {
       <div className="playlist-window">
         <header className="playlist-header">
           <h1>Playlist</h1>
-          <button type="button" onClick={() => navigate("/home")}>
-            Back to Home
+          <button type="button" onClick={() => navigate(returnTo)}>
+            Back
           </button>
-          <button type="button" onClick={() => navigate("/home/my-playlist")}>
+          <button
+            type="button"
+            onClick={() => navigate("/home/my-playlist", { state: { returnTo } })}
+          >
             My Playlist
           </button>
         </header>
