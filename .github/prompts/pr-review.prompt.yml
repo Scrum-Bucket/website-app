@@ -14,7 +14,7 @@ messages:
       - a short summary at the end
 
       Diff:
-      {{diff}}
+        {{diff}}
 model: openai/gpt-4.1-mini
 modelParameters:
   maxCompletionTokens: 1200
