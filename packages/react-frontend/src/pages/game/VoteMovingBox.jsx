@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useReducer, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./VoteMovingBox.css";
 import UserCrabIcon from "../../assets/user-crab.png";
+import CrownIcon from "../../assets/hats/crown.png";
 import {
   getSongArtist,
   getSongId,
@@ -28,6 +29,9 @@ const MIN_SCORE = -20;
 const MAX_SCORE = 40;
 const STACK_CARD_HEIGHT = 86;
 const STACK_CARD_GAP = 30;
+const VOTE_ARENA_MIN_HEIGHT = 500;
+const VOTE_ARENA_MAX_HEIGHT = 745;
+const VOTE_ARENA_CHROME_HEIGHT = 132;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -65,11 +69,12 @@ function formatTime(seconds) {
   return `${minutes}:${remainingSeconds}`;
 }
 
-function createEntry(song) {
+function createEntry(song, addedBy) {
   return {
     entryId: `${song.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     song,
     score: 0,
+    addedBy,
   };
 }
 
@@ -110,7 +115,7 @@ function gameReducer(state, action) {
     case "addSong":
       return {
         ...state,
-        entries: [...state.entries, createEntry(action.song)],
+        entries: [...state.entries, createEntry(action.song, action.addedBy)],
       };
     case "vote":
       return {
@@ -121,12 +126,17 @@ function gameReducer(state, action) {
             : entry
         ),
       };
+    case "deleteSong":
+      return {
+        ...state,
+        entries: state.entries.filter((entry) => entry.entryId !== action.entryId),
+      };
     default:
       return state;
   }
 }
 
-function VoteMovingBoxItem({ entry, stackIndex, onVote }) {
+function VoteMovingBoxItem({ canDelete, entry, onDelete, onVote, stackIndex }) {
   const { song, score } = entry;
 
   return (
@@ -135,27 +145,39 @@ function VoteMovingBoxItem({ entry, stackIndex, onVote }) {
       style={{ transform: `translateY(${stackIndex * (STACK_CARD_HEIGHT + STACK_CARD_GAP)}px)` }}
     >
       <div className="vote-box-bar" aria-label={`${song.name} score ${score}`}>
-        <button
-          type="button"
-          className="vote-box-button vote-box-button--up"
-          onClick={() => onVote(entry.entryId, 1)}
-          aria-label={`Upvote ${song.name}`}
-        >
-          Up
-        </button>
         <span className="vote-box-score">{score}</span>
         <div className="vote-box-track">
           <span className="vote-box-track-title">{song.name}</span>
           <span className="vote-box-track-artist">{song.artist}</span>
         </div>
-        <button
-          type="button"
-          className="vote-box-button vote-box-button--down"
-          onClick={() => onVote(entry.entryId, -1)}
-          aria-label={`Downvote ${song.name}`}
-        >
-          Down
-        </button>
+        <div className="vote-box-actions">
+          <button
+            type="button"
+            className="vote-box-button vote-box-button--up"
+            onClick={() => onVote(entry.entryId, 1)}
+            aria-label={`Upvote ${song.name}`}
+          >
+            Up
+          </button>
+          <button
+            type="button"
+            className="vote-box-button vote-box-button--down"
+            onClick={() => onVote(entry.entryId, -1)}
+            aria-label={`Downvote ${song.name}`}
+          >
+            Down
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              className="vote-box-button vote-box-button--delete"
+              onClick={() => onDelete(entry.entryId)}
+              aria-label={`Delete ${song.name}`}
+            >
+              Delete
+            </button>
+          )}
+        </div>
       </div>
     </article>
   );
@@ -229,26 +251,41 @@ function SongPicker({ songs, onAddSong }) {
   );
 }
 
-function CrabLane({ users, crabIcon }) {
+function CrabLane({ crabIcon, hostName, users }) {
   return (
     <div className="vote-crab-lane" aria-label="Players">
-      {users.map((user, index) => (
-        <div
-          className="vote-player-crab"
-          style={{ animationDelay: `${index * 0.18}s` }}
-          key={user.id}
-        >
-          <img src={crabIcon} alt="" aria-hidden="true" />
-          <div className="vote-player-card">
-            <span>{user.name}</span>
+      {users.map((user, index) => {
+        const isHost = user.id === hostName || user.name === hostName;
+
+        return (
+          <div
+            className="vote-player-crab"
+            style={{ animationDelay: `${index * 0.18}s` }}
+            key={user.id}
+          >
+            <img src={crabIcon} alt="" aria-hidden="true" />
+            <div
+              className={`vote-player-card${isHost ? " vote-player-card--host" : ""}`}
+              aria-label={isHost ? `${user.name}, host` : user.name}
+            >
+              {isHost && (
+                <img
+                  className="vote-host-crown"
+                  src={CrownIcon}
+                  alt=""
+                  aria-hidden="true"
+                />
+              )}
+              <span>{user.name}</span>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-function VoteMovingBox({ users, username }) {
+function VoteMovingBox({ hostName, users, username }) {
   const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
   const songs = useMemo(() => normalizeSongs(readAccountPlaylist(username)), [username]);
   const [{ entries, timeLeft, nowPlaying }, dispatch] = useReducer(gameReducer, {
@@ -257,6 +294,9 @@ function VoteMovingBox({ users, username }) {
     nowPlaying: null,
   });
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const currentUserName = username || "guest";
+  const isCurrentUserHost = hostName === currentUserName;
   const rankedEntries = useMemo(
     () => [...entries].sort((a, b) => b.score - a.score),
     [entries]
@@ -264,6 +304,11 @@ function VoteMovingBox({ users, username }) {
   const stackHeight = entries.length
     ? entries.length * STACK_CARD_HEIGHT + (entries.length - 1) * STACK_CARD_GAP
     : 260;
+  const voteArenaHeight = clamp(
+    stackHeight + VOTE_ARENA_CHROME_HEIGHT,
+    VOTE_ARENA_MIN_HEIGHT,
+    VOTE_ARENA_MAX_HEIGHT
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -283,19 +328,31 @@ function VoteMovingBox({ users, username }) {
   }, []);
 
   useEffect(() => {
+    if (isTimerPaused) {
+      return undefined;
+    }
+
     const timerId = setInterval(() => {
       dispatch({ type: "tick" });
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, []);
+  }, [isTimerPaused]);
 
   const handleAddSong = (song) => {
-    dispatch({ type: "addSong", song });
+    dispatch({ type: "addSong", song, addedBy: currentUserName });
   };
 
   const handleVote = (entryId, amount) => {
     dispatch({ type: "vote", entryId, amount });
+  };
+
+  const handleDeleteSong = (entryId) => {
+    const entry = entries.find((candidate) => candidate.entryId === entryId);
+
+    if (isCurrentUserHost || entry?.addedBy === currentUserName) {
+      dispatch({ type: "deleteSong", entryId });
+    }
   };
 
   return (
@@ -303,11 +360,23 @@ function VoteMovingBox({ users, username }) {
       <SongPicker songs={songs} onAddSong={handleAddSong} />
 
       <div className="vote-play-area">
-        <main className="vote-arena">
+        <main
+          className="vote-arena"
+          style={{ "--vote-arena-height": `${voteArenaHeight}px` }}
+        >
           <header className="vote-round-status">
             <div className="vote-timer-card">
               <p className="vote-panel-kicker">Round timer</p>
               <strong className="vote-timer-value">{formatTime(timeLeft)}</strong>
+              {isCurrentUserHost && (
+                <button
+                  className="vote-timer-toggle"
+                  type="button"
+                  onClick={() => setIsTimerPaused((isPaused) => !isPaused)}
+                >
+                  {isTimerPaused ? "Resume" : "Pause"}
+                </button>
+              )}
             </div>
             <div>
               <p className="vote-panel-kicker">Now playing</p>
@@ -318,32 +387,35 @@ function VoteMovingBox({ users, username }) {
 
           <div
             className={`vote-box-game${entries.length ? " vote-box-game--stacked" : ""}`}
-            style={{ minHeight: stackHeight }}
           >
-            {entries.map((entry) => {
-              const stackIndex = rankedEntries.findIndex(
-                (rankedEntry) => rankedEntry.entryId === entry.entryId
-              );
+            <div className="vote-box-scroll-area" style={{ minHeight: stackHeight }}>
+              {entries.map((entry) => {
+                const stackIndex = rankedEntries.findIndex(
+                  (rankedEntry) => rankedEntry.entryId === entry.entryId
+                );
 
-              return (
-                <VoteMovingBoxItem
-                  entry={entry}
-                  stackIndex={stackIndex}
-                  onVote={handleVote}
-                  key={entry.entryId}
-                />
-              );
-            })}
+                return (
+                  <VoteMovingBoxItem
+                    canDelete={isCurrentUserHost || entry.addedBy === currentUserName}
+                    entry={entry}
+                    onDelete={handleDeleteSong}
+                    stackIndex={stackIndex}
+                    onVote={handleVote}
+                    key={entry.entryId}
+                  />
+                );
+              })}
 
-            {!entries.length && (
-              <div className="vote-empty-round">
-                Add songs from the left window to start the next vote.
-              </div>
-            )}
+              {!entries.length && (
+                <div className="vote-empty-round">
+                  Add songs from the left window to start the next vote.
+                </div>
+              )}
+            </div>
           </div>
         </main>
 
-        <CrabLane users={normalizedUsers} crabIcon={crabIcon} />
+        <CrabLane users={normalizedUsers} crabIcon={crabIcon} hostName={hostName} />
       </div>
     </section>
   );

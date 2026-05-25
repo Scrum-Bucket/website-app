@@ -24,8 +24,8 @@
 }
 
 .vote-song-picker {
-  height: 675px;
-  max-height: calc(100vh - 120px);
+  height: 720px;
+  max-height: 775px;
   display: flex;
   flex-direction: column;
   padding: 16px;
@@ -159,9 +159,11 @@
 }
 
 .vote-arena {
-  min-height: 500px;
+  height: var(--vote-arena-height, 500px);
+  max-height: 835px;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(260px, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -191,6 +193,25 @@
   box-shadow: 0 0 0 3px rgba(247, 178, 68, 0.16);
 }
 
+.vote-timer-toggle {
+  align-self: flex-start;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #2f50bd;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.vote-timer-toggle:hover,
+.vote-timer-toggle:focus-visible {
+  border-color: #f7b244;
+  outline: none;
+}
+
 .vote-round-status strong {
   color: #ffffff;
   font-size: 24px;
@@ -213,6 +234,12 @@
   position: relative;
   padding: 18px;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.vote-box-scroll-area {
+  min-height: 100%;
+  position: relative;
 }
 
 .vote-box-row {
@@ -227,8 +254,8 @@
 
 .vote-box-game--stacked .vote-box-row {
   position: absolute;
-  left: 18px;
-  right: 18px;
+  left: 0;
+  right: 0;
   height: 86px;
   transition: transform 0.34s ease;
 }
@@ -237,7 +264,7 @@
   width: 100%;
   min-height: 84px;
   display: grid;
-  grid-template-columns: 64px 64px minmax(0, 1fr) 64px;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   justify-self: center;
@@ -246,6 +273,13 @@
   background: linear-gradient(90deg, #eefbff 0%, #9fd7e4 58%, #4aa6dd 100%);
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.18);
   padding: 10px;
+}
+
+.vote-box-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .vote-box-score {
@@ -283,6 +317,11 @@
 .vote-box-button--down {
   background: #e74c3c;
   box-shadow: 0 3px 0 #a93024;
+}
+
+.vote-box-button--delete {
+  background: #8b1e1e;
+  box-shadow: 0 3px 0 #5f1515;
 }
 
 .vote-box-button:hover {
@@ -369,6 +408,24 @@
   padding: 12px 14px 9px;
 }
 
+.vote-player-card--host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+}
+
+.vote-player-card .vote-host-crown {
+  width: 28px;
+  height: 28px;
+  display: block;
+  min-width: 16px;
+  position: static;
+  z-index: auto;
+  margin-bottom: 0;
+  object-fit: contain;
+}
+
 .vote-player-card span {
   max-width: 88px;
   color: #1d1d1d;
@@ -378,6 +435,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
+}
+
+.vote-player-card--host span {
+  max-width: 68px;
 }
 
 @keyframes crabBob {
@@ -418,7 +479,7 @@
   }
 
   .vote-box-game--stacked .vote-box-row {
-    left: 12px;
-    right: 12px;
+    left: 0;
+    right: 0;
   }
 }

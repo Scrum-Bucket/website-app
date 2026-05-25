@@ -186,6 +186,7 @@ function Room({ username }) {
 
       <VoteMovingBox
         users={room.members.map((member) => ({ id: member, name: member }))}
+        hostName={room.host}
         username={username}
       />
     </div>
