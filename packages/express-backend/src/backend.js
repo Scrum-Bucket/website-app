@@ -214,10 +214,13 @@ async function compileSongs(playlistItems, playlistId) {
   const songs = [];
   for (const item of playlistItems["items"]) {
     if (isValidSong(item)) {
+      const videoId = item.snippet.resourceId.videoId;
+
       songs.push({
-        songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+        songLink: `https://www.youtube.com/watch?v=${videoId}`,
         details: {
           title: item.snippet.title,
+          videoId,
         },
       });
     }
@@ -231,10 +234,13 @@ async function compileSongs(playlistItems, playlistId) {
 
     for (const item of nextPageResponse["items"]) {
       if (isValidSong(item)) {
+        const videoId = item.snippet.resourceId.videoId;
+
         songs.push({
-          songLink: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+          songLink: `https://www.youtube.com/watch?v=${videoId}`,
           details: {
             title: item.snippet.title,
+            videoId,
           },
         });
       }
@@ -634,10 +640,17 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
-  const { songId, name, artist, addedBy } = req.body;
+  const { songId, name, artist, addedBy, songLink } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
-    .addSongToQueue(roomCode, songId, name || "Unknown", artist || "Unknown", addedBy || null)
+    .addSongToQueue(
+      roomCode,
+      songId,
+      name || "Unknown",
+      artist || "Unknown",
+      addedBy || null,
+      songLink || ""
+    )
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -685,6 +698,19 @@ app.post("/rooms/:roomCode/timer", async (req, res) => {
   await roomServices
     .setTimerPaused(roomCode, Boolean(paused), userName)
     .then((room) => res.json(room))
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.post("/rooms/:roomCode/current-song/complete", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { entryId, userName } = req.body;
+
+  await roomServices
+    .completeCurrentSong(roomCode, entryId, userName)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 

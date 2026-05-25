@@ -26,6 +26,18 @@ function getWinningEntry(queue) {
   );
 }
 
+function makeCurrentSong(entry) {
+  return {
+    entryId: entry.entryId,
+    songId: entry.songId,
+    name: entry.name,
+    artist: entry.artist,
+    songLink: entry.songLink || "",
+    score: getEntryScore(entry),
+    playbackStartedAt: new Date(),
+  };
+}
+
 function secondsUntil(date, now = Date.now()) {
   return Math.max(0, Math.ceil((new Date(date).getTime() - now) / 1000));
 }
@@ -91,26 +103,31 @@ async function syncRoomGameState(room) {
     changed = true;
   }
 
-  if (room.started && !room.timerPaused && !room.roundEndsAt) {
+  if (room.started && !room.currentSong && !room.timerPaused && !room.roundEndsAt) {
     room.roundEndsAt = new Date(Date.now() + room.timerRemainingSeconds * 1000);
     changed = true;
   }
 
-  if (room.started && !room.timerPaused && room.roundEndsAt && secondsUntil(room.roundEndsAt) <= 0) {
+  if (
+    room.started &&
+    !room.currentSong &&
+    !room.timerPaused &&
+    room.roundEndsAt &&
+    secondsUntil(room.roundEndsAt) <= 0
+  ) {
     const winningEntry = getWinningEntry(room.queue);
 
     if (winningEntry) {
-      room.currentSong = {
-        songId: winningEntry.songId,
-        name: winningEntry.name,
-        artist: winningEntry.artist,
-        score: getEntryScore(winningEntry),
-      };
+      room.currentSong = makeCurrentSong(winningEntry);
       room.queue = [];
+      room.timerPaused = true;
+      room.timerRemainingSeconds = room.roundSeconds;
+      room.roundEndsAt = null;
+    } else {
+      room.timerRemainingSeconds = room.roundSeconds;
+      room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
     }
 
-    room.timerRemainingSeconds = room.roundSeconds;
-    room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
     changed = true;
   }
 
@@ -174,6 +191,7 @@ async function startRoom(roomCode) {
   if (!room) return null;
 
   room.started = true;
+  room.currentSong = null;
   room.roundSeconds = room.roundSeconds || ROUND_SECONDS;
   room.timerPaused = false;
   room.timerRemainingSeconds = room.roundSeconds;
@@ -182,7 +200,7 @@ async function startRoom(roomCode) {
   return attachMemberProfiles(await room.save());
 }
 
-async function addSongToQueue(roomCode, songId, name, artist, addedBy = null) {
+async function addSongToQueue(roomCode, songId, name, artist, addedBy = null, songLink = "") {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) return null;
 
@@ -191,6 +209,7 @@ async function addSongToQueue(roomCode, songId, name, artist, addedBy = null) {
     songId,
     name,
     artist,
+    songLink,
     score: 0,
     upvotes: 0,
     addedBy,
@@ -243,6 +262,7 @@ async function setTimerPaused(roomCode, paused, userName) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) throw new Error("Room not found");
   if (room.host !== userName) throw new Error("Only the host can pause the timer");
+  if (room.currentSong) throw new Error("Cannot change the voting timer while a song is playing");
 
   if (paused && !room.timerPaused) {
     room.timerRemainingSeconds = room.roundEndsAt
@@ -256,6 +276,36 @@ async function setTimerPaused(roomCode, paused, userName) {
   }
 
   return attachMemberProfiles(await room.save());
+}
+
+async function completeCurrentSong(roomCode, entryId = null, userName = null) {
+  const room = await Room.findOne({ roomCode });
+  if (!room) return null;
+  if (room.host && room.host !== userName) {
+    throw new Error("Only the host can restart voting after playback");
+  }
+
+  if (
+    room.currentSong &&
+    entryId &&
+    room.currentSong.entryId &&
+    room.currentSong.entryId !== entryId
+  ) {
+    return attachMemberProfiles(await syncRoomGameState(room));
+  }
+
+  if (room.currentSong) {
+    room.currentSong = null;
+    room.roundSeconds = room.roundSeconds || ROUND_SECONDS;
+    room.timerPaused = false;
+    room.timerRemainingSeconds = room.roundSeconds;
+    room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
+    room.markModified("currentSong");
+
+    return attachMemberProfiles(await room.save());
+  }
+
+  return attachMemberProfiles(await syncRoomGameState(room));
 }
 
 async function leaveRoom(roomCode, userName) {
@@ -283,6 +333,7 @@ module.exports = {
   voteSong,
   deleteSongFromQueue,
   setTimerPaused,
+  completeCurrentSong,
   leaveRoom,
   deleteRoom,
   getPublicRooms,

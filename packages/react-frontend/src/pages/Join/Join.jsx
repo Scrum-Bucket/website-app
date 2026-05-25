@@ -27,7 +27,7 @@ function Join() {
 
       return {
         id: room._id || room.id || index + 1,
-        name: room.currentSong || "No song playing",
+        name: room.currentSong?.name || room.currentSong || "No song playing",
         host: room.host || "Host Name",
         listeners: members.length,
         code: room.roomCode || "Room Code",

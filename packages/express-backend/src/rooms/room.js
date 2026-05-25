@@ -19,6 +19,7 @@ const RoomSchema = new mongoose.Schema(
           songId: { type: String, required: true },
           name: { type: String, default: "Unknown" },
           artist: { type: String, default: "Unknown" },
+          songLink: { type: String, default: "" },
           score: { type: Number, default: 0 },
           upvotes: { type: Number, default: 0 },
           addedBy: { type: String, default: null },

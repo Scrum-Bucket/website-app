@@ -8,7 +8,9 @@ import frontendLink from "../../frontendLink";
 import {
   getSongArtist,
   getSongId,
+  getSongLink,
   getSongTitle,
+  getSongVideoId,
   readAccountPlaylist,
   writeAccountPlaylist,
 } from "./playlistStorage";
@@ -92,6 +94,8 @@ function Playlist({ username }) {
       id: getSongId(song),
       title: getSongTitle(song),
       artist: getSongArtist(song),
+      songLink: getSongLink(song),
+      videoId: getSongVideoId(song),
     };
 
     if (!nextSong.id) {
