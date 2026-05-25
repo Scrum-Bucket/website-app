@@ -12,15 +12,17 @@ concurrency:
 
 jobs:
   ai_review_job:
-    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    name: AI Review Job
+
     permissions:
       contents: read
       pull-requests: write
       models: read
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -39,6 +41,11 @@ jobs:
             echo "has_diff=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Indent diff for YAML
+        if: steps.diff.outputs.has_diff == 'true'
+        run: |
+          sed 's/^/        /' diff.txt > diff-indented.txt
+
       - name: Review with GitHub Models
         if: steps.diff.outputs.has_diff == 'true'
         id: ai_review
@@ -47,7 +54,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           prompt-file: ./.github/prompts/pr-review.prompt.yml
           file_input: |
-            diff: ./diff.txt
+            diff: ./diff-indented.txt
 
       - name: Comment on PR
         if: steps.diff.outputs.has_diff == 'true'
