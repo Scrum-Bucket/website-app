@@ -47,7 +47,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           prompt-file: ./.github/prompts/pr-review.prompt.yml
           file_input: |
-            diff: diff.txt
+            diff: ./diff.txt
 
       - name: Comment on PR
         if: steps.diff.outputs.has_diff == 'true'
