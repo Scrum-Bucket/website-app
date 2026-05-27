@@ -22,15 +22,25 @@ function MyPlaylist({ username }) {
       <div className="playlist-window">
         <header className="playlist-header">
           <h1>My Playlist</h1>
-          <button
-            type="button"
-            onClick={() => navigate("/home/playlist", { state: { returnTo } })}
-          >
-            Add Songs
-          </button>
-          <button type="button" onClick={() => navigate(returnTo)}>
-            Back
-          </button>
+          <div className="playlist-header-buttons">
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/home/playlist", {
+                  state: {
+                    returnTo,
+                    songs: location.state?.songs || [],
+                    playlistId: location.state?.playlistId || "",
+                  },
+                })
+              }
+            >
+              Back
+            </button>
+            <button type="button" onClick={() => navigate(returnTo)}>
+              {returnTo === "/home" ? "Home" : "Back"}
+            </button>
+          </div>
         </header>
 
         <section className="playlist-list">
