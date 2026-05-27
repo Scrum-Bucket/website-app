@@ -15,12 +15,39 @@ import {
   writeAccountPlaylist,
 } from "./playlistStorage";
 
-function getPlaylistId(input) {
+function getYoutubeInput(input) {
+  const trimmedInput = input.trim();
+
+  if (!trimmedInput) {
+    return { type: null, id: "" };
+  }
+
   try {
-    const url = new URL(input);
-    return url.searchParams.get("list") || null;
+    const url = new URL(trimmedInput);
+    const playlistId = url.searchParams.get("list");
+    const videoId = url.searchParams.get("v");
+
+    if (playlistId) {
+      return { type: "playlist", id: playlistId };
+    }
+
+    if (videoId) {
+      return { type: "song", id: videoId };
+    }
+
+    if (url.hostname.includes("youtu.be")) {
+      return {
+        type: "song",
+        id: url.pathname.split("/").filter(Boolean)[0] || "",
+      };
+    }
+
+    return { type: null, id: "" };
   } catch {
-    return input.trim(); // if its not a URL, treat as ID
+    return {
+      type: trimmedInput.length === 11 ? "song" : "playlist",
+      id: trimmedInput,
+    };
   }
 }
 
@@ -28,10 +55,10 @@ function Playlist({ username }) {
   const location = useLocation();
   const navigate = useNavigate();
   const returnTo = location.state?.returnTo || "/home";
-  // Now its a PlaylistID
-  const [playlistId, setPlaylistId] = useState("");
-  const [songs, setSongs] = useState([]);
+  const [playlistId, setPlaylistId] = useState(location.state?.playlistId || "");
+  const [songs, setSongs] = useState(location.state?.songs || []);
   const [savedSongs, setSavedSongs] = useState(() => readAccountPlaylist(username));
+  const [isLoadingPlaylist, setIsLoadingPlaylist] = useState(false);
 
   // state of error for wrong URL/ID
   // stores current error value 'error', and a function to update it 'setError'
@@ -41,13 +68,15 @@ async function handleAddSong() {
   // clear previous errors
   setError("");
 
-  const parsedId = getPlaylistId(playlistId);
+  const youtubeInput = getYoutubeInput(playlistId);
 
   // If input is empty, show error and stop
-  if (!parsedId) {
-    setError("Please enter a playlist URL or ID.");
+  if (!youtubeInput.id || !youtubeInput.type) {
+    setError("Please enter a valid YouTube song or playlist URL/ID.");
     return;
   }
+
+  setIsLoadingPlaylist(true);
 
   try {
     const userId = localStorage.getItem("userId");
@@ -57,7 +86,11 @@ async function handleAddSong() {
       return;
     }
 
-    const res = await authFetch(`${frontendLink}/users/${userId}/playlists/youtube/${parsedId}`, {
+    const endpoint =
+      youtubeInput.type === "playlist"
+        ? `${frontendLink}/users/${userId}/playlists/youtube/${youtubeInput.id}`
+        : `${frontendLink}/users/${userId}/songs/youtube/${youtubeInput.id}`;
+    const res = await authFetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -68,7 +101,7 @@ async function handleAddSong() {
     });
 
     if (!res.ok) {
-      setError("Invalid playlist URL or ID."); // handle bad response from backend
+      setError("Invalid URL or ID."); // handle bad response from backend
       return;
     }
 
@@ -76,16 +109,17 @@ async function handleAddSong() {
 
     // ensure backend returned expected format/list of songs
     if (!Array.isArray(data)) {
-      setError("Invalid playlist response.");
+      setError("Invalid youtube response.");
       return;
     }
 
     setSongs(data);
-    setPlaylistId("");
   } catch (err) {
     console.error(err);
     // handle unexpected errors
     setError("Could not load playlist. Please check the URL or ID.");
+  } finally {
+    setIsLoadingPlaylist(false);
   }
 }
 
@@ -151,15 +185,21 @@ function handleRemoveAllSongs() {
       <div className="playlist-window">
         <header className="playlist-header">
           <h1>Playlist</h1>
-          <button type="button" onClick={() => navigate(returnTo)}>
-            Back
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/home/my-playlist", { state: { returnTo } })}
-          >
-            My Playlist
-          </button>
+          <div className="playlist-header-buttons">
+            <button type="button" onClick={() => navigate(returnTo)}>
+              {returnTo === "/home" ? "Home" : "Back"}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/home/my-playlist", {
+                  state: { returnTo, songs, playlistId },
+                })
+              }
+            >
+              My Playlist
+            </button>
+          </div>
         </header>
 
         <section className="playlist-add-row">
@@ -167,10 +207,10 @@ function handleRemoveAllSongs() {
             type="text"
             value={playlistId}
             onChange={(event) => setPlaylistId(event.target.value)}
-            placeholder="Enter playlist URL or ID"
+            placeholder="Enter YouTube song or playlist URL/ID"
           />
-          <button type="button" onClick={handleAddSong}>
-            Add Song
+          <button type="button" onClick={handleAddSong} disabled={isLoadingPlaylist}>
+            {isLoadingPlaylist ? "Loading..." : "Load"}
           </button>
         </section>
         {error && <p className="playlist-error">{error}</p>}
