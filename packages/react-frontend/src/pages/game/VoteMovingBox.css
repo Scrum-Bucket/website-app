@@ -188,13 +188,20 @@
 }
 
 .vote-round-status .vote-timer-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
   border: 2px solid rgba(247, 178, 68, 0.72);
   background: rgba(8, 48, 71, 0.58);
   box-shadow: 0 0 0 3px rgba(247, 178, 68, 0.16);
 }
 
+.vote-timer-card .vote-panel-kicker {
+  grid-column: 1 / -1;
+}
+
 .vote-timer-toggle {
-  align-self: flex-start;
+  align-self: center;
   border: 2px solid rgba(231, 244, 255, 0.58);
   border-radius: 8px;
   background: #2f50bd;
@@ -435,7 +442,7 @@
 }
 
 .vote-finish-song-btn {
-  justify-self: end;
+  justify-self: start;
   min-height: 46px;
   border: 2px solid rgba(231, 244, 255, 0.58);
   border-radius: 8px;
@@ -493,9 +500,9 @@
 
 .vote-player-card {
   box-sizing: border-box;
-  min-width: 92px;
-  width: max-content;
-  max-width: 130px;
+  width: fit-content;
+  min-width: 116px;
+  max-width: 170px;
   min-height: 48px;
   display: grid;
   place-items: center;
@@ -523,7 +530,8 @@
 }
 
 .vote-player-card span {
-  max-width: 96px;
+  min-width: 88px;
+  max-width: 132px;
   color: #1d1d1d;
   font-size: 13px;
   font-weight: 700;
@@ -534,7 +542,8 @@
 }
 
 .vote-player-card--host span {
-  max-width: 76px;
+  min-width: 68px;
+  max-width: 108px;
 }
 
 @keyframes crabBob {

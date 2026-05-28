@@ -11,6 +11,12 @@ import { readStoredCrabProfile } from "../profile/crabColor";
 
 const API = frontendLink;
 const POLL_MS = 2000;
+const DEFAULT_ROOM_OPTIONS = {
+  roundSeconds: 120,
+  continuousPlaylistMode: "removeSongs",
+  removeSelectedSong: false,
+  playOnAllDevices: true,
+};
 
 function getStoredRoomMemberName(roomCode, username) {
   if (!roomCode || typeof sessionStorage === "undefined") {
@@ -52,6 +58,8 @@ function Room({ username }) {
   const [room, setRoom] = useState(location.state?.room || null);
   const [localGameStarted, setLocalGameStarted] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const [optionsError, setOptionsError] = useState("");
 
   const fetchRoom = useCallback(async () => {
     if (!roomCode) {
@@ -68,6 +76,12 @@ function Room({ username }) {
     try {
       const res = await authFetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
+        if (res.status === 404) {
+          sessionStorage.removeItem(`roomMemberName:${roomCode}`);
+          navigate("/home");
+          return;
+        }
+
         setRoom({
           roomCode,
           host: roomMemberName,
@@ -88,7 +102,7 @@ function Room({ username }) {
         started: false,
       });
     }
-  }, [roomCode, roomMemberName]);
+  }, [navigate, roomCode, roomMemberName]);
 
   useEffect(() => {
     const initialFetchId = setTimeout(fetchRoom, 0);
@@ -150,6 +164,33 @@ function Room({ username }) {
     await leaveRoom("/");
   }
 
+  async function handleSaveOptions(nextOptions) {
+    setOptionsError("");
+
+    try {
+      const response = await authFetch(`${API}/rooms/${roomCode}/options`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userName: roomMemberName,
+          options: nextOptions,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        setOptionsError(errorData.error || "Could not save options.");
+        return;
+      }
+
+      const updated = await response.json();
+      setRoom(updated);
+      setShowOptions(false);
+    } catch {
+      setOptionsError("Could not save options.");
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
   if (!room) {
     return (
@@ -163,6 +204,7 @@ function Room({ username }) {
   const isHost = room.host === roomMemberName;
   const gameStarted = room.started || localGameStarted;
   const memberProfiles = getRoomMemberProfiles(room, roomMemberName);
+  const roomOptions = { ...DEFAULT_ROOM_OPTIONS, ...(room.options || {}) };
 
   if (!gameStarted) {
     return (
@@ -175,6 +217,15 @@ function Room({ username }) {
           </div>
           <div className="room-id-bar">
             <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
+            {isHost && (
+              <button
+                className="room-options-btn"
+                type="button"
+                onClick={() => setShowOptions(true)}
+              >
+                Options
+              </button>
+            )}
           </div>
           <button
             className="room-menu-btn"
@@ -211,6 +262,15 @@ function Room({ username }) {
             </button>
           )}
         </div>
+
+        {showOptions ? (
+          <RoomOptionsModal
+            error={optionsError}
+            options={roomOptions}
+            onClose={() => setShowOptions(false)}
+            onSave={handleSaveOptions}
+          />
+        ) : null}
       </div>
     );
   }
@@ -226,6 +286,15 @@ function Room({ username }) {
         </div>
         <div className="room-id-bar">
           <span className="room-id-label">ROOM: {room.roomCode}</span>
+          {isHost && (
+            <button
+              className="room-options-btn"
+              type="button"
+              onClick={() => setShowOptions(true)}
+            >
+              Options
+            </button>
+          )}
         </div>
         <button
           className="room-menu-btn"
@@ -245,6 +314,7 @@ function Room({ username }) {
         users={memberProfiles}
         hostName={room.host}
         isGuest={username === "Guest"}
+        playOnAllDevices={roomOptions.playOnAllDevices}
         username={roomMemberName}
         onLoginRequired={() => setShowLoginPrompt(true)}
       />
@@ -255,6 +325,128 @@ function Room({ username }) {
           onCancel={() => setShowLoginPrompt(false)}
         />
       ) : null}
+
+      {showOptions ? (
+        <RoomOptionsModal
+          error={optionsError}
+          options={roomOptions}
+          onClose={() => setShowOptions(false)}
+          onSave={handleSaveOptions}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function RoomOptionsModal({ error, onClose, onSave, options }) {
+  const [roundSeconds, setRoundSeconds] = useState(options.roundSeconds);
+  const [continuousPlaylistMode, setContinuousPlaylistMode] = useState(
+    options.continuousPlaylistMode
+  );
+  const [removeSelectedSong, setRemoveSelectedSong] = useState(options.removeSelectedSong);
+  const [playOnAllDevices, setPlayOnAllDevices] = useState(options.playOnAllDevices);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    onSave({
+      roundSeconds: Number(roundSeconds),
+      continuousPlaylistMode,
+      removeSelectedSong,
+      playOnAllDevices,
+    });
+  }
+
+  return (
+    <div className="room-options-overlay" role="presentation">
+      <form
+        className="room-options-window"
+        onSubmit={handleSubmit}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Room options"
+      >
+        <header className="room-options-header">
+          <h2>Options</h2>
+          <button type="button" onClick={onClose} aria-label="Close options">
+            x
+          </button>
+        </header>
+
+        <label className="room-options-field" htmlFor="round-seconds">
+          <span>Timer seconds</span>
+          <input
+            id="round-seconds"
+            type="number"
+            min="0"
+            max="900"
+            step="1"
+            value={roundSeconds}
+            onChange={(event) => setRoundSeconds(event.target.value)}
+          />
+        </label>
+
+        <fieldset className="room-options-field">
+          <legend>Continuous playlist</legend>
+          <label>
+            <input
+              type="radio"
+              name="continuousPlaylistMode"
+              value="removeSongs"
+              checked={continuousPlaylistMode === "removeSongs"}
+              onChange={(event) => setContinuousPlaylistMode(event.target.value)}
+            />
+            Remove all songs from queue
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="continuousPlaylistMode"
+              value="removeVotes"
+              checked={continuousPlaylistMode === "removeVotes"}
+              onChange={(event) => setContinuousPlaylistMode(event.target.value)}
+            />
+            Remove all votes
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="continuousPlaylistMode"
+              value="keepAll"
+              checked={continuousPlaylistMode === "keepAll"}
+              onChange={(event) => setContinuousPlaylistMode(event.target.value)}
+            />
+            Remove nothing
+          </label>
+        </fieldset>
+
+        <label className="room-options-check">
+          <input
+            type="checkbox"
+            checked={removeSelectedSong}
+            onChange={(event) => setRemoveSelectedSong(event.target.checked)}
+            disabled={continuousPlaylistMode === "removeSongs"}
+          />
+          Remove selected song from queue
+        </label>
+
+        <label className="room-options-check">
+          <input
+            type="checkbox"
+            checked={playOnAllDevices}
+            onChange={(event) => setPlayOnAllDevices(event.target.checked)}
+          />
+          Play songs on other users' computers
+        </label>
+
+        {error ? <p className="room-options-error">{error}</p> : null}
+
+        <div className="room-options-actions">
+          <button type="submit">Save</button>
+          <button type="button" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

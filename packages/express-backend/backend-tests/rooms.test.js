@@ -28,6 +28,7 @@ function makeRoom(overrides = {}) {
     roundEndsAt: room.roundEndsAt,
     timerPaused: room.timerPaused,
     timerRemainingSeconds: room.timerRemainingSeconds,
+    options: room.options,
     started: room.started,
     host: room.host,
   });
@@ -142,4 +143,117 @@ test("leaving removes the assigned room nickname", async () => {
 
   expect(room.save).toHaveBeenCalled();
   expect(result.members).toStrictEqual(["Captain"]);
+});
+
+test("host leaving closes the room", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    members: ["Captain", "Anonymous Fish"],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+  Room.findOneAndDelete = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.leaveRoom("PLAY1", "Captain");
+
+  expect(Room.findOneAndDelete).toHaveBeenCalledWith({ roomCode: "PLAY1" });
+  expect(room.save).not.toHaveBeenCalled();
+  expect(result.closed).toBe(true);
+  expect(result.members).toStrictEqual([]);
+});
+
+test("host can update room options", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    roundEndsAt: null,
+    timerRemainingSeconds: 120,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.updateRoomOptions("PLAY1", "Captain", {
+    roundSeconds: 21,
+    continuousPlaylistMode: "removeVotes",
+    removeSelectedSong: true,
+    playOnAllDevices: false,
+  });
+
+  expect(room.save).toHaveBeenCalled();
+  expect(result.options).toStrictEqual({
+    roundSeconds: 21,
+    continuousPlaylistMode: "removeVotes",
+    removeSelectedSong: true,
+    playOnAllDevices: false,
+  });
+  expect(result.roundSeconds).toBe(21);
+});
+
+test("expired round can keep songs and remove votes", async () => {
+  const room = makeRoom({
+    options: {
+      roundSeconds: 120,
+      continuousPlaylistMode: "removeVotes",
+      playOnAllDevices: true,
+    },
+    queue: [
+      {
+        entryId: "entry-1",
+        songId: "song-1",
+        name: "Hellfire",
+        artist: "The Bells",
+        score: 8,
+        upvotes: 8,
+      },
+      {
+        entryId: "entry-2",
+        songId: "song-2",
+        name: "Sail Away",
+        artist: "The Bells",
+        score: 2,
+        upvotes: 2,
+      },
+    ],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.findRoomByCode("PLAY1");
+
+  expect(result.currentSong.name).toBe("Hellfire");
+  expect(result.queue).toHaveLength(2);
+  expect(result.queue.every((entry) => entry.score === 0 && entry.upvotes === 0)).toBe(true);
+});
+
+test("expired round can remove the selected song separately from vote cleanup", async () => {
+  const room = makeRoom({
+    options: {
+      roundSeconds: 120,
+      continuousPlaylistMode: "removeVotes",
+      removeSelectedSong: true,
+      playOnAllDevices: true,
+    },
+    queue: [
+      {
+        entryId: "entry-1",
+        songId: "song-1",
+        name: "Hellfire",
+        artist: "The Bells",
+        score: 8,
+      },
+      {
+        entryId: "entry-2",
+        songId: "song-2",
+        name: "Sail Away",
+        artist: "The Bells",
+        score: 2,
+      },
+    ],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.findRoomByCode("PLAY1");
+
+  expect(result.currentSong.name).toBe("Hellfire");
+  expect(result.queue).toHaveLength(1);
+  expect(result.queue[0].name).toBe("Sail Away");
+  expect(result.queue[0].score).toBe(0);
 });

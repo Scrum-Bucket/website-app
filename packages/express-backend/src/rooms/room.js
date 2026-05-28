@@ -48,6 +48,16 @@ const RoomSchema = new mongoose.Schema(
       type: Number,
       default: 120,
     },
+    options: {
+      roundSeconds: { type: Number, default: 120 },
+      continuousPlaylistMode: {
+        type: String,
+        enum: ["removeSongs", "removeVotes", "keepAll"],
+        default: "removeSongs",
+      },
+      removeSelectedSong: { type: Boolean, default: false },
+      playOnAllDevices: { type: Boolean, default: true },
+    },
     host: {
       type: String,
       default: null,

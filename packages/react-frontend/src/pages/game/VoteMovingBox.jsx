@@ -196,7 +196,7 @@ function makeCurrentSongFromQueueEntry(entry) {
 }
 
 function getRoomTimeLeft(room, now) {
-  const roundSeconds = room?.roundSeconds || ROUND_SECONDS;
+  const roundSeconds = room?.roundSeconds ?? ROUND_SECONDS;
 
   if (room?.timerPaused) {
     return clamp(room.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
@@ -376,17 +376,21 @@ function YouTubeSongPlayer({ onEnded, song }) {
   return <div className="vote-song-player-frame" ref={playerHostRef} />;
 }
 
-function CurrentSongPlayer({ canControl, onComplete, song }) {
+function CurrentSongPlayer({ canControl, onComplete, shouldPlayAudio, song }) {
+  if (!shouldPlayAudio) {
+    return (
+      <section className="vote-current-song" aria-label="Current song">
+        <div className="vote-song-player-missing">
+          <p>The host is playing this song on their computer.</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="vote-current-song" aria-label="Current song">
 
       <YouTubeSongPlayer song={song} onEnded={canControl ? onComplete : undefined} />
-
-      {canControl && (
-        <button className="vote-finish-song-btn" type="button" onClick={onComplete}>
-          Restart voting
-        </button>
-      )}
     </section>
   );
 }
@@ -527,6 +531,7 @@ function VoteMovingBox({
   isGuest = false,
   onLoginRequired,
   onRoomUpdate,
+  playOnAllDevices = true,
   room,
   roomCode,
   users,
@@ -545,6 +550,7 @@ function VoteMovingBox({
   const [now, setNow] = useState(null);
   const completedPlaybackRef = useRef(null);
   const isCurrentUserHost = hostName === currentUserName;
+  const shouldPlayAudio = playOnAllDevices || isCurrentUserHost;
   const activeRoom = roomCode ? room : localRoom;
   const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
   const timeLeft = getRoomTimeLeft(activeRoom, now);
@@ -628,16 +634,16 @@ function VoteMovingBox({
             currentSong: makeCurrentSongFromQueueEntry(winningEntry),
             queue: [],
             timerPaused: true,
-            timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
+            timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
             roundEndsAt: null,
           };
         }
 
         return {
           ...currentRoom,
-          timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
+          timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
           roundEndsAt: new Date(
-            Date.now() + (currentRoom.roundSeconds || ROUND_SECONDS) * 1000
+            Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
           ).toISOString(),
         };
       });
@@ -791,9 +797,9 @@ function VoteMovingBox({
       ...currentRoom,
       currentSong: null,
       timerPaused: false,
-      timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
+      timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
       roundEndsAt: new Date(
-        Date.now() + (currentRoom.roundSeconds || ROUND_SECONDS) * 1000
+        Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
       ).toISOString(),
     }));
   };
@@ -815,9 +821,15 @@ function VoteMovingBox({
           <header className="vote-round-status">
             <div className="vote-timer-card">
               <p className="vote-panel-kicker">{nowPlaying ? "Song timer" : "Round timer"}</p>
-              <strong className="vote-timer-value">
-                {nowPlaying ? "Playing" : formatTime(timeLeft)}
-              </strong>
+              {nowPlaying && isCurrentUserHost ? (
+                <button className="vote-finish-song-btn" type="button" onClick={handleCurrentSongComplete}>
+                  Restart voting
+                </button>
+              ) : (
+                <strong className="vote-timer-value">
+                  {nowPlaying ? "Playing" : formatTime(timeLeft)}
+                </strong>
+              )}
               {isCurrentUserHost && !nowPlaying && (
                 <button
                   className="vote-timer-toggle"
@@ -842,6 +854,7 @@ function VoteMovingBox({
               <CurrentSongPlayer
                 canControl={isCurrentUserHost}
                 onComplete={handleCurrentSongComplete}
+                shouldPlayAudio={shouldPlayAudio}
                 song={nowPlaying}
               />
             ) : (

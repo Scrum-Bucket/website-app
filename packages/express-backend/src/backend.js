@@ -753,6 +753,19 @@ app.post("/rooms/:roomCode/timer", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
+app.patch("/rooms/:roomCode/options", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { userName, options = {} } = req.body;
+
+  await roomServices
+    .updateRoomOptions(roomCode, userName, options)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.post("/rooms/:roomCode/current-song/complete", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
   const { entryId, userName } = req.body;
