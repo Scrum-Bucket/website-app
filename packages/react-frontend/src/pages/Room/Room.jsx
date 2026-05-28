@@ -160,9 +160,9 @@ function Room({ username }) {
     );
   }
 
-  const isHost = room.host === (username || "guest");
+  const isHost = room.host === roomMemberName;
   const gameStarted = room.started || localGameStarted;
-  const memberProfiles = getRoomMemberProfiles(room, username);
+  const memberProfiles = getRoomMemberProfiles(room, roomMemberName);
 
   if (!gameStarted) {
     return (

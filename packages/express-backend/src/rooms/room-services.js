@@ -391,12 +391,12 @@ async function completeCurrentSong(roomCode, entryId = null, userName = null) {
 }
 
 async function leaveRoom(roomCode, userName) {
-  const room = await Room.findOneAndUpdate(
-    { roomCode },
-    { $pull: { members: userName } },
-    { new: true }
-  );
-  return attachMemberProfiles(room);
+  const room = await Room.findOne({ roomCode });
+  if (!room) return null;
+
+  room.members = (room.members || []).filter((member, index) => getMemberName(member, index) !== userName);
+
+  return attachMemberProfiles(await room.save());
 }
 
 function deleteRoom(id) {

@@ -130,3 +130,16 @@ test("joining fails when a room already has 30 members", async () => {
   expect(room.members).toHaveLength(30);
   expect(room.save).not.toHaveBeenCalled();
 });
+
+test("leaving removes the assigned room nickname", async () => {
+  const room = makeRoom({
+    started: false,
+    members: ["Captain", "Anonymous Fish"],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.leaveRoom("PLAY1", "Anonymous Fish");
+
+  expect(room.save).toHaveBeenCalled();
+  expect(result.members).toStrictEqual(["Captain"]);
+});

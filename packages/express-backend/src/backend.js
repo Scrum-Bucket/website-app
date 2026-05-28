@@ -767,10 +767,11 @@ app.post("/rooms/:roomCode/current-song/complete", async (req, res) => {
 });
 
 app.post("/rooms/:roomCode/leave", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });
   await roomServices
-    .leaveRoom(req.params.roomCode, userName)
+    .leaveRoom(roomCode, userName)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
