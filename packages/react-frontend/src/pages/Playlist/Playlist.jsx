@@ -7,10 +7,8 @@ import frontendLink from "../../frontendLink";
 
 import {
   getSongArtist,
-  getSongId,
-  getSongLink,
   getSongTitle,
-  getSongVideoId,
+  normalizePlayableSong,
   readAccountPlaylist,
   writeAccountPlaylist,
 } from "./playlistStorage";
@@ -51,7 +49,7 @@ function getYoutubeInput(input) {
   }
 }
 
-function Playlist({ username }) {
+function Playlist({ userId, username }) {
   const location = useLocation();
   const navigate = useNavigate();
   const returnTo = location.state?.returnTo || "/home";
@@ -79,17 +77,17 @@ function Playlist({ username }) {
     setIsLoadingPlaylist(true);
 
     try {
-      const userId = localStorage.getItem("userId");
+      const currentUserId = userId || localStorage.getItem("userId");
 
-      if (!userId) {
+      if (!currentUserId) {
         setError("You must be logged in to save a playlist.");
         return;
       }
 
       const endpoint =
         youtubeInput.type === "playlist"
-          ? `${frontendLink}/users/${userId}/playlists/youtube/${youtubeInput.id}`
-          : `${frontendLink}/users/${userId}/songs/youtube/${youtubeInput.id}`;
+          ? `${frontendLink}/users/${currentUserId}/playlists/youtube/${youtubeInput.id}`
+          : `${frontendLink}/users/${currentUserId}/songs/youtube/${youtubeInput.id}`;
       const res = await authFetch(endpoint, {
         method: "POST",
         headers: {
@@ -126,6 +124,11 @@ function Playlist({ username }) {
   function handleToggleAccountPlaylist(song) {
     const nextSong = normalizeSong(song);
 
+    if (!nextSong) {
+      setError("This song does not have a playable YouTube video.");
+      return;
+    }
+
     const isAlreadySaved = savedSongs.some((savedSong) => savedSong.id === nextSong.id);
 
     if (isAlreadySaved) {
@@ -143,33 +146,27 @@ function Playlist({ username }) {
   }
 
   function normalizeSong(song) {
-    const nextSong = {
-      id: getSongId(song),
-      title: getSongTitle(song),
-      artist: getSongArtist(song),
-      songLink: getSongLink(song),
-      videoId: getSongVideoId(song),
-    };
-
-    if (!nextSong.id) {
-      nextSong.id = nextSong.title;
-    }
-
-    return nextSong;
+    return normalizePlayableSong(song);
   }
 
   function handleAddAllSongs() {
     const existingIds = new Set(savedSongs.map((song) => song.id));
-    const newSongs = songs.map(normalizeSong).filter((song) => !existingIds.has(song.id));
+    const newSongs = songs
+      .map(normalizeSong)
+      .filter((song) => song && !existingIds.has(song.id));
 
     const nextSavedSongs = [...savedSongs, ...newSongs];
     setSavedSongs(nextSavedSongs);
     writeAccountPlaylist(username, nextSavedSongs);
-    setError("");
+    setError(newSongs.length ? "" : "No new playable YouTube videos found.");
   }
 
   function handleRemoveAllSongs() {
-    const playlistSongIds = new Set(songs.map((song) => normalizeSong(song).id));
+    const playlistSongIds = new Set(
+      songs
+        .map((song) => normalizeSong(song)?.id)
+        .filter(Boolean)
+    );
     const nextSavedSongs = savedSongs.filter((song) => !playlistSongIds.has(song.id));
 
     setSavedSongs(nextSavedSongs);
@@ -223,21 +220,31 @@ function Playlist({ username }) {
           </section>
         )}
         <section className="playlist-list">
-          {songs.map((song, index) => (
-            <article className="playlist-song-row" key={getSongId(song) || index}>
-              <div className="playlist-song-meta">
-                <span>{getSongTitle(song)}</span>
-                {getSongArtist(song) && <small>{getSongArtist(song)}</small>}
-              </div>
-              <button type="button" onClick={() => handleToggleAccountPlaylist(song)}>
-                {/* Decides what text button should show: Add or Remove.
-                  If any saved song has the same id as the current song, display Remove. */}
-                {savedSongs.some((savedSong) => savedSong.id === normalizeSong(song).id)
-                  ? "Remove"
-                  : "Add"}
-              </button>
-            </article>
-          ))}
+          {songs.map((song, index) => {
+            const playableSong = normalizeSong(song);
+
+            return (
+              <article className="playlist-song-row" key={playableSong?.id || index}>
+                <div className="playlist-song-meta">
+                  <span>{getSongTitle(song)}</span>
+                  {getSongArtist(song) && <small>{getSongArtist(song)}</small>}
+                  {!playableSong && <small>No playable YouTube video found</small>}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleAccountPlaylist(song)}
+                  disabled={!playableSong}
+                >
+                  {/* Decides what text button should show: Add or Remove.
+                      If any saved song has the same id as the current song, display Remove. */}
+                  {playableSong &&
+                  savedSongs.some((savedSong) => savedSong.id === playableSong.id)
+                    ? "Remove"
+                    : "Add"}
+                </button>
+              </article>
+            );
+          })}
         </section>
       </div>
     </div>

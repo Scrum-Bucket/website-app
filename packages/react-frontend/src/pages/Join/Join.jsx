@@ -31,7 +31,7 @@ function Join() {
       };
     }
     async function loadPublicRooms() {
-      const response = await authFetch(`${frontendLink}/rooms`);
+      const response = await authFetch(`${frontendLink}/rooms?privacy=public`);
       if (!response.ok) {
         throw new Error("Failed to fetch public rooms");
       }
@@ -51,12 +51,25 @@ function Join() {
     };
   }, []);
 
-  function joinRoom(code) {
-    fetch(`${frontendLink}/rooms/join/${code}`, {
+  async function joinRoom(code) {
+    const normalizedCode = code.trim().toUpperCase();
+    const response = await authFetch(`${frontendLink}/rooms/${normalizedCode}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: localStorage.getItem("username") || "guest" }),
-    }).catch((error) => console.error("Failed to join room:", error));
+      body: JSON.stringify({ userName: localStorage.getItem("username") || "guest" }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to join room");
+    }
+
+    const joinedRoom = await response.json();
+    sessionStorage.setItem(
+      `roomMemberName:${normalizedCode}`,
+      joinedRoom.assignedMemberName || localStorage.getItem("username") || "guest"
+    );
+
+    return normalizedCode;
   }
 
   const filteredRooms = useMemo(() => {
@@ -106,9 +119,13 @@ function Join() {
             <button
               className="join-room-row"
               key={room.id}
-              onClick={() => {
-                joinRoom(room.code);
-                navigate("/home/room/" + room.code);
+              onClick={async () => {
+                try {
+                  const joinedCode = await joinRoom(room.code);
+                  navigate("/home/room/" + joinedCode);
+                } catch (error) {
+                  console.error(error);
+                }
               }}
               type="button"
             >

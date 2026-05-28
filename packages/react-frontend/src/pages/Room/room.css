@@ -69,6 +69,8 @@
   background: rgba(47, 80, 189, 0.82);
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 8px 20px;
   backdrop-filter: blur(4px);
 }
@@ -90,6 +92,115 @@
   line-height: 1;
   cursor: pointer;
   border-radius: 4px;
+}
+
+.room-options-btn {
+  min-width: 108px;
+  min-height: 42px;
+  border: 2px solid rgba(231, 244, 255, 0.72);
+  border-radius: 8px;
+  background: #f7b244;
+  color: #083047;
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 8px 14px;
+}
+
+.room-options-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(5, 42, 69, 0.55);
+}
+
+.room-options-window {
+  width: min(520px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  border: 3px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: rgba(8, 48, 71, 0.96);
+  color: #e7f4ff;
+  padding: 22px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+}
+
+.room-options-header,
+.room-options-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.room-options-header h2 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.room-options-header button,
+.room-options-actions button {
+  min-height: 40px;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #2f50bd;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 8px 16px;
+}
+
+.room-options-header button {
+  min-width: 42px;
+  padding: 6px;
+}
+
+.room-options-field {
+  display: grid;
+  gap: 10px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.room-options-field span,
+.room-options-field legend,
+.room-options-check {
+  color: #c8e6ff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.room-options-field input[type="number"] {
+  box-sizing: border-box;
+  width: 160px;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #eefbff;
+  color: #083047;
+  font: inherit;
+  padding: 10px;
+}
+
+.room-options-field label,
+.room-options-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.room-options-error {
+  margin: 0;
+  color: #ffb3b3;
+  font-size: 16px;
 }
 
 /* ── Lobby ───────────────────────────────────────────────────────────────── */

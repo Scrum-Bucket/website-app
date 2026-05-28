@@ -196,7 +196,7 @@ function makeCurrentSongFromQueueEntry(entry) {
 }
 
 function getRoomTimeLeft(room, now) {
-  const roundSeconds = room?.roundSeconds || ROUND_SECONDS;
+  const roundSeconds = room?.roundSeconds ?? ROUND_SECONDS;
 
   if (room?.timerPaused) {
     return clamp(room.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
@@ -265,7 +265,10 @@ function YouTubeSongPlayer({ onEnded, song }) {
   const playerRef = useRef(null);
   const endedRef = useRef(false);
   const onEndedRef = useRef(onEnded);
+  const bufferingTimeoutRef = useRef(null);
   const videoId = getPlayableVideoId(song);
+  const [playerError, setPlayerError] = useState({ videoId: "", message: "" });
+  const activePlayerError = playerError.videoId === videoId ? playerError.message : "";
 
   useEffect(() => {
     onEndedRef.current = onEnded;
@@ -274,14 +277,36 @@ function YouTubeSongPlayer({ onEnded, song }) {
   useEffect(() => {
     endedRef.current = false;
 
+    function clearBufferingTimeout() {
+      clearTimeout(bufferingTimeoutRef.current);
+      bufferingTimeoutRef.current = null;
+    }
+
+    function startBufferingTimeout() {
+      clearBufferingTimeout();
+      bufferingTimeoutRef.current = setTimeout(() => {
+        if (isActive) {
+          setPlayerError({ videoId, message: "This song got stuck loading." });
+        }
+      }, 10000);
+    }
+
     if (!videoId) {
       return undefined;
     }
 
     let isActive = true;
+    const timeoutId = setTimeout(() => {
+      if (isActive && !playerRef.current) {
+        setPlayerError({ videoId, message: "This song is taking too long to load." });
+      }
+    }, 8000);
 
     loadYouTubeApi().then((YT) => {
       if (!isActive || !YT?.Player || !playerHostRef.current) {
+        if (isActive) {
+          setPlayerError({ videoId, message: "The YouTube player could not load." });
+        }
         return;
       }
 
@@ -295,8 +320,27 @@ function YouTubeSongPlayer({ onEnded, song }) {
           rel: 0,
         },
         events: {
+          onReady() {
+            clearTimeout(timeoutId);
+          },
+          onError() {
+            if (isActive) {
+              clearBufferingTimeout();
+              setPlayerError({ videoId, message: "This YouTube song could not be played here." });
+            }
+          },
           onStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+              clearTimeout(timeoutId);
+              clearBufferingTimeout();
+            }
+
+            if (event.data === YT.PlayerState.BUFFERING) {
+              startBufferingTimeout();
+            }
+
             if (event.data === YT.PlayerState.ENDED && !endedRef.current) {
+              clearBufferingTimeout();
               endedRef.current = true;
               onEndedRef.current?.();
             }
@@ -307,15 +351,24 @@ function YouTubeSongPlayer({ onEnded, song }) {
 
     return () => {
       isActive = false;
+      clearTimeout(timeoutId);
+      clearBufferingTimeout();
       playerRef.current?.destroy?.();
       playerRef.current = null;
     };
   }, [song?.entryId, videoId]);
 
-  if (!videoId) {
+  if (!videoId || activePlayerError) {
     return (
       <div className="vote-song-player-missing">
-        <p>This winning song does not have a playable YouTube link saved.</p>
+        <p>
+          {activePlayerError || "This winning song does not have a playable YouTube link saved."}
+        </p>
+        {song?.songLink ? (
+          <a href={song.songLink} target="_blank" rel="noreferrer">
+            Open song
+          </a>
+        ) : null}
       </div>
     );
   }
@@ -323,21 +376,25 @@ function YouTubeSongPlayer({ onEnded, song }) {
   return <div className="vote-song-player-frame" ref={playerHostRef} />;
 }
 
-function CurrentSongPlayer({ canControl, onComplete, song }) {
+function CurrentSongPlayer({ canControl, onComplete, shouldPlayAudio, song }) {
+  if (!shouldPlayAudio) {
+    return (
+      <section className="vote-current-song" aria-label="Current song">
+        <div className="vote-song-player-missing">
+          <p>The host is playing this song on their computer.</p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="vote-current-song" aria-label="Current song">
       <YouTubeSongPlayer song={song} onEnded={canControl ? onComplete : undefined} />
-
-      {canControl && (
-        <button className="vote-finish-song-btn" type="button" onClick={onComplete}>
-          Restart voting
-        </button>
-      )}
     </section>
   );
 }
 
-function SongPicker({ songs, onAddSong }) {
+function SongPicker({ isGuest, onAddSong, onLoginRequired, songs }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -351,6 +408,11 @@ function SongPicker({ songs, onAddSong }) {
     return songs.filter((song) => song.name.toLowerCase().includes(normalizedSearch));
   }, [songs, searchTerm]);
   const handleOpenPlaylist = () => {
+    if (isGuest) {
+      onLoginRequired?.();
+      return;
+    }
+
     navigate("/home/playlist", {
       state: {
         returnTo: `${location.pathname}${location.search}`,
@@ -457,17 +519,32 @@ function CrabLane({ hostName, users }) {
   );
 }
 
-function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username }) {
+function VoteMovingBox({
+  accountUsername,
+  hostName,
+  isGuest = false,
+  onLoginRequired,
+  onRoomUpdate,
+  playOnAllDevices = true,
+  room,
+  roomCode,
+  users,
+  username,
+}) {
   const currentUserName = username || "guest";
   const normalizedUsers = useMemo(
     () => normalizeUsers(users, currentUserName),
     [users, currentUserName]
   );
-  const songs = useMemo(() => normalizeSongs(readAccountPlaylist(username)), [username]);
+  const songs = useMemo(
+    () => normalizeSongs(readAccountPlaylist(accountUsername || username)),
+    [accountUsername, username]
+  );
   const [localRoom, setLocalRoom] = useState(room);
   const [now, setNow] = useState(null);
   const completedPlaybackRef = useRef(null);
   const isCurrentUserHost = hostName === currentUserName;
+  const shouldPlayAudio = playOnAllDevices || isCurrentUserHost;
   const activeRoom = roomCode ? room : localRoom;
   const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
   const timeLeft = getRoomTimeLeft(activeRoom, now);
@@ -548,16 +625,16 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
             currentSong: makeCurrentSongFromQueueEntry(winningEntry),
             queue: [],
             timerPaused: true,
-            timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
+            timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
             roundEndsAt: null,
           };
         }
 
         return {
           ...currentRoom,
-          timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
+          timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
           roundEndsAt: new Date(
-            Date.now() + (currentRoom.roundSeconds || ROUND_SECONDS) * 1000
+            Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
           ).toISOString(),
         };
       });
@@ -577,6 +654,7 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
             name: song.name,
             artist: song.artist,
             songLink: song.songLink,
+            videoId: song.videoId,
             addedBy: currentUserName,
           }),
         })
@@ -712,25 +790,36 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
       ...currentRoom,
       currentSong: null,
       timerPaused: false,
-      timerRemainingSeconds: currentRoom.roundSeconds || ROUND_SECONDS,
+      timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
       roundEndsAt: new Date(
-        Date.now() + (currentRoom.roundSeconds || ROUND_SECONDS) * 1000
+        Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
       ).toISOString(),
     }));
   };
 
   return (
     <section className="vote-game-shell" aria-label="Vote moving box game">
-      <SongPicker songs={songs} onAddSong={handleAddSong} />
+      <SongPicker
+        isGuest={isGuest}
+        onAddSong={handleAddSong}
+        onLoginRequired={onLoginRequired}
+        songs={songs}
+      />
 
       <div className="vote-play-area">
         <main className="vote-arena" style={{ "--vote-arena-height": `${voteArenaHeight}px` }}>
           <header className="vote-round-status">
             <div className="vote-timer-card">
               <p className="vote-panel-kicker">{nowPlaying ? "Song timer" : "Round timer"}</p>
-              <strong className="vote-timer-value">
-                {nowPlaying ? "Playing" : formatTime(timeLeft)}
-              </strong>
+              {nowPlaying && isCurrentUserHost ? (
+                <button className="vote-finish-song-btn" type="button" onClick={handleCurrentSongComplete}>
+                  Restart voting
+                </button>
+              ) : (
+                <strong className="vote-timer-value">
+                  {nowPlaying ? "Playing" : formatTime(timeLeft)}
+                </strong>
+              )}
               {isCurrentUserHost && !nowPlaying && (
                 <button className="vote-timer-toggle" type="button" onClick={handleTimerToggle}>
                   {isTimerPaused ? "Resume" : "Pause"}
@@ -751,6 +840,7 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
               <CurrentSongPlayer
                 canControl={isCurrentUserHost}
                 onComplete={handleCurrentSongComplete}
+                shouldPlayAudio={shouldPlayAudio}
                 song={nowPlaying}
               />
             ) : (

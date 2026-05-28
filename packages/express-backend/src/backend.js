@@ -593,24 +593,38 @@ app.delete("/songs/:id", async (req, res) => {
 // GET /rooms  – list all rooms (optionally filter by ?roomCode=)
 app.get("/rooms", async (req, res) => {
   const { roomCode } = req.query;
+  const { privacy } = req.query;
 
-  await roomServices
-    .getRooms(roomCode)
-    .then((rooms) => {
-      res.json(rooms);
-    })
-    .catch((err) => res.status(500).json({ error: err.message }));
+  if (!roomCode && privacy === "public") {
+    await roomServices
+      .getPublicRooms()
+      .then((rooms) => res.json(rooms))
+      .catch((err) => res.status(500).json({ error: err.message }));
+  } else {
+    await roomServices
+      .getRooms(roomCode)
+      .then((rooms) => res.json(rooms))
+      .catch((err) => res.status(500).json({ error: err.message }));
+  }
 });
 
 // GET /rooms/:roomCode  – get a single room by its code
 app.get("/rooms/:roomCode", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+
   await roomServices
-    .findRoomByCode(req.params.roomCode)
+    .findRoomByCode(roomCode)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
     })
-    .catch((err) => res.status(500).json({ error: err.message }));
+    .catch((err) => {
+      if (err.message === "Room is full.") {
+        return res.status(409).json({ error: err.message });
+      }
+
+      res.status(500).json({ error: err.message });
+    });
 });
 
 // POST /rooms/:roomCode/join  – join a room  { userName }
@@ -649,10 +663,11 @@ app.post("/rooms", async (req, res) => {
 });
 
 app.post("/rooms/:roomCode/join", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });
   await roomServices
-    .joinRoom(req.params.roomCode, userName)
+    .joinRoom(roomCode, userName)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
@@ -676,7 +691,7 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
-  const { songId, name, artist, addedBy, songLink } = req.body;
+  const { songId, name, artist, addedBy, songLink, videoId } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
     .addSongToQueue(
@@ -685,7 +700,8 @@ app.post("/rooms/:roomCode/queue", async (req, res) => {
       name || "Unknown",
       artist || "Unknown",
       addedBy || null,
-      songLink || ""
+      songLink || "",
+      videoId || ""
     )
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
@@ -737,6 +753,19 @@ app.post("/rooms/:roomCode/timer", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
+app.patch("/rooms/:roomCode/options", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+  const { userName, options = {} } = req.body;
+
+  await roomServices
+    .updateRoomOptions(roomCode, userName, options)
+    .then((room) => {
+      if (!room) return res.status(404).json({ error: "Room not found." });
+      res.json(room);
+    })
+    .catch((err) => res.status(400).json({ error: err.message }));
+});
+
 app.post("/rooms/:roomCode/current-song/complete", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
   const { entryId, userName } = req.body;
@@ -751,10 +780,11 @@ app.post("/rooms/:roomCode/current-song/complete", async (req, res) => {
 });
 
 app.post("/rooms/:roomCode/leave", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });
   await roomServices
-    .leaveRoom(req.params.roomCode, userName)
+    .leaveRoom(roomCode, userName)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);

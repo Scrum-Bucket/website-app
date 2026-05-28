@@ -2,13 +2,19 @@ export function getAccountPlaylistKey(username) {
   return `accountPlaylist:${username || "guest"}`;
 }
 
+function isYouTubeVideoId(value) {
+  return /^[a-zA-Z0-9_-]{11}$/.test(value || "");
+}
+
 export function getSongLink(song) {
   return song?.songLink || song?.link || song?.url || song?.videoUrl || "";
 }
 
 export function getSongVideoId(song) {
-  if (song?.videoId) return song.videoId;
-  if (song?.details?.videoId) return song.details.videoId;
+  if (isYouTubeVideoId(song?.videoId)) return song.videoId;
+  if (isYouTubeVideoId(song?.details?.videoId)) return song.details.videoId;
+  if (isYouTubeVideoId(song?.id)) return song.id;
+  if (isYouTubeVideoId(song?._id)) return song._id;
 
   const songLink = getSongLink(song);
   if (!songLink) return "";
@@ -17,21 +23,31 @@ export function getSongVideoId(song) {
     const url = new URL(songLink);
 
     if (url.hostname.includes("youtu.be")) {
-      return url.pathname.split("/").filter(Boolean)[0] || "";
+      const videoId = url.pathname.split("/").filter(Boolean)[0] || "";
+
+      return isYouTubeVideoId(videoId) ? videoId : "";
     }
 
     if (url.hostname.includes("youtube.com")) {
-      return url.searchParams.get("v") || url.pathname.split("/").filter(Boolean).pop() || "";
+      const queryVideoId = url.searchParams.get("v");
+      const pathVideoId = url.pathname.split("/").filter(Boolean).pop() || "";
+      const videoId = isYouTubeVideoId(queryVideoId) ? queryVideoId : pathVideoId;
+
+      return isYouTubeVideoId(videoId) ? videoId : "";
     }
   } catch {
-    return /^[a-zA-Z0-9_-]{11}$/.test(songLink) ? songLink : "";
+    return isYouTubeVideoId(songLink) ? songLink : "";
   }
 
   return "";
 }
 
+export function getYouTubeWatchLink(videoId) {
+  return isYouTubeVideoId(videoId) ? `https://www.youtube.com/watch?v=${videoId}` : "";
+}
+
 export function getSongId(song) {
-  return song?.id || song?._id || getSongVideoId(song) || getSongLink(song) || song?.details?.title;
+  return getSongVideoId(song) || song?.id || song?._id || getSongLink(song) || song?.details?.title;
 }
 
 export function getSongTitle(song) {
@@ -42,14 +58,41 @@ export function getSongArtist(song) {
   return song?.details?.author || song?.details?.channelTitle || song?.artist || "";
 }
 
+export function normalizePlayableSong(song) {
+  const videoId = getSongVideoId(song);
+
+  if (!videoId) {
+    return null;
+  }
+
+  return {
+    id: videoId,
+    title: getSongTitle(song),
+    artist: getSongArtist(song),
+    songLink: getSongLink(song) || getYouTubeWatchLink(videoId),
+    videoId,
+  };
+}
+
 export function readAccountPlaylist(username) {
+  const playlistKey = getAccountPlaylistKey(username);
+
   try {
-    return JSON.parse(localStorage.getItem(getAccountPlaylistKey(username))) || [];
+    const savedPlaylist = JSON.parse(localStorage.getItem(playlistKey)) || [];
+    const playableSongs = savedPlaylist.map(normalizePlayableSong).filter(Boolean);
+
+    if (playableSongs.length !== savedPlaylist.length) {
+      writeAccountPlaylist(username, playableSongs);
+    }
+
+    return playableSongs;
   } catch {
     return [];
   }
 }
 
 export function writeAccountPlaylist(username, playlist) {
-  localStorage.setItem(getAccountPlaylistKey(username), JSON.stringify(playlist));
+  const playableSongs = playlist.map(normalizePlayableSong).filter(Boolean);
+
+  localStorage.setItem(getAccountPlaylistKey(username), JSON.stringify(playableSongs));
 }

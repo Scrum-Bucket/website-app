@@ -91,7 +91,19 @@ function getRequestTokens(req) {
 }
 
 function isPublicRequest(req) {
-  return req.method === "POST" && (req.path === "/users/login" || req.path === "/users");
+  if (req.method === "POST" && (req.path === "/users/login" || req.path === "/users")) {
+    return true;
+  }
+
+  if (req.method === "GET" && /^\/rooms(?:\/[^/]+)?$/.test(req.path)) {
+    return true;
+  }
+
+  if (req.method === "POST" && /^\/rooms\/[^/]+\/(?:join|leave|vote)$/.test(req.path)) {
+    return true;
+  }
+
+  return false;
 }
 
 function wantsHtml(req) {
