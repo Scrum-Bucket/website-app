@@ -253,11 +253,7 @@ function Room({ username }) {
           </div>
 
           {isHost && (
-            <button
-              className="room-start-btn"
-              type="button"
-              onClick={handleStart}
-            >
+            <button className="room-start-btn" type="button" onClick={handleStart}>
               Start Game
             </button>
           )}

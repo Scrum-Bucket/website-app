@@ -62,119 +62,117 @@ function Playlist({ userId, username }) {
   // stores current error value 'error', and a function to update it 'setError'
   const [error, setError] = useState("");
 
-async function handleAddSong() {
-  // clear previous errors
-  setError("");
+  async function handleAddSong() {
+    // clear previous errors
+    setError("");
 
-  const youtubeInput = getYoutubeInput(playlistId);
+    const youtubeInput = getYoutubeInput(playlistId);
 
-  // If input is empty, show error and stop
-  if (!youtubeInput.id || !youtubeInput.type) {
-    setError("Please enter a valid YouTube song or playlist URL/ID.");
-    return;
-  }
-
-  setIsLoadingPlaylist(true);
-
-  try {
-    const currentUserId = userId || localStorage.getItem("userId");
-
-    if (!currentUserId) {
-      setError("You must be logged in to save a playlist.");
+    // If input is empty, show error and stop
+    if (!youtubeInput.id || !youtubeInput.type) {
+      setError("Please enter a valid YouTube song or playlist URL/ID.");
       return;
     }
 
-    const endpoint =
-      youtubeInput.type === "playlist"
-        ? `${frontendLink}/users/${currentUserId}/playlists/youtube/${youtubeInput.id}`
-        : `${frontendLink}/users/${currentUserId}/songs/youtube/${youtubeInput.id}`;
-    const res = await authFetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        playlistName: "My Playlist",
-      }),
-    });
+    setIsLoadingPlaylist(true);
 
-    if (!res.ok) {
-      setError("Invalid URL or ID."); // handle bad response from backend
+    try {
+      const currentUserId = userId || localStorage.getItem("userId");
+
+      if (!currentUserId) {
+        setError("You must be logged in to save a playlist.");
+        return;
+      }
+
+      const endpoint =
+        youtubeInput.type === "playlist"
+          ? `${frontendLink}/users/${currentUserId}/playlists/youtube/${youtubeInput.id}`
+          : `${frontendLink}/users/${currentUserId}/songs/youtube/${youtubeInput.id}`;
+      const res = await authFetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playlistName: "My Playlist",
+        }),
+      });
+
+      if (!res.ok) {
+        setError("Invalid URL or ID."); // handle bad response from backend
+        return;
+      }
+
+      const data = await res.json();
+
+      // ensure backend returned expected format/list of songs
+      if (!Array.isArray(data)) {
+        setError("Invalid youtube response.");
+        return;
+      }
+
+      setSongs(data);
+    } catch (err) {
+      console.error(err);
+      // handle unexpected errors
+      setError("Could not load playlist. Please check the URL or ID.");
+    } finally {
+      setIsLoadingPlaylist(false);
+    }
+  }
+
+  function handleToggleAccountPlaylist(song) {
+    const nextSong = normalizeSong(song);
+
+    if (!nextSong) {
+      setError("This song does not have a playable YouTube video.");
       return;
     }
 
-    const data = await res.json();
+    const isAlreadySaved = savedSongs.some((savedSong) => savedSong.id === nextSong.id);
 
-    // ensure backend returned expected format/list of songs
-    if (!Array.isArray(data)) {
-      setError("Invalid youtube response.");
+    if (isAlreadySaved) {
+      const nextSavedSongs = savedSongs.filter((savedSong) => savedSong.id !== nextSong.id);
+      setSavedSongs(nextSavedSongs);
+      writeAccountPlaylist(username, nextSavedSongs);
+      setError("");
       return;
     }
 
-    setSongs(data);
-  } catch (err) {
-    console.error(err);
-    // handle unexpected errors
-    setError("Could not load playlist. Please check the URL or ID.");
-  } finally {
-    setIsLoadingPlaylist(false);
-  }
-}
-
-function handleToggleAccountPlaylist(song) {
-  const nextSong = normalizeSong(song);
-
-  if (!nextSong) {
-    setError("This song does not have a playable YouTube video.");
-    return;
-  }
-
-  const isAlreadySaved = savedSongs.some((savedSong) => savedSong.id === nextSong.id);
-
-  if (isAlreadySaved) {
-    const nextSavedSongs = savedSongs.filter((savedSong) => savedSong.id !== nextSong.id);
+    const nextSavedSongs = [...savedSongs, nextSong];
     setSavedSongs(nextSavedSongs);
     writeAccountPlaylist(username, nextSavedSongs);
     setError("");
-    return;
   }
 
-  const nextSavedSongs = [...savedSongs, nextSong];
-  setSavedSongs(nextSavedSongs);
-  writeAccountPlaylist(username, nextSavedSongs);
-  setError("");
-}
+  function normalizeSong(song) {
+    return normalizePlayableSong(song);
+  }
 
-function normalizeSong(song) {
-  return normalizePlayableSong(song);
-}
+  function handleAddAllSongs() {
+    const existingIds = new Set(savedSongs.map((song) => song.id));
+    const newSongs = songs
+      .map(normalizeSong)
+      .filter((song) => song && !existingIds.has(song.id));
 
-function handleAddAllSongs() {
-  const existingIds = new Set(savedSongs.map((song) => song.id));
-  const newSongs = songs
-    .map(normalizeSong)
-    .filter((song) => song && !existingIds.has(song.id));
+    const nextSavedSongs = [...savedSongs, ...newSongs];
+    setSavedSongs(nextSavedSongs);
+    writeAccountPlaylist(username, nextSavedSongs);
+    setError(newSongs.length ? "" : "No new playable YouTube videos found.");
+  }
 
-  const nextSavedSongs = [...savedSongs, ...newSongs];
-  setSavedSongs(nextSavedSongs);
-  writeAccountPlaylist(username, nextSavedSongs);
-  setError(newSongs.length ? "" : "No new playable YouTube videos found.");
-}
+  function handleRemoveAllSongs() {
+    const playlistSongIds = new Set(
+      songs
+        .map((song) => normalizeSong(song)?.id)
+        .filter(Boolean)
+    );
+    const nextSavedSongs = savedSongs.filter((song) => !playlistSongIds.has(song.id));
 
-function handleRemoveAllSongs() {
-  const playlistSongIds = new Set(
-    songs
-      .map((song) => normalizeSong(song)?.id)
-      .filter(Boolean)
-  );
-  const nextSavedSongs = savedSongs.filter((song) => !playlistSongIds.has(song.id));
-
-  setSavedSongs(nextSavedSongs);
-  writeAccountPlaylist(username, nextSavedSongs);
-  setError("");
-}
-
-
+    setSavedSongs(nextSavedSongs);
+    writeAccountPlaylist(username, nextSavedSongs);
+    setError("");
+  }
 
   return (
     <div className="playlist-page">

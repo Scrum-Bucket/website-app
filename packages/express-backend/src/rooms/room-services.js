@@ -184,9 +184,7 @@ async function attachMemberProfiles(room) {
   roomObject.options = getRoomOptions(roomObject);
   const members = Array.isArray(roomObject.members) ? roomObject.members : [];
   const memberNames = members.map(getMemberName).filter(Boolean);
-  const users = memberNames.length
-    ? await User.find({ userName: { $in: memberNames } })
-    : [];
+  const users = memberNames.length ? await User.find({ userName: { $in: memberNames } }) : [];
   const crabsByUserName = new Map(
     users.map((user) => [user.userName, normalizeCrabProfile(user.crab)])
   );
