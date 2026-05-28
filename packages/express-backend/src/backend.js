@@ -682,7 +682,7 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
-  const { songId, name, artist, addedBy, songLink } = req.body;
+  const { songId, name, artist, addedBy, songLink, videoId } = req.body;
   if (!songId) return res.status(400).json({ error: "songId is required." });
   await roomServices
     .addSongToQueue(
@@ -691,7 +691,8 @@ app.post("/rooms/:roomCode/queue", async (req, res) => {
       name || "Unknown",
       artist || "Unknown",
       addedBy || null,
-      songLink || ""
+      songLink || "",
+      videoId || ""
     )
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });

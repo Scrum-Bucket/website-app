@@ -12,6 +12,14 @@ import { readStoredCrabProfile } from "../profile/crabColor";
 const API = frontendLink;
 const POLL_MS = 2000;
 
+function getStoredRoomMemberName(roomCode, username) {
+  if (!roomCode || typeof localStorage === "undefined") {
+    return username || "guest";
+  }
+
+  return localStorage.getItem(`roomMemberName:${roomCode}`) || username || "guest";
+}
+
 function getMemberName(member, index) {
   if (typeof member === "string") {
     return member;
@@ -39,6 +47,7 @@ function Room({ username }) {
   const { roomCode } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const roomMemberName = getStoredRoomMemberName(roomCode, username);
 
   const [room, setRoom] = useState(location.state?.room || null);
   const [localGameStarted, setLocalGameStarted] = useState(false);
@@ -48,8 +57,8 @@ function Room({ username }) {
     if (!roomCode) {
       setRoom({
         roomCode: "TEST",
-        host: username || "guest",
-        members: [username || "guest", "Player 2", "Player 3"],
+        host: roomMemberName,
+        members: [roomMemberName],
         queue: [],
         started: false,
       });
@@ -61,8 +70,8 @@ function Room({ username }) {
       if (!res.ok) {
         setRoom({
           roomCode,
-          host: username || "guest",
-          members: [username || "guest", "Player 2", "Player 3"],
+          host: roomMemberName,
+          members: [roomMemberName],
           queue: [],
           started: false,
         });
@@ -73,13 +82,13 @@ function Room({ username }) {
     } catch {
       setRoom({
         roomCode,
-        host: username || "guest",
-        members: [username || "guest", "Player 2", "Player 3"],
+        host: roomMemberName,
+        members: [roomMemberName],
         queue: [],
         started: false,
       });
     }
-  }, [roomCode, username]);
+  }, [roomCode, roomMemberName]);
 
   useEffect(() => {
     const initialFetchId = setTimeout(fetchRoom, 0);
@@ -129,9 +138,10 @@ function Room({ username }) {
       await authFetch(`${API}/rooms/${roomCode}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userName: username || "guest" }),
+        body: JSON.stringify({ userName: roomMemberName }),
       });
     } finally {
+      localStorage.removeItem(`roomMemberName:${roomCode}`);
       navigate(destination);
     }
   }
@@ -228,12 +238,14 @@ function Room({ username }) {
       </header>
 
       <VoteMovingBox
+        accountUsername={username}
         room={room}
         roomCode={roomCode}
         onRoomUpdate={setRoom}
         users={memberProfiles}
         hostName={room.host}
-        username={username}
+        isGuest={username === "Guest"}
+        username={roomMemberName}
         onLoginRequired={() => setShowLoginPrompt(true)}
       />
 

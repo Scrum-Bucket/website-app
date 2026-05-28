@@ -521,18 +521,30 @@ function CrabLane({ hostName, users }) {
   );
 }
 
-function VoteMovingBox({ hostName, onLoginRequired, onRoomUpdate, room, roomCode, users, username }) {
+function VoteMovingBox({
+  accountUsername,
+  hostName,
+  isGuest = false,
+  onLoginRequired,
+  onRoomUpdate,
+  room,
+  roomCode,
+  users,
+  username,
+}) {
   const currentUserName = username || "guest";
   const normalizedUsers = useMemo(
     () => normalizeUsers(users, currentUserName),
     [users, currentUserName]
   );
-  const songs = useMemo(() => normalizeSongs(readAccountPlaylist(username)), [username]);
+  const songs = useMemo(
+    () => normalizeSongs(readAccountPlaylist(accountUsername || username)),
+    [accountUsername, username]
+  );
   const [localRoom, setLocalRoom] = useState(room);
   const [now, setNow] = useState(null);
   const completedPlaybackRef = useRef(null);
   const isCurrentUserHost = hostName === currentUserName;
-  const isGuest = username === "Guest";
   const activeRoom = roomCode ? room : localRoom;
   const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
   const timeLeft = getRoomTimeLeft(activeRoom, now);

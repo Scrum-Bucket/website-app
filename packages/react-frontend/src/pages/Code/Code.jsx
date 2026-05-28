@@ -33,12 +33,23 @@ function Code({ username }) {
       }
 
       // Join the room
-      await authFetch(`${API}/rooms/${trimmed}/join`, {
+      const joinRes = await authFetch(`${API}/rooms/${trimmed}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName: username || "guest" }),
       });
 
+      if (!joinRes.ok) {
+        setError("Could not join room. Try again.");
+        setLoading(false);
+        return;
+      }
+
+      const joinedRoom = await joinRes.json();
+      localStorage.setItem(
+        `roomMemberName:${trimmed}`,
+        joinedRoom.assignedMemberName || username || "guest"
+      );
       navigate(`/home/room/${trimmed}`);
     } catch {
       setError("Could not connect to server. Try again.");

@@ -5,6 +5,16 @@ const { normalizeCrabProfile } = require("../user/user-services.js");
 const ROUND_SECONDS = 120;
 const MIN_SCORE = -20;
 const MAX_SCORE = 40;
+const GUEST_MEMBER_NAMES = [
+  "Anonymous Fish",
+  "Anonymous Crab",
+  "Anonymous Octopus",
+  "Anonymous Seahorse",
+  "Anonymous Jellyfish",
+  "Anonymous Starfish",
+  "Anonymous Dolphin",
+  "Anonymous Squid",
+];
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -12,6 +22,55 @@ function clamp(value, min, max) {
 
 function makeEntryId() {
   return `entry-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getRandomGuestMemberName() {
+  const index = Math.floor(Math.random() * GUEST_MEMBER_NAMES.length);
+
+  return GUEST_MEMBER_NAMES[index];
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getUniqueMemberName(baseName, members = []) {
+  const normalizedBaseName = (baseName || "Anonymous Fish").trim() || "Anonymous Fish";
+  const existingNames = new Set(members.map((member, index) => getMemberName(member, index)));
+
+  if (!existingNames.has(normalizedBaseName)) {
+    return normalizedBaseName;
+  }
+
+  const numberedNamePattern = new RegExp(`^${escapeRegExp(normalizedBaseName)} (\\d+)$`);
+  let highestSuffix = 1;
+
+  for (const name of existingNames) {
+    const match = numberedNamePattern.exec(name);
+
+    if (match) {
+      highestSuffix = Math.max(highestSuffix, Number(match[1]));
+    }
+  }
+
+  return `${normalizedBaseName} ${highestSuffix + 1}`;
+}
+
+function getRoomMemberBaseName(userName) {
+  const trimmedName = (userName || "").trim();
+
+  return trimmedName === "Guest" || trimmedName.toLowerCase() === "guest"
+    ? getRandomGuestMemberName()
+    : trimmedName || getRandomGuestMemberName();
+}
+
+function attachAssignedMemberName(room, assignedMemberName) {
+  if (!room) return room;
+
+  return {
+    ...room,
+    assignedMemberName,
+  };
 }
 
 function getEntryScore(entry) {
@@ -33,6 +92,7 @@ function makeCurrentSong(entry) {
     name: entry.name,
     artist: entry.artist,
     songLink: entry.songLink || "",
+    videoId: entry.videoId || "",
     score: getEntryScore(entry),
     playbackStartedAt: new Date(),
   };
@@ -162,10 +222,11 @@ async function findRoomByCode(roomCode) {
 }
 
 async function addRoom(roomCode, host = null) {
+  const hostMemberName = host ? getUniqueMemberName(getRoomMemberBaseName(host), []) : null;
   const newRoom = new Room({
     roomCode,
-    host,
-    members: host ? [host] : [],
+    host: hostMemberName,
+    members: hostMemberName ? [hostMemberName] : [],
     queue: [],
     currentSong: null,
     roundSeconds: ROUND_SECONDS,
@@ -174,16 +235,21 @@ async function addRoom(roomCode, host = null) {
     timerRemainingSeconds: ROUND_SECONDS,
     started: false,
   });
-  return attachMemberProfiles(await newRoom.save());
+  return attachAssignedMemberName(await attachMemberProfiles(await newRoom.save()), hostMemberName);
 }
 
 async function joinRoom(roomCode, userName) {
-  const room = await Room.findOneAndUpdate(
-    { roomCode },
-    { $addToSet: { members: userName } },
-    { new: true }
+  const room = await syncRoomGameState(await Room.findOne({ roomCode }));
+  if (!room) return null;
+
+  const assignedMemberName = getUniqueMemberName(
+    getRoomMemberBaseName(userName),
+    Array.isArray(room.members) ? room.members : []
   );
-  return attachMemberProfiles(await syncRoomGameState(room));
+
+  room.members.push(assignedMemberName);
+
+  return attachAssignedMemberName(await attachMemberProfiles(await room.save()), assignedMemberName);
 }
 
 async function startRoom(roomCode) {
@@ -200,7 +266,15 @@ async function startRoom(roomCode) {
   return attachMemberProfiles(await room.save());
 }
 
-async function addSongToQueue(roomCode, songId, name, artist, addedBy = null, songLink = "") {
+async function addSongToQueue(
+  roomCode,
+  songId,
+  name,
+  artist,
+  addedBy = null,
+  songLink = "",
+  videoId = ""
+) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) return null;
 
@@ -210,6 +284,7 @@ async function addSongToQueue(roomCode, songId, name, artist, addedBy = null, so
     name,
     artist,
     songLink,
+    videoId,
     score: 0,
     upvotes: 0,
     addedBy,

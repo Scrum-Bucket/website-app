@@ -89,3 +89,32 @@ test("completing current song clears playback and restarts voting timer", async 
   expect(result.timerRemainingSeconds).toBe(120);
   expect(result.roundEndsAt).toBeInstanceOf(Date);
 });
+
+test("joining assigns a numbered room nickname when the display name already exists", async () => {
+  const room = makeRoom({
+    started: false,
+    members: ["Tony", "Tony 2"],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.joinRoom("PLAY1", "Tony");
+
+  expect(room.members).toStrictEqual(["Tony", "Tony 2", "Tony 3"]);
+  expect(result.assignedMemberName).toBe("Tony 3");
+});
+
+test("guest joins receive an anonymous sea creature room nickname", async () => {
+  jest.spyOn(Math, "random").mockReturnValue(0);
+  const room = makeRoom({
+    started: false,
+    members: ["Anonymous Fish"],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.joinRoom("PLAY1", "Guest");
+
+  expect(room.members).toStrictEqual(["Anonymous Fish", "Anonymous Fish 2"]);
+  expect(result.assignedMemberName).toBe("Anonymous Fish 2");
+
+  Math.random.mockRestore();
+});
