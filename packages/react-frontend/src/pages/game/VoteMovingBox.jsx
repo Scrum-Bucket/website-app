@@ -326,7 +326,6 @@ function YouTubeSongPlayer({ onEnded, song }) {
 function CurrentSongPlayer({ canControl, onComplete, song }) {
   return (
     <section className="vote-current-song" aria-label="Current song">
-
       <YouTubeSongPlayer song={song} onEnded={canControl ? onComplete : undefined} />
 
       {canControl && (
@@ -447,12 +446,7 @@ function CrabLane({ hostName, users }) {
               aria-label={isHost ? `${user.name}, host` : user.name}
             >
               {isHost && (
-                <img
-                  className="vote-host-crown"
-                  src={CrownIcon}
-                  alt=""
-                  aria-hidden="true"
-                />
+                <img className="vote-host-crown" src={CrownIcon} alt="" aria-hidden="true" />
               )}
               <span>{user.name}</span>
             </div>
@@ -480,10 +474,7 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
   const isTimerPaused = Boolean(activeRoom?.timerPaused);
   const nowPlaying = normalizeCurrentSong(activeRoom?.currentSong);
   const nowPlayingKey = nowPlaying?.entryId || nowPlaying?.songId || nowPlaying?.name || "";
-  const rankedEntries = useMemo(
-    () => [...entries].sort((a, b) => b.score - a.score),
-    [entries]
-  );
+  const rankedEntries = useMemo(() => [...entries].sort((a, b) => b.score - a.score), [entries]);
   const stackHeight = entries.length
     ? entries.length * STACK_CARD_HEIGHT + (entries.length - 1) * STACK_CARD_GAP
     : 260;
@@ -689,7 +680,9 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
       timerRemainingSeconds: paused ? timeLeft : currentRoom.timerRemainingSeconds || timeLeft,
       roundEndsAt: paused
         ? null
-        : new Date(Date.now() + (currentRoom.timerRemainingSeconds || timeLeft) * 1000).toISOString(),
+        : new Date(
+            Date.now() + (currentRoom.timerRemainingSeconds || timeLeft) * 1000
+          ).toISOString(),
     }));
   };
 
@@ -731,10 +724,7 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
       <SongPicker songs={songs} onAddSong={handleAddSong} />
 
       <div className="vote-play-area">
-        <main
-          className="vote-arena"
-          style={{ "--vote-arena-height": `${voteArenaHeight}px` }}
-        >
+        <main className="vote-arena" style={{ "--vote-arena-height": `${voteArenaHeight}px` }}>
           <header className="vote-round-status">
             <div className="vote-timer-card">
               <p className="vote-panel-kicker">{nowPlaying ? "Song timer" : "Round timer"}</p>
@@ -742,11 +732,7 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
                 {nowPlaying ? "Playing" : formatTime(timeLeft)}
               </strong>
               {isCurrentUserHost && !nowPlaying && (
-                <button
-                  className="vote-timer-toggle"
-                  type="button"
-                  onClick={handleTimerToggle}
-                >
+                <button className="vote-timer-toggle" type="button" onClick={handleTimerToggle}>
                   {isTimerPaused ? "Resume" : "Pause"}
                 </button>
               )}

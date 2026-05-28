@@ -15,13 +15,13 @@ const publicRooms = [
 
 function Join() {
   const navigate = useNavigate();
-  
+
   const [rooms, setRooms] = useState(publicRooms);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     let active = true;
-      
+
     function formatPublicRoom(room, index) {
       const members = Array.isArray(room.members) ? room.members : [];
 
@@ -34,10 +34,11 @@ function Join() {
       };
     }
     async function loadPublicRooms() {
-      const response = await authFetch(`${frontendLink}/rooms?privacy=public`);
+      const response = await authFetch(`${frontendLink}/rooms`);
       if (!response.ok) {
         throw new Error("Failed to fetch public rooms");
       }
+      console.log("Fetched public rooms:", await response.json());
 
       const publicRooms = await response.json();
       const formattedRooms = publicRooms.map(formatPublicRoom);
@@ -107,10 +108,8 @@ function Join() {
                 <span>{room.listeners} listeners</span>
                 <span>{room.code}</span>
               </div>
-            <button>
-              Join
-            </button>
-          </article>
+              <button>Join</button>
+            </article>
           ))}
 
           {!filteredRooms.length && (

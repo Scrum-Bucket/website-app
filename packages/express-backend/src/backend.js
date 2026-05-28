@@ -593,19 +593,13 @@ app.delete("/songs/:id", async (req, res) => {
 // GET /rooms  – list all rooms (optionally filter by ?roomCode=)
 app.get("/rooms", async (req, res) => {
   const { roomCode } = req.query;
-  const { privacy } = req.query;
 
-  if (!roomCode && privacy === "public") {
-    await roomServices
-      .getPublicRooms()
-      .then((rooms) => res.json(rooms))
-      .catch((err) => res.status(500).json({ error: err.message }));
-  } else {
-    await roomServices
-      .getRooms(roomCode)
-      .then((rooms) => res.json(rooms))
-      .catch((err) => res.status(500).json({ error: err.message }));
-  }
+  await roomServices
+    .getRooms(roomCode)
+    .then((rooms) => {
+      res.json(rooms);
+    })
+    .catch((err) => res.status(500).json({ error: err.message }));
 });
 
 // GET /rooms/:roomCode  – get a single room by its code

@@ -175,11 +175,7 @@ function EditCrab() {
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            className="edit-crab-save-btn"
-            onClick={handleSave}
-          >
+          <button type="button" className="edit-crab-save-btn" onClick={handleSave}>
             Save
           </button>
         </section>

@@ -21,11 +21,7 @@ export function getSongVideoId(song) {
     }
 
     if (url.hostname.includes("youtube.com")) {
-      return (
-        url.searchParams.get("v") ||
-        url.pathname.split("/").filter(Boolean).pop() ||
-        ""
-      );
+      return url.searchParams.get("v") || url.pathname.split("/").filter(Boolean).pop() || "";
     }
   } catch {
     return /^[a-zA-Z0-9_-]{11}$/.test(songLink) ? songLink : "";
