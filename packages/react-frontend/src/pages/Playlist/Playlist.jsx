@@ -64,120 +64,118 @@ function Playlist({ username }) {
   // stores current error value 'error', and a function to update it 'setError'
   const [error, setError] = useState("");
 
-async function handleAddSong() {
-  // clear previous errors
-  setError("");
+  async function handleAddSong() {
+    // clear previous errors
+    setError("");
 
-  const youtubeInput = getYoutubeInput(playlistId);
+    const youtubeInput = getYoutubeInput(playlistId);
 
-  // If input is empty, show error and stop
-  if (!youtubeInput.id || !youtubeInput.type) {
-    setError("Please enter a valid YouTube song or playlist URL/ID.");
-    return;
+    // If input is empty, show error and stop
+    if (!youtubeInput.id || !youtubeInput.type) {
+      setError("Please enter a valid YouTube song or playlist URL/ID.");
+      return;
+    }
+
+    setIsLoadingPlaylist(true);
+
+    try {
+      const userId = localStorage.getItem("userId");
+
+      if (!userId) {
+        setError("You must be logged in to save a playlist.");
+        return;
+      }
+
+      const endpoint =
+        youtubeInput.type === "playlist"
+          ? `${frontendLink}/users/${userId}/playlists/youtube/${youtubeInput.id}`
+          : `${frontendLink}/users/${userId}/songs/youtube/${youtubeInput.id}`;
+      const res = await authFetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          playlistName: "My Playlist",
+        }),
+      });
+
+      if (!res.ok) {
+        setError("Invalid URL or ID."); // handle bad response from backend
+        return;
+      }
+
+      const data = await res.json();
+
+      // ensure backend returned expected format/list of songs
+      if (!Array.isArray(data)) {
+        setError("Invalid youtube response.");
+        return;
+      }
+
+      setSongs(data);
+    } catch (err) {
+      console.error(err);
+      // handle unexpected errors
+      setError("Could not load playlist. Please check the URL or ID.");
+    } finally {
+      setIsLoadingPlaylist(false);
+    }
   }
 
-  setIsLoadingPlaylist(true);
+  function handleToggleAccountPlaylist(song) {
+    const nextSong = normalizeSong(song);
 
-  try {
-    const userId = localStorage.getItem("userId");
+    const isAlreadySaved = savedSongs.some((savedSong) => savedSong.id === nextSong.id);
 
-    if (!userId) {
-      setError("You must be logged in to save a playlist.");
+    if (isAlreadySaved) {
+      const nextSavedSongs = savedSongs.filter((savedSong) => savedSong.id !== nextSong.id);
+      setSavedSongs(nextSavedSongs);
+      writeAccountPlaylist(username, nextSavedSongs);
+      setError("");
       return;
     }
 
-    const endpoint =
-      youtubeInput.type === "playlist"
-        ? `${frontendLink}/users/${userId}/playlists/youtube/${youtubeInput.id}`
-        : `${frontendLink}/users/${userId}/songs/youtube/${youtubeInput.id}`;
-    const res = await authFetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        playlistName: "My Playlist",
-      }),
-    });
-
-    if (!res.ok) {
-      setError("Invalid URL or ID."); // handle bad response from backend
-      return;
-    }
-
-    const data = await res.json();
-
-    // ensure backend returned expected format/list of songs
-    if (!Array.isArray(data)) {
-      setError("Invalid youtube response.");
-      return;
-    }
-
-    setSongs(data);
-  } catch (err) {
-    console.error(err);
-    // handle unexpected errors
-    setError("Could not load playlist. Please check the URL or ID.");
-  } finally {
-    setIsLoadingPlaylist(false);
-  }
-}
-
-function handleToggleAccountPlaylist(song) {
-  const nextSong = normalizeSong(song);
-
-  const isAlreadySaved = savedSongs.some((savedSong) => savedSong.id === nextSong.id);
-
-  if (isAlreadySaved) {
-    const nextSavedSongs = savedSongs.filter((savedSong) => savedSong.id !== nextSong.id);
+    const nextSavedSongs = [...savedSongs, nextSong];
     setSavedSongs(nextSavedSongs);
     writeAccountPlaylist(username, nextSavedSongs);
     setError("");
-    return;
   }
 
-  const nextSavedSongs = [...savedSongs, nextSong];
-  setSavedSongs(nextSavedSongs);
-  writeAccountPlaylist(username, nextSavedSongs);
-  setError("");
-}
+  function normalizeSong(song) {
+    const nextSong = {
+      id: getSongId(song),
+      title: getSongTitle(song),
+      artist: getSongArtist(song),
+      songLink: getSongLink(song),
+      videoId: getSongVideoId(song),
+    };
 
-function normalizeSong(song) {
-  const nextSong = {
-    id: getSongId(song),
-    title: getSongTitle(song),
-    artist: getSongArtist(song),
-    songLink: getSongLink(song),
-    videoId: getSongVideoId(song),
-  };
+    if (!nextSong.id) {
+      nextSong.id = nextSong.title;
+    }
 
-  if (!nextSong.id) {
-    nextSong.id = nextSong.title;
+    return nextSong;
   }
 
-  return nextSong;
-}
+  function handleAddAllSongs() {
+    const existingIds = new Set(savedSongs.map((song) => song.id));
+    const newSongs = songs.map(normalizeSong).filter((song) => !existingIds.has(song.id));
 
-function handleAddAllSongs() {
-  const existingIds = new Set(savedSongs.map((song) => song.id));
-  const newSongs = songs.map(normalizeSong).filter((song) => !existingIds.has(song.id));
+    const nextSavedSongs = [...savedSongs, ...newSongs];
+    setSavedSongs(nextSavedSongs);
+    writeAccountPlaylist(username, nextSavedSongs);
+    setError("");
+  }
 
-  const nextSavedSongs = [...savedSongs, ...newSongs];
-  setSavedSongs(nextSavedSongs);
-  writeAccountPlaylist(username, nextSavedSongs);
-  setError("");
-}
+  function handleRemoveAllSongs() {
+    const playlistSongIds = new Set(songs.map((song) => normalizeSong(song).id));
+    const nextSavedSongs = savedSongs.filter((song) => !playlistSongIds.has(song.id));
 
-function handleRemoveAllSongs() {
-  const playlistSongIds = new Set(songs.map((song) => normalizeSong(song).id));
-  const nextSavedSongs = savedSongs.filter((song) => !playlistSongIds.has(song.id));
-
-  setSavedSongs(nextSavedSongs);
-  writeAccountPlaylist(username, nextSavedSongs);
-  setError("");
-}
-
-
+    setSavedSongs(nextSavedSongs);
+    writeAccountPlaylist(username, nextSavedSongs);
+    setError("");
+  }
 
   return (
     <div className="playlist-page">
@@ -232,7 +230,7 @@ function handleRemoveAllSongs() {
                 {getSongArtist(song) && <small>{getSongArtist(song)}</small>}
               </div>
               <button type="button" onClick={() => handleToggleAccountPlaylist(song)}>
-              {/* Decides what text button should show: Add or Remove.
+                {/* Decides what text button should show: Add or Remove.
                   If any saved song has the same id as the current song, display Remove. */}
                 {savedSongs.some((savedSong) => savedSong.id === normalizeSong(song).id)
                   ? "Remove"

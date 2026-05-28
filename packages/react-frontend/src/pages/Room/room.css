@@ -155,7 +155,9 @@
   font-weight: 700;
   border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
   box-shadow: 0 4px 0 #0e8a22;
 }
 
