@@ -4,6 +4,7 @@ import "./room.css";
 import GameBackground from "../../../animationFiles/game-background.jsx";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
+import LoginRequiredModal from "../../app/LoginRequiredModal";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
 import { readStoredCrabProfile } from "../profile/crabColor";
@@ -41,6 +42,7 @@ function Room({ username }) {
 
   const [room, setRoom] = useState(location.state?.room || null);
   const [localGameStarted, setLocalGameStarted] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const fetchRoom = useCallback(async () => {
     if (!roomCode) {
@@ -119,6 +121,10 @@ function Room({ username }) {
   }
 
   async function handleLeave() {
+    await leaveRoom("/home");
+  }
+
+  async function leaveRoom(destination) {
     try {
       await authFetch(`${API}/rooms/${roomCode}/leave`, {
         method: "POST",
@@ -126,8 +132,12 @@ function Room({ username }) {
         body: JSON.stringify({ userName: username || "guest" }),
       });
     } finally {
-      navigate("/home");
+      navigate(destination);
     }
+  }
+
+  async function handleLoginPromptConfirm() {
+    await leaveRoom("/");
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -224,7 +234,15 @@ function Room({ username }) {
         users={memberProfiles}
         hostName={room.host}
         username={username}
+        onLoginRequired={() => setShowLoginPrompt(true)}
       />
+
+      {showLoginPrompt ? (
+        <LoginRequiredModal
+          onConfirm={handleLoginPromptConfirm}
+          onCancel={() => setShowLoginPrompt(false)}
+        />
+      ) : null}
     </div>
   );
 }

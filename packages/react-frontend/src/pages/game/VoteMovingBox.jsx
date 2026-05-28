@@ -338,7 +338,7 @@ function CurrentSongPlayer({ canControl, onComplete, song }) {
   );
 }
 
-function SongPicker({ songs, onAddSong }) {
+function SongPicker({ isGuest, onAddSong, onLoginRequired, songs }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
@@ -352,6 +352,11 @@ function SongPicker({ songs, onAddSong }) {
     return songs.filter((song) => song.name.toLowerCase().includes(normalizedSearch));
   }, [songs, searchTerm]);
   const handleOpenPlaylist = () => {
+    if (isGuest) {
+      onLoginRequired?.();
+      return;
+    }
+
     navigate("/home/playlist", {
       state: {
         returnTo: `${location.pathname}${location.search}`,
@@ -463,7 +468,7 @@ function CrabLane({ hostName, users }) {
   );
 }
 
-function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username }) {
+function VoteMovingBox({ hostName, onLoginRequired, onRoomUpdate, room, roomCode, users, username }) {
   const currentUserName = username || "guest";
   const normalizedUsers = useMemo(
     () => normalizeUsers(users, currentUserName),
@@ -474,6 +479,7 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
   const [now, setNow] = useState(null);
   const completedPlaybackRef = useRef(null);
   const isCurrentUserHost = hostName === currentUserName;
+  const isGuest = username === "Guest";
   const activeRoom = roomCode ? room : localRoom;
   const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
   const timeLeft = getRoomTimeLeft(activeRoom, now);
@@ -728,7 +734,12 @@ function VoteMovingBox({ hostName, onRoomUpdate, room, roomCode, users, username
 
   return (
     <section className="vote-game-shell" aria-label="Vote moving box game">
-      <SongPicker songs={songs} onAddSong={handleAddSong} />
+      <SongPicker
+        isGuest={isGuest}
+        onAddSong={handleAddSong}
+        onLoginRequired={onLoginRequired}
+        songs={songs}
+      />
 
       <div className="vote-play-area">
         <main

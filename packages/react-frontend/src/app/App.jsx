@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import MyApp from "./MyApp";
+import LoginRequiredModal from "./LoginRequiredModal";
 import Home from "../pages/Home/Home";
 import Host from "../pages/host/host";
 import Join from "../pages/Join/Join";
@@ -13,10 +14,20 @@ import Admin from "../pages/admin/Admin";
 import EditCrab from "../pages/profile/edit-crab";
 
 export function GuestGuard({ username, children }) {
-  return username === "Guest" ? (
-    <Navigate to="/" state={{ loginError: "Must log in first" }} replace />
-  ) : (
-    children
+  const navigate = useNavigate();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(true);
+
+  if (username !== "Guest") {
+    return children;
+  }
+
+  return (
+    <>
+      <Home username={username} onLoginRequired={() => setShowLoginPrompt(true)} />
+      {showLoginPrompt ? (
+        <LoginRequiredModal onConfirm={() => navigate("/")} onCancel={() => setShowLoginPrompt(false)} />
+      ) : null}
+    </>
   );
 }
 
