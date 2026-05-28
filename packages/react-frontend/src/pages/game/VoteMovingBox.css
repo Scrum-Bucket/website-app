@@ -430,6 +430,10 @@
   text-align: center;
 }
 
+.vote-song-player-missing a {
+  color: #f7b244;
+}
+
 .vote-finish-song-btn {
   justify-self: end;
   min-height: 46px;

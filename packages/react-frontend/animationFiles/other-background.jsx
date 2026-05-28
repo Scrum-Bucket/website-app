@@ -13,14 +13,17 @@ export default function OtherBackground() {
     let bubbles = [];
     let animationFrameId;
     let imgEl = null;
+    let isActive = true;
 
     function loadBubbleImage() {
-      return new Promise((resolve, reject) => {
-        const image = new Image();
-        image.src = bubbleImage;
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-      });
+      const image = new Image();
+      image.decoding = "async";
+      image.onload = () => {
+        if (!isActive) return;
+
+        imgEl = image;
+      };
+      image.src = bubbleImage;
     }
 
     function createBubble() {
@@ -65,13 +68,23 @@ export default function OtherBackground() {
       for (const b of bubbles) {
         ctx.save();
         ctx.globalAlpha = b.opacity;
-        ctx.drawImage(imgEl, b.x - b.size / 2, b.y - b.size / 2, b.size, b.size);
+        if (imgEl) {
+          ctx.drawImage(imgEl, b.x - b.size / 2, b.y - b.size / 2, b.size, b.size);
+        } else {
+          ctx.strokeStyle = "#d8ffff";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.size / 2, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(b.x + b.size * 0.12, b.y - b.size * 0.25, 3, 3);
+        }
         ctx.restore();
       }
     }
 
     function resize() {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       width = window.innerWidth;
       height = window.innerHeight;
 
@@ -104,13 +117,12 @@ export default function OtherBackground() {
 
     window.addEventListener("resize", resize);
 
-    loadBubbleImage().then((image) => {
-      imgEl = image;
-      resize();
-      animationFrameId = requestAnimationFrame(draw);
-    });
+    resize();
+    animationFrameId = requestAnimationFrame(draw);
+    loadBubbleImage();
 
     return () => {
+      isActive = false;
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(animationFrameId);
     };
