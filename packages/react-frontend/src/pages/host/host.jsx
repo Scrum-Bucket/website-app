@@ -37,10 +37,10 @@ function Host({ username }) {
       }
 
       const createdRoom = await response.json();
-      localStorage.setItem(`roomMemberName:${roomCode}`, createdRoom.assignedMemberName || host);
+      sessionStorage.setItem(`roomMemberName:${roomCode}`, createdRoom.assignedMemberName || host);
       navigate(`/home/room/${roomCode}`);
     } catch {
-      localStorage.setItem(`roomMemberName:${roomCode}`, host);
+      sessionStorage.setItem(`roomMemberName:${roomCode}`, host);
       setError("Using a local test room because the backend is unavailable.");
       navigate(`/home/room/${roomCode}`, { state: { room: fallbackRoom } });
     }

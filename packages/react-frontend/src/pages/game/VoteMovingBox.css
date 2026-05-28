@@ -455,36 +455,47 @@
 }
 
 .vote-crab-lane {
-  min-height: 124px;
+  min-height: 230px;
+  max-height: 360px;
   display: flex;
-  align-items: flex-end;
-  gap: 18px;
-  overflow-x: auto;
-  padding: 22px 4px 12px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  justify-content: center;
+  column-gap: 10px;
+  row-gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 6px 18px;
 }
 
 .vote-player-crab {
-  min-width: 118px;
+  flex: 0 0 96px;
+  min-width: 96px;
   display: grid;
   justify-items: center;
   gap: 0;
   animation: crabBob 1.9s ease-in-out infinite;
 }
 
+.vote-player-crab:nth-child(even) {
+  margin-top: 54px;
+}
+
 .vote-player-crab img {
-  width: 120px;
-  height: 120px;
+  width: 94px;
+  height: 94px;
   object-fit: contain;
   position: relative;
   z-index: 1;
-  margin-bottom: -10px;
+  margin-bottom: -8px;
 }
 
 .vote-player-card {
   box-sizing: border-box;
-  min-width: 116px;
+  min-width: 92px;
   width: max-content;
-  max-width: 150px;
+  max-width: 130px;
   min-height: 48px;
   display: grid;
   place-items: center;
@@ -512,7 +523,7 @@
 }
 
 .vote-player-card span {
-  max-width: 112px;
+  max-width: 96px;
   color: #1d1d1d;
   font-size: 13px;
   font-weight: 700;
@@ -523,7 +534,7 @@
 }
 
 .vote-player-card--host span {
-  max-width: 92px;
+  max-width: 76px;
 }
 
 @keyframes crabBob {
@@ -555,6 +566,21 @@
 }
 
 @media (max-width: 560px) {
+  .vote-crab-lane {
+    max-height: 420px;
+    column-gap: 6px;
+  }
+
+  .vote-player-crab {
+    flex-basis: 84px;
+    min-width: 84px;
+  }
+
+  .vote-player-crab img {
+    width: 82px;
+    height: 82px;
+  }
+
   .vote-round-status {
     grid-template-columns: 1fr;
   }

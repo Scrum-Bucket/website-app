@@ -118,3 +118,15 @@ test("guest joins receive an anonymous sea creature room nickname", async () => 
 
   Math.random.mockRestore();
 });
+
+test("joining fails when a room already has 30 members", async () => {
+  const room = makeRoom({
+    started: false,
+    members: Array.from({ length: 30 }, (_, index) => `Player ${index + 1}`),
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.joinRoom("PLAY1", "Tony")).rejects.toThrow("Room is full.");
+  expect(room.members).toHaveLength(30);
+  expect(room.save).not.toHaveBeenCalled();
+});

@@ -34,6 +34,7 @@ export function GuestGuard({ username, children }) {
 export function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
+  const [userId, setUserId] = useState("");
 
   return (
     <Routes>
@@ -41,8 +42,9 @@ export function App() {
         path="/"
         element={
           <MyApp
-            onLogin={(loggedInUsername) => {
-              setUsername(loggedInUsername);
+            onLogin={(loginUser) => {
+              setUsername(loginUser.username);
+              setUserId(loginUser.userId || "");
               setIsLoggedIn(true);
             }}
           />
@@ -82,7 +84,7 @@ export function App() {
         element={
           isLoggedIn ? (
             <GuestGuard username={username}>
-              <Playlist username={username} />
+              <Playlist userId={userId} username={username} />
             </GuestGuard>
           ) : (
             <Navigate to="/" replace />

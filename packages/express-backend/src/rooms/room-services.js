@@ -5,6 +5,7 @@ const { normalizeCrabProfile } = require("../user/user-services.js");
 const ROUND_SECONDS = 120;
 const MIN_SCORE = -20;
 const MAX_SCORE = 40;
+const MAX_ROOM_MEMBERS = 30;
 const GUEST_MEMBER_NAMES = [
   "Anonymous Fish",
   "Anonymous Crab",
@@ -242,9 +243,15 @@ async function joinRoom(roomCode, userName) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) return null;
 
+  const members = Array.isArray(room.members) ? room.members : [];
+
+  if (members.length >= MAX_ROOM_MEMBERS) {
+    throw new Error("Room is full.");
+  }
+
   const assignedMemberName = getUniqueMemberName(
     getRoomMemberBaseName(userName),
-    Array.isArray(room.members) ? room.members : []
+    members
   );
 
   room.members.push(assignedMemberName);

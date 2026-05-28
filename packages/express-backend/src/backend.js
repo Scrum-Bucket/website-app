@@ -610,13 +610,21 @@ app.get("/rooms", async (req, res) => {
 
 // GET /rooms/:roomCode  – get a single room by its code
 app.get("/rooms/:roomCode", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
+
   await roomServices
-    .findRoomByCode(req.params.roomCode)
+    .findRoomByCode(roomCode)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);
     })
-    .catch((err) => res.status(500).json({ error: err.message }));
+    .catch((err) => {
+      if (err.message === "Room is full.") {
+        return res.status(409).json({ error: err.message });
+      }
+
+      res.status(500).json({ error: err.message });
+    });
 });
 
 // POST /rooms/:roomCode/join  – join a room  { userName }
@@ -655,10 +663,11 @@ app.post("/rooms", async (req, res) => {
 });
 
 app.post("/rooms/:roomCode/join", async (req, res) => {
+  const roomCode = normalizeRoomCode(req.params.roomCode);
   const { userName } = req.body;
   if (!userName) return res.status(400).json({ error: "userName is required." });
   await roomServices
-    .joinRoom(req.params.roomCode, userName)
+    .joinRoom(roomCode, userName)
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });
       res.json(room);

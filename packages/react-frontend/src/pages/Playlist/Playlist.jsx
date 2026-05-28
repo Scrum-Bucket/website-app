@@ -49,7 +49,7 @@ function getYoutubeInput(input) {
   }
 }
 
-function Playlist({ username }) {
+function Playlist({ userId, username }) {
   const location = useLocation();
   const navigate = useNavigate();
   const returnTo = location.state?.returnTo || "/home";
@@ -77,17 +77,17 @@ async function handleAddSong() {
   setIsLoadingPlaylist(true);
 
   try {
-    const userId = localStorage.getItem("userId");
+    const currentUserId = userId || localStorage.getItem("userId");
 
-    if (!userId) {
+    if (!currentUserId) {
       setError("You must be logged in to save a playlist.");
       return;
     }
 
     const endpoint =
       youtubeInput.type === "playlist"
-        ? `${frontendLink}/users/${userId}/playlists/youtube/${youtubeInput.id}`
-        : `${frontendLink}/users/${userId}/songs/youtube/${youtubeInput.id}`;
+        ? `${frontendLink}/users/${currentUserId}/playlists/youtube/${youtubeInput.id}`
+        : `${frontendLink}/users/${currentUserId}/songs/youtube/${youtubeInput.id}`;
     const res = await authFetch(endpoint, {
       method: "POST",
       headers: {

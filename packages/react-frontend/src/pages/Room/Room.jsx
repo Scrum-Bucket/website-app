@@ -13,11 +13,11 @@ const API = frontendLink;
 const POLL_MS = 2000;
 
 function getStoredRoomMemberName(roomCode, username) {
-  if (!roomCode || typeof localStorage === "undefined") {
+  if (!roomCode || typeof sessionStorage === "undefined") {
     return username || "guest";
   }
 
-  return localStorage.getItem(`roomMemberName:${roomCode}`) || username || "guest";
+  return sessionStorage.getItem(`roomMemberName:${roomCode}`) || username || "guest";
 }
 
 function getMemberName(member, index) {
@@ -141,7 +141,7 @@ function Room({ username }) {
         body: JSON.stringify({ userName: roomMemberName }),
       });
     } finally {
-      localStorage.removeItem(`roomMemberName:${roomCode}`);
+      sessionStorage.removeItem(`roomMemberName:${roomCode}`);
       navigate(destination);
     }
   }
