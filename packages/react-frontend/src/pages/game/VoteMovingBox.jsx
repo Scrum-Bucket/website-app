@@ -154,60 +154,238 @@ function normalizeQueueEntries(queue) {
   });
 }
 
-function VoteMovingBox({ users }) {
-  const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
+function normalizeCurrentSong(song) {
+  if (!song) {
+    return null;
+  }
 
-  const [scores, setScores] = useState(() =>
-    Object.fromEntries(normalizedUsers.map((u) => [u.id, u.initialScore]))
+  if (typeof song === "string") {
+    return { name: song, artist: "" };
+  }
+
+  return {
+    entryId: song.entryId || "",
+    songId: song.songId || song.id || "",
+    name: song.name || song.title || "Untitled song",
+    artist: song.artist || "",
+    songLink: song.songLink || "",
+    videoId: song.videoId || "",
+    score: getQueueEntryScore(song),
+  };
+}
+
+function getWinningQueueEntry(queue) {
+  const entries = Array.isArray(queue) ? queue : [];
+  if (!entries.length) return null;
+
+  return entries.reduce((leader, entry) =>
+    getQueueEntryScore(entry) > getQueueEntryScore(leader) ? entry : leader
   );
-  const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
+}
 
-  // Keep scores in sync when users list changes
+function makeCurrentSongFromQueueEntry(entry) {
+  return {
+    entryId: entry.entryId || entry.songId,
+    songId: entry.songId,
+    name: entry.name,
+    artist: entry.artist,
+    songLink: entry.songLink || "",
+    videoId: entry.videoId || "",
+    score: getQueueEntryScore(entry),
+  };
+}
+
+function getRoomTimeLeft(room, now) {
+  const roundSeconds = room?.roundSeconds ?? ROUND_SECONDS;
+
+  if (room?.timerPaused) {
+    return clamp(room.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
+  }
+
+  if (now == null) {
+    return clamp(room?.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
+  }
+
+  if (room?.roundEndsAt) {
+    return clamp(Math.ceil((new Date(room.roundEndsAt).getTime() - now) / 1000), 0, roundSeconds);
+  }
+
+  return clamp(room?.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
+}
+
+function VoteMovingBoxItem({ canDelete, entry, onDelete, onVote, stackIndex }) {
+  const { song, score } = entry;
+
+  return (
+    <article
+      className="vote-box-row"
+      style={{ transform: `translateY(${stackIndex * (STACK_CARD_HEIGHT + STACK_CARD_GAP)}px)` }}
+    >
+      <div className="vote-box-bar" aria-label={`${song.name} score ${score}`}>
+        <span className="vote-box-score">{score}</span>
+        <div className="vote-box-track">
+          <span className="vote-box-track-title">{song.name}</span>
+          <span className="vote-box-track-artist">{song.artist}</span>
+        </div>
+        <div className="vote-box-actions">
+          <button
+            type="button"
+            className="vote-box-button vote-box-button--up"
+            onClick={() => onVote(entry.entryId, 1)}
+            aria-label={`Upvote ${song.name}`}
+          >
+            Up
+          </button>
+          <button
+            type="button"
+            className="vote-box-button vote-box-button--down"
+            onClick={() => onVote(entry.entryId, -1)}
+            aria-label={`Downvote ${song.name}`}
+          >
+            Down
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              className="vote-box-button vote-box-button--delete"
+              onClick={() => onDelete(entry.entryId)}
+              aria-label={`Delete ${song.name}`}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function YouTubeSongPlayer({ onEnded, song }) {
+  const playerHostRef = useRef(null);
+  const playerRef = useRef(null);
+  const endedRef = useRef(false);
+  const onEndedRef = useRef(onEnded);
+  const bufferingTimeoutRef = useRef(null);
+  const videoId = getPlayableVideoId(song);
+  const [playerError, setPlayerError] = useState({ videoId: "", message: "" });
+  const activePlayerError = playerError.videoId === videoId ? playerError.message : "";
+
   useEffect(() => {
-<<<<<<<<< Temporary merge branch 1
+    onEndedRef.current = onEnded;
+  }, [onEnded]);
+
+  useEffect(() => {
+    endedRef.current = false;
+
+    function clearBufferingTimeout() {
+      clearTimeout(bufferingTimeoutRef.current);
+      bufferingTimeoutRef.current = null;
+    }
+
+    function startBufferingTimeout() {
+      clearBufferingTimeout();
+      bufferingTimeoutRef.current = setTimeout(() => {
+        if (isActive) {
+          setPlayerError({ videoId, message: "This song got stuck loading." });
+        }
+      }, 10000);
+    }
+
+    if (!videoId) {
+      return undefined;
+    }
+
     let isActive = true;
-=========
-    setScores((prev) =>
-      Object.fromEntries(
-        normalizedUsers.map((u) => [u.id, prev[u.id] ?? u.initialScore])
-      )
-    );
-  }, [normalizedUsers]);
+    const timeoutId = setTimeout(() => {
+      if (isActive && !playerRef.current) {
+        setPlayerError({ videoId, message: "This song is taking too long to load." });
+      }
+    }, 8000);
 
-  // Load tinted crab icon from localStorage
-  useEffect(() => {
-    let active = true;
->>>>>>>>> Temporary merge branch 2
-    const savedColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
-    const savedHat = localStorage.getItem("profileCrabHat") || "";
-    const hatSource = savedHat ? hatImages[`../../assets/hats/${savedHat}`] || "" : "";
+    loadYouTubeApi().then((YT) => {
+      if (!isActive || !YT?.Player || !playerHostRef.current) {
+        if (isActive) {
+          setPlayerError({ videoId, message: "The YouTube player could not load." });
+        }
+        return;
+      }
 
-    createCrabIcon(UserCrabIcon, savedColor, hatSource).then((icon) => {
-      if (active) setCrabIcon(icon);
+      playerRef.current = new YT.Player(playerHostRef.current, {
+        videoId,
+        playerVars: {
+          autoplay: 1,
+          controls: 1,
+          modestbranding: 1,
+          playsinline: 1,
+          rel: 0,
+        },
+        events: {
+          onReady() {
+            clearTimeout(timeoutId);
+          },
+          onError() {
+            if (isActive) {
+              clearBufferingTimeout();
+              setPlayerError({ videoId, message: "This YouTube song could not be played here." });
+            }
+          },
+          onStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+              clearTimeout(timeoutId);
+              clearBufferingTimeout();
+            }
+
+            if (event.data === YT.PlayerState.BUFFERING) {
+              startBufferingTimeout();
+            }
+
+            if (event.data === YT.PlayerState.ENDED && !endedRef.current) {
+              clearBufferingTimeout();
+              endedRef.current = true;
+              onEndedRef.current?.();
+            }
+          },
+        },
+      });
     });
 
     return () => {
-      active = false;
+      isActive = false;
+      clearTimeout(timeoutId);
+      clearBufferingTimeout();
+      playerRef.current?.destroy?.();
+      playerRef.current = null;
     };
-  }, []);
+  }, [song?.entryId, videoId]);
 
-  function handleVote(userId, amount) {
-    setScores((prev) => ({
-      ...prev,
-      [userId]: clamp((prev[userId] ?? 0) + amount, MIN_SCORE, MAX_SCORE),
-    }));
+  if (!videoId || activePlayerError) {
+    return (
+      <div className="vote-song-player-missing">
+        <p>
+          {activePlayerError || "This winning song does not have a playable YouTube link saved."}
+        </p>
+        {song?.songLink ? (
+          <a href={song.songLink} target="_blank" rel="noreferrer">
+            Open song
+          </a>
+        ) : null}
+      </div>
+    );
   }
 
-  // Sort users by score descending to get rank order (highest = top = index 0)
-  const ranked = useMemo(() => {
-    return [...normalizedUsers].sort(
-      (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
-    );
-  }, [normalizedUsers, scores]);
+  return <div className="vote-song-player-frame" ref={playerHostRef} />;
+}
 
-  // Total container height so the parent can size itself
-  const containerHeight =
-    normalizedUsers.length * CARD_HEIGHT + (normalizedUsers.length - 1) * CARD_GAP;
+function CurrentSongPlayer({ canControl, onComplete, shouldPlayAudio, song }) {
+  if (!shouldPlayAudio) {
+    return (
+      <section className="vote-current-song" aria-label="Current song">
+        <div className="vote-song-player-missing">
+          <p>The host is playing this song on their computer.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="vote-current-song" aria-label="Current song">
@@ -271,15 +449,384 @@ function SongPicker({ isGuest, onAddSong, onLoginRequired, songs }) {
                   onClick={() => onAddSong(song)}
                   key={song.id}
                 >
-                  ▲
+                  <span>{song.name}</span>
+                  <small>
+                    {song.artist} / {song.source}
+                  </small>
                 </button>
+              ))}
+            </div>
+          ) : (
+            <p className="vote-song-empty">No matching songs</p>
+          )}
+        </>
+      ) : (
+        <p className="vote-song-empty">No songs available</p>
+      )}
+    </aside>
+  );
+}
+
+function CrabLane({ hostName, users }) {
+  const [crabIcons, setCrabIcons] = useState({});
+
+  useEffect(() => {
+    let isActive = true;
+
+    Promise.all(
+      users.map(async (user) => {
+        const hatSource = getHatSourceForCrab(user.crab, hatImages);
+        const crabIcon = await createCrabIcon(UserCrabIcon, user.crab.color, hatSource);
+
+        return [user.id, crabIcon];
+      })
+    ).then((nextCrabIcons) => {
+      if (isActive) {
+        setCrabIcons(Object.fromEntries(nextCrabIcons));
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [users]);
+
+  return (
+    <div className="vote-crab-lane" aria-label="Players">
+      {users.map((user, index) => {
+        const isHost = user.id === hostName || user.name === hostName;
+
+        return (
+          <div
+            className="vote-player-crab"
+            style={{ animationDelay: `${index * 0.18}s` }}
+            key={user.id}
+          >
+            <img src={crabIcons[user.id] || UserCrabIcon} alt="" aria-hidden="true" />
+            <div
+              className={`vote-player-card${isHost ? " vote-player-card--host" : ""}`}
+              aria-label={isHost ? `${user.name}, host` : user.name}
+            >
+              {isHost && (
+                <img className="vote-host-crown" src={CrownIcon} alt="" aria-hidden="true" />
+              )}
+              <span>{user.name}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function VoteMovingBox({
+  accountUsername,
+  hostName,
+  isGuest = false,
+  onLoginRequired,
+  onRoomUpdate,
+  playOnAllDevices = true,
+  room,
+  roomCode,
+  users,
+  username,
+}) {
+  const currentUserName = username || "guest";
+  const normalizedUsers = useMemo(
+    () => normalizeUsers(users, currentUserName),
+    [users, currentUserName]
+  );
+  const songs = useMemo(
+    () => normalizeSongs(readAccountPlaylist(accountUsername || username)),
+    [accountUsername, username]
+  );
+  const [localRoom, setLocalRoom] = useState(room);
+  const [now, setNow] = useState(null);
+  const completedPlaybackRef = useRef(null);
+  const isCurrentUserHost = hostName === currentUserName;
+  const shouldPlayAudio = playOnAllDevices || isCurrentUserHost;
+  const activeRoom = roomCode ? room : localRoom;
+  const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
+  const timeLeft = getRoomTimeLeft(activeRoom, now);
+  const isTimerPaused = Boolean(activeRoom?.timerPaused);
+  const nowPlaying = normalizeCurrentSong(activeRoom?.currentSong);
+  const nowPlayingKey = nowPlaying?.entryId || nowPlaying?.songId || nowPlaying?.name || "";
+  const rankedEntries = useMemo(() => [...entries].sort((a, b) => b.score - a.score), [entries]);
+  const stackHeight = entries.length
+    ? entries.length * STACK_CARD_HEIGHT + (entries.length - 1) * STACK_CARD_GAP
+    : 260;
+  const voteArenaHeight = clamp(
+    nowPlaying ? VOTE_PLAYBACK_ARENA_HEIGHT : stackHeight + VOTE_ARENA_CHROME_HEIGHT,
+    VOTE_ARENA_MIN_HEIGHT,
+    VOTE_ARENA_MAX_HEIGHT
+  );
+
+  useEffect(() => {
+    const updateNow = () => {
+      setNow(Date.now());
+    };
+    updateNow();
+
+    const timerId = setInterval(updateNow, 1000);
+
+    return () => clearInterval(timerId);
+  }, []);
+
+  const applyRoomUpdate = useCallback(
+    (nextRoom) => {
+      if (!nextRoom) return;
+
+      if (!roomCode) {
+        setLocalRoom(nextRoom);
+      }
+
+      onRoomUpdate?.(nextRoom);
+    },
+    [onRoomUpdate, roomCode]
+  );
+
+  const updateRoomFromResponse = async (response) => {
+    if (response.ok) {
+      applyRoomUpdate(await response.json());
+    }
+  };
+
+  const updateLocalRoom = useCallback(
+    (updater) => {
+      const nextRoom = updater(activeRoom || {});
+      applyRoomUpdate(nextRoom);
+    },
+    [activeRoom, applyRoomUpdate]
+  );
+
+  useEffect(() => {
+    completedPlaybackRef.current = null;
+  }, [nowPlayingKey]);
+
+  useEffect(() => {
+    if (
+      roomCode ||
+      !activeRoom?.started ||
+      activeRoom.currentSong ||
+      activeRoom.timerPaused ||
+      now == null ||
+      timeLeft > 0
+    ) {
+      return;
+    }
+
+    const winningEntry = getWinningQueueEntry(activeRoom.queue);
+
+    const updateTimerId = setTimeout(() => {
+      updateLocalRoom((currentRoom) => {
+        if (winningEntry) {
+          return {
+            ...currentRoom,
+            currentSong: makeCurrentSongFromQueueEntry(winningEntry),
+            queue: [],
+            timerPaused: true,
+            timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
+            roundEndsAt: null,
+          };
+        }
+
+        return {
+          ...currentRoom,
+          timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
+          roundEndsAt: new Date(
+            Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
+          ).toISOString(),
+        };
+      });
+    }, 0);
+
+    return () => clearTimeout(updateTimerId);
+  }, [activeRoom, now, roomCode, timeLeft, updateLocalRoom]);
+
+  const handleAddSong = async (song) => {
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/queue`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            songId: song.id,
+            name: song.name,
+            artist: song.artist,
+            songLink: song.songLink,
+            videoId: song.videoId,
+            addedBy: currentUserName,
+          }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      queue: [
+        ...(currentRoom.queue || []),
+        {
+          entryId: makeLocalEntryId(),
+          songId: song.id,
+          name: song.name,
+          artist: song.artist,
+          songLink: song.songLink,
+          videoId: song.videoId,
+          score: 0,
+          upvotes: 0,
+          addedBy: currentUserName,
+        },
+      ],
+    }));
+  };
+
+  const handleVote = async (entryId, amount) => {
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/vote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entryId, amount }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      queue: (currentRoom.queue || []).map((entry) =>
+        (entry.entryId || entry.songId) === entryId
+          ? {
+              ...entry,
+              score: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
+              upvotes: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
+            }
+          : entry
+      ),
+    }));
+  };
+
+  const handleDeleteSong = async (entryId) => {
+    const entry = entries.find((candidate) => candidate.entryId === entryId);
+
+    if (!isCurrentUserHost && entry?.addedBy !== currentUserName) {
+      return;
+    }
+
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/queue/${encodeURIComponent(entryId)}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userName: currentUserName }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      queue: (currentRoom.queue || []).filter((queuedSong) => {
+        const queuedEntryId = queuedSong.entryId || queuedSong.songId;
+        return queuedEntryId !== entryId;
+      }),
+    }));
+  };
+
+  const handleTimerToggle = async () => {
+    if (!isCurrentUserHost || nowPlaying) {
+      return;
+    }
+
+    const paused = !isTimerPaused;
+
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/timer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paused, userName: currentUserName }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      timerPaused: paused,
+      timerRemainingSeconds: paused ? timeLeft : currentRoom.timerRemainingSeconds || timeLeft,
+      roundEndsAt: paused
+        ? null
+        : new Date(
+            Date.now() + (currentRoom.timerRemainingSeconds || timeLeft) * 1000
+          ).toISOString(),
+    }));
+  };
+
+  const handleCurrentSongComplete = async () => {
+    if (!nowPlaying) {
+      return;
+    }
+
+    const completedKey = nowPlayingKey || "current-song";
+    if (completedPlaybackRef.current === completedKey) {
+      return;
+    }
+    completedPlaybackRef.current = completedKey;
+
+    if (roomCode) {
+      await updateRoomFromResponse(
+        await authFetch(`${API}/rooms/${roomCode}/current-song/complete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ entryId: nowPlaying.entryId, userName: currentUserName }),
+        })
+      );
+      return;
+    }
+
+    updateLocalRoom((currentRoom) => ({
+      ...currentRoom,
+      currentSong: null,
+      timerPaused: false,
+      timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
+      roundEndsAt: new Date(
+        Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
+      ).toISOString(),
+    }));
+  };
+
+  return (
+    <section className="vote-game-shell" aria-label="Vote moving box game">
+      <SongPicker
+        isGuest={isGuest}
+        onAddSong={handleAddSong}
+        onLoginRequired={onLoginRequired}
+        songs={songs}
+      />
+
+      <div className="vote-play-area">
+        <main className="vote-arena" style={{ "--vote-arena-height": `${voteArenaHeight}px` }}>
+          <header className="vote-round-status">
+            <div className="vote-timer-card">
+              <p className="vote-panel-kicker">{nowPlaying ? "Song timer" : "Round timer"}</p>
+              {nowPlaying && isCurrentUserHost ? (
                 <button
+                  className="vote-finish-song-btn"
                   type="button"
-                  className="vote-box-button vote-box-button--down"
-                  onClick={() => handleVote(user.id, -1)}
-                  aria-label={`Downvote ${user.name}`}
+                  onClick={handleCurrentSongComplete}
                 >
-                  ▼
+                  Restart voting
+                </button>
+              ) : (
+                <strong className="vote-timer-value">
+                  {nowPlaying ? "Playing" : formatTime(timeLeft)}
+                </strong>
+              )}
+              {isCurrentUserHost && !nowPlaying && (
+                <button className="vote-timer-toggle" type="button" onClick={handleTimerToggle}>
+                  {isTimerPaused ? "Resume" : "Pause"}
                 </button>
               )}
             </div>
