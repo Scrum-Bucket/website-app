@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const { requireEnv } = require("./env");
 
 const AUTH_COOKIE_NAME = "backendAuthToken";
 const USER_AUTH_COOKIE_NAME = "userAuthToken";
@@ -9,11 +8,15 @@ const DEFAULT_USER_TOKEN_EXPIRES_IN = "2h";
 const DEFAULT_USER_TOKEN_COOKIE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 function getTokenSecret() {
-  return requireEnv("TOKEN_SECRET");
+  return process.env.TOKEN_SECRET || "local-dev-token-secret";
 }
 
 function getSharedAccessToken() {
   return process.env.BACKEND_ACCESS_TOKEN || process.env.BACKEND_AUTH_TOKEN || "";
+}
+
+function isBackendAccessTokenRequired() {
+  return process.env.REQUIRE_BACKEND_ACCESS_TOKEN === "true";
 }
 
 function getTokenExpiresIn() {
@@ -130,7 +133,12 @@ function authenticateUser(req, res, next) {
 
   const tokens = getRequestTokens(req);
   if (!tokens.length) {
-    return rejectUnauthenticated(req, res);
+    if (isBackendAccessTokenRequired()) {
+      return rejectUnauthenticated(req, res);
+    }
+
+    req.auth = { type: "anonymous" };
+    return next();
   }
 
   const sharedAccessToken = getSharedAccessToken();
@@ -157,7 +165,12 @@ function authenticateUser(req, res, next) {
   }
 
   console.log("Token authentication failed:", authError?.message || "No valid token");
-  return rejectUnauthenticated(req, res, "Invalid or expired access token.");
+  if (isBackendAccessTokenRequired()) {
+    return rejectUnauthenticated(req, res, "Invalid or expired access token.");
+  }
+
+  req.auth = { type: "anonymous" };
+  return next();
 }
 
 function requireBackendAccess(req, res, next) {

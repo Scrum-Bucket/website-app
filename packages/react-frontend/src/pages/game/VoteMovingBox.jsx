@@ -1,23 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
 import "./VoteMovingBox.css";
 import UserCrabIcon from "../../assets/user-crab.png";
 import CrownIcon from "../../assets/hats/crown.png";
-import { authFetch } from "../../authFetch";
-import frontendLink from "../../frontendLink";
-import {
-  getSongArtist,
-  getSongId,
-  getSongLink,
-  getSongVideoId,
-  getSongTitle,
-  readAccountPlaylist,
-} from "../Playlist/playlistStorage";
 import {
   createCrabIcon,
   getHatSourceForCrab,
   normalizeCrabProfile,
-  readStoredCrabProfile,
 } from "../profile/crabColor";
 
 const hatImages = import.meta.glob("../../assets/hats/*.png", {
@@ -33,304 +21,180 @@ const DEFAULT_USERS = [
   { id: "guest", name: "Guest" },
 ];
 
-const API = frontendLink;
-const ROUND_SECONDS = 120;
 const MIN_SCORE = -20;
 const MAX_SCORE = 40;
 const STACK_CARD_HEIGHT = 86;
 const STACK_CARD_GAP = 30;
-const VOTE_ARENA_MIN_HEIGHT = 500;
-const VOTE_ARENA_MAX_HEIGHT = 745;
-const VOTE_ARENA_CHROME_HEIGHT = 132;
-const VOTE_PLAYBACK_ARENA_HEIGHT = 640;
-
-let youtubeApiPromise;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function loadYouTubeApi() {
-  if (typeof window === "undefined") {
-    return Promise.resolve(null);
-  }
-
-  if (window.YT?.Player) {
-    return Promise.resolve(window.YT);
-  }
-
-  if (!youtubeApiPromise) {
-    youtubeApiPromise = new Promise((resolve) => {
-      const previousReady = window.onYouTubeIframeAPIReady;
-
-      window.onYouTubeIframeAPIReady = () => {
-        previousReady?.();
-        resolve(window.YT);
-      };
-
-      if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-        const script = document.createElement("script");
-        script.src = "https://www.youtube.com/iframe_api";
-        document.body.appendChild(script);
-      }
-    });
-  }
-
-  return youtubeApiPromise;
-}
-
-function getPlayableVideoId(song) {
-  return getSongVideoId(song) || getSongVideoId({ songLink: song?.songLink });
-}
-
-function normalizeUsers(users, currentUserName) {
+function normalizeUsers(users) {
   const sourceUsers = users?.length ? users : DEFAULT_USERS;
 
   return sourceUsers.map((user, index) => {
-    const name =
-      typeof user === "string" ? user : user.name || user.userName || `User ${index + 1}`;
-    const savedCrab =
-      typeof user === "object" && user?.crab
-        ? user.crab
-        : name === currentUserName
-          ? readStoredCrabProfile()
-          : {};
+    const isObject = user && typeof user === "object";
+    const name = isObject ? user.name || user.userName || `Player ${index + 1}` : String(user);
 
     return {
-      id: user.id || user.userId || name,
+      id: isObject ? user.id || user.userId || name : name,
       name,
-      crab: normalizeCrabProfile(savedCrab),
+      crab: normalizeCrabProfile(isObject ? user.crab : {}),
+      initialScore: Number.isFinite(user?.initialScore) ? user.initialScore : 0,
+      isHost: Boolean(user?.isHost),
     };
   });
 }
 
-function normalizeSongs(songs) {
-  const sourceSongs = Array.isArray(songs) ? songs : [];
+function CrabAvatar({ crab }) {
+  const [icon, setIcon] = useState(UserCrabIcon);
 
-  return sourceSongs.map((song, index) => ({
-    id: getSongId(song) || `${getSongTitle(song)}-${index}`,
-    name: getSongTitle(song),
-    artist: getSongArtist(song) || "Unknown artist",
-    songLink: getSongLink(song),
-    videoId: getSongVideoId(song),
-    source: song.source || "My Playlist",
-  }));
-}
-
-function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = String(seconds % 60).padStart(2, "0");
-
-  return `${minutes}:${remainingSeconds}`;
-}
-
-function makeLocalEntryId() {
-  return `entry-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function getQueueEntryScore(entry) {
-  return Number.isFinite(entry?.score) ? entry.score : entry?.upvotes || 0;
-}
-
-function normalizeQueueEntries(queue) {
-  const sourceQueue = Array.isArray(queue) ? queue : [];
-
-  return sourceQueue.map((entry, index) => {
-    const songId = entry.songId || entry.id || `${entry.name || "song"}-${index}`;
-
-    return {
-      entryId: entry.entryId || songId,
-      song: {
-        id: songId,
-        name: entry.name || entry.title || "Untitled song",
-        artist: entry.artist || "Unknown artist",
-        songLink: entry.songLink || "",
-        videoId: entry.videoId || "",
-        source: entry.source || "Room queue",
-      },
-      score: getQueueEntryScore(entry),
-      addedBy: entry.addedBy || null,
-    };
-  });
-}
-
-function VoteMovingBox({ users }) {
-  const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
-
-  const [scores, setScores] = useState(() =>
-    Object.fromEntries(normalizedUsers.map((u) => [u.id, u.initialScore]))
-  );
-  const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
-
-  // Keep scores in sync when users list changes
-  useEffect(() => {
-<<<<<<<<< Temporary merge branch 1
-    let isActive = true;
-=========
-    setScores((prev) =>
-      Object.fromEntries(
-        normalizedUsers.map((u) => [u.id, prev[u.id] ?? u.initialScore])
-      )
-    );
-  }, [normalizedUsers]);
-
-  // Load tinted crab icon from localStorage
   useEffect(() => {
     let active = true;
->>>>>>>>> Temporary merge branch 2
-    const savedColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
-    const savedHat = localStorage.getItem("profileCrabHat") || "";
-    const hatSource = savedHat ? hatImages[`../../assets/hats/${savedHat}`] || "" : "";
+    const normalizedCrab = normalizeCrabProfile(crab);
+    const hatSource = getHatSourceForCrab(normalizedCrab, hatImages);
 
-    createCrabIcon(UserCrabIcon, savedColor, hatSource).then((icon) => {
-      if (active) setCrabIcon(icon);
+    createCrabIcon(UserCrabIcon, normalizedCrab.color, hatSource).then((createdIcon) => {
+      if (active) {
+        setIcon(createdIcon);
+      }
     });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [crab]);
+
+  return <img src={icon} alt="" aria-hidden="true" />;
+}
+
+function VoteMovingBox({ users }) {
+  const normalizedUsers = useMemo(() => normalizeUsers(users), [users]);
+  const [scores, setScores] = useState(() =>
+    Object.fromEntries(normalizedUsers.map((user) => [user.id, user.initialScore]))
+  );
+
+  useEffect(() => {
+    setScores((previousScores) =>
+      Object.fromEntries(
+        normalizedUsers.map((user) => [
+          user.id,
+          previousScores[user.id] ?? user.initialScore,
+        ])
+      )
+    );
+  }, [normalizedUsers]);
+
+  const rankedUsers = useMemo(
+    () =>
+      [...normalizedUsers].sort(
+        (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
+      ),
+    [normalizedUsers, scores]
+  );
+
+  const stackHeight =
+    normalizedUsers.length * STACK_CARD_HEIGHT +
+    Math.max(0, normalizedUsers.length - 1) * STACK_CARD_GAP;
 
   function handleVote(userId, amount) {
-    setScores((prev) => ({
-      ...prev,
-      [userId]: clamp((prev[userId] ?? 0) + amount, MIN_SCORE, MAX_SCORE),
+    setScores((previousScores) => ({
+      ...previousScores,
+      [userId]: clamp((previousScores[userId] ?? 0) + amount, MIN_SCORE, MAX_SCORE),
     }));
   }
 
-  // Sort users by score descending to get rank order (highest = top = index 0)
-  const ranked = useMemo(() => {
-    return [...normalizedUsers].sort(
-      (a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0)
-    );
-  }, [normalizedUsers, scores]);
-
-  // Total container height so the parent can size itself
-  const containerHeight =
-    normalizedUsers.length * CARD_HEIGHT + (normalizedUsers.length - 1) * CARD_GAP;
-
   return (
-    <section className="vote-current-song" aria-label="Current song">
-      <YouTubeSongPlayer song={song} onEnded={canControl ? onComplete : undefined} />
-    </section>
-  );
-}
+    <section className="vote-game-shell" aria-label="Voting game">
+      <aside className="vote-song-picker" aria-label="Round status">
+        <div className="vote-panel-heading">
+          <p className="vote-panel-kicker">Players</p>
+          <strong>Vote stack</strong>
+        </div>
 
-function SongPicker({ isGuest, onAddSong, onLoginRequired, songs }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState("");
-  const filteredSongs = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
+        <div className="vote-song-empty">
+          Use the up and down buttons to move players in the vote stack.
+        </div>
+      </aside>
 
-    if (!normalizedSearch) {
-      return songs;
-    }
-
-    return songs.filter((song) => song.name.toLowerCase().includes(normalizedSearch));
-  }, [songs, searchTerm]);
-  const handleOpenPlaylist = () => {
-    if (isGuest) {
-      onLoginRequired?.();
-      return;
-    }
-
-    navigate("/home/playlist", {
-      state: {
-        returnTo: `${location.pathname}${location.search}`,
-      },
-    });
-  };
-
-  return (
-    <aside className="vote-song-picker" aria-label="Choose songs">
-      <div className="vote-panel-heading">
-        <p className="vote-panel-kicker">Song window</p>
-        <button className="vote-add-songs-link" type="button" onClick={handleOpenPlaylist}>
-          Add songs
-        </button>
-      </div>
-
-      {songs.length ? (
-        <>
-          <input
-            className="vote-song-search"
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search songs"
-            aria-label="Search songs by title"
-          />
-
-          {filteredSongs.length ? (
-            <div className="vote-song-list">
-              {filteredSongs.map((song) => (
-                <button
-                  className="vote-song-option"
-                  type="button"
-                  onClick={() => onAddSong(song)}
-                  key={song.id}
-                >
-                  ▲
-                </button>
-                <button
-                  type="button"
-                  className="vote-box-button vote-box-button--down"
-                  onClick={() => handleVote(user.id, -1)}
-                  aria-label={`Downvote ${user.name}`}
-                >
-                  ▼
-                </button>
-              )}
+      <main className="vote-play-area">
+        <section className="vote-arena" style={{ "--vote-arena-height": `${stackHeight + 132}px` }}>
+          <header className="vote-round-status">
+            <div>
+              <p className="vote-panel-kicker">Round</p>
+              <strong>Voting</strong>
+              <span>{normalizedUsers.length} players connected</span>
             </div>
             <div>
-              <p className="vote-panel-kicker">Now playing</p>
-              <strong>{nowPlaying ? nowPlaying.name : "Waiting for winner"}</strong>
-              {nowPlaying && <span>{nowPlaying.artist}</span>}
+              <p className="vote-panel-kicker">Leader</p>
+              <strong>{rankedUsers[0]?.name || "Waiting"}</strong>
+              <span>Score {scores[rankedUsers[0]?.id] ?? 0}</span>
             </div>
           </header>
 
-          <div
-            className={`vote-box-game${entries.length && !nowPlaying ? " vote-box-game--stacked" : ""}`}
-          >
-            {nowPlaying ? (
-              <CurrentSongPlayer
-                canControl={isCurrentUserHost}
-                onComplete={handleCurrentSongComplete}
-                shouldPlayAudio={shouldPlayAudio}
-                song={nowPlaying}
-              />
-            ) : (
-              <div className="vote-box-scroll-area" style={{ minHeight: stackHeight }}>
-                {entries.map((entry) => {
-                  const stackIndex = rankedEntries.findIndex(
-                    (rankedEntry) => rankedEntry.entryId === entry.entryId
-                  );
+          <div className="vote-box-game vote-box-game--stacked">
+            <div className="vote-box-scroll-area" style={{ minHeight: stackHeight }}>
+              {normalizedUsers.map((user) => {
+                const stackIndex = rankedUsers.findIndex((rankedUser) => rankedUser.id === user.id);
 
-                  return (
-                    <VoteMovingBoxItem
-                      canDelete={isCurrentUserHost || entry.addedBy === currentUserName}
-                      entry={entry}
-                      onDelete={handleDeleteSong}
-                      stackIndex={stackIndex}
-                      onVote={handleVote}
-                      key={entry.entryId}
-                    />
-                  );
-                })}
+                return (
+                  <article
+                    className="vote-box-row"
+                    key={user.id}
+                    style={{
+                      transform: `translateY(${stackIndex * (STACK_CARD_HEIGHT + STACK_CARD_GAP)}px)`,
+                    }}
+                  >
+                    <div className="vote-box-bar">
+                      <CrabAvatar crab={user.crab} />
 
-                {!entries.length && (
-                  <div className="vote-empty-round">
-                    Add songs from the left window to start the next vote.
-                  </div>
-                )}
-              </div>
-            )}
+                      <div className="vote-box-track">
+                        <span className="vote-box-track-title">{user.name}</span>
+                        <span className="vote-box-track-artist">
+                          Rank {stackIndex + 1}
+                        </span>
+                      </div>
+
+                      <div className="vote-box-actions">
+                        <span className="vote-box-score">{scores[user.id] ?? 0}</span>
+                        <button
+                          type="button"
+                          className="vote-box-button vote-box-button--up"
+                          onClick={() => handleVote(user.id, 1)}
+                          aria-label={`Upvote ${user.name}`}
+                        >
+                          Up
+                        </button>
+                        <button
+                          type="button"
+                          className="vote-box-button vote-box-button--down"
+                          onClick={() => handleVote(user.id, -1)}
+                          aria-label={`Downvote ${user.name}`}
+                        >
+                          Down
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           </div>
-        </main>
+        </section>
 
-        <CrabLane users={normalizedUsers} hostName={hostName} />
-      </div>
+        <section className="vote-crab-lane" aria-label="Players">
+          {rankedUsers.map((user, index) => (
+            <div className="vote-player-crab" key={user.id}>
+              <CrabAvatar crab={user.crab} />
+              <div className={index === 0 ? "vote-player-card vote-player-card--host" : "vote-player-card"}>
+                {index === 0 && <img className="vote-host-crown" src={CrownIcon} alt="" />}
+                <span>{user.name}</span>
+              </div>
+            </div>
+          ))}
+        </section>
+      </main>
     </section>
   );
 }

@@ -5,7 +5,7 @@ frontend: https://polite-sea-008d19c10.7.azurestaticapps.net/
 backend: https://crabrave-g0ave8bxcmgxasa0.westus3-01.azurewebsites.net/users
 (The rest of this README shall be for running locally)
 
-At the present time, accessing the backend requires an authentication token (from an .env file) which will be required for accessing or modifying data in the backend.
+The shared backend access token gate is disabled by default. Set `REQUIRE_BACKEND_ACCESS_TOKEN=true` with `BACKEND_ACCESS_TOKEN` in the backend environment to require the legacy token sign-in flow.
 
 To test api endpoints, install supertest: `npm install supertest`
 

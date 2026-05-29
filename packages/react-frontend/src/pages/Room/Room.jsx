@@ -153,34 +153,11 @@ function Room({ username }) {
     }
   }
 
-<<<<<<<<< Temporary merge branch 1
   if (!room) {
     return (
       <div className="room-page">
         <OtherBackground />
         <div className="room-loading">Connecting...</div>
-=========
-  // ── Render ────────────────────────────────────────────────────────────────
-  if (error) {
-    return (
-      <div className="room-page">
-        <GameBackground />
-        <div className="room-error-box">
-          <p>{error}</p>
-          <button type="button" onClick={() => navigate("/home")}>
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!room) {
-    return (
-      <div className="room-page">
-        <GameBackground />
-        <div className="room-loading">Connecting…</div>
->>>>>>>>> Temporary merge branch 2
       </div>
     );
   }
@@ -191,7 +168,6 @@ function Room({ username }) {
   if (!gameStarted) {
     return (
       <div className="room-page">
-<<<<<<<<< Temporary merge branch 1
         <OtherBackground />
         <div className="room-window">
           <header className="room-top-row">
@@ -227,11 +203,7 @@ function Room({ username }) {
             </div>
 
             {isHost && (
-              <button
-                className="room-start-btn"
-                type="button"
-                onClick={handleStart}
-              >
+              <button className="room-start-btn" type="button" onClick={handleStart}>
                 Start Game
               </button>
             )}
@@ -241,81 +213,6 @@ function Room({ username }) {
     );
   }
 
-  return (
-    <div className="room-page">
-      <OtherBackground />
-      <div className="room-window">
-=========
-        <GameBackground />
-
->>>>>>>>> Temporary merge branch 2
-        <header className="room-top-row">
-          <div className="room-logo" aria-label="logo">
-            <span>J</span>
-          </div>
-          <div className="room-id-bar">
-            <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
-          </div>
-          <button
-            className="room-menu-btn"
-            type="button"
-            aria-label="leave room"
-            onClick={handleLeave}
-          >
-            x
-          </button>
-        </header>
-
-<<<<<<<<< Temporary merge branch 1
-        <section className="room-content">
-          <aside className="room-side-panel">
-            <p className="room-side-label">Players</p>
-            <ul className="room-members-list room-members-list--side">
-              {room.members.map((member) => (
-                <li key={member} className="room-member-item">
-                  {member}
-                  {member === room.host ? " Host" : ""}
-=========
-        <div className="room-lobby">
-          <h2 className="room-lobby-title">Waiting for host to start…</h2>
-
-          <div className="room-lobby-members">
-            <p className="room-lobby-members-label">Players in room</p>
-            <ul className="room-members-list">
-              {room.members.map((m) => (
-                <li key={m} className="room-member-item">
-                  {m}
-                  {m === room.host ? " 👑" : ""}
->>>>>>>>> Temporary merge branch 2
-                </li>
-              ))}
-            </ul>
-          </div>
-
-<<<<<<<<< Temporary merge branch 1
-          <main className="room-main-panel">
-            <VoteMovingBox
-              users={room.members.map((member) => ({ id: member, name: member }))}
-            />
-          </main>
-        </section>
-=========
-          {isHost && (
-            <button
-              className="room-start-btn"
-              type="button"
-              onClick={handleStart}
-            >
-              Start Game
-            </button>
-          )}
-        </div>
->>>>>>>>> Temporary merge branch 2
-      </div>
-    );
-  }
-
-  // ── Game ──────────────────────────────────────────────────────────────────
   return (
     <div className="room-page">
       <GameBackground />
@@ -333,7 +230,7 @@ function Room({ username }) {
           aria-label="leave room"
           onClick={handleLeave}
         >
-          ✕
+          x
         </button>
       </header>
 
