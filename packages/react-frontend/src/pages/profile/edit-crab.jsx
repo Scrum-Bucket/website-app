@@ -4,7 +4,14 @@ import "./edit-crab.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
-import { createCrabIcon } from "./crabColor";
+import { authFetch } from "../../authFetch";
+import frontendLink from "../../frontendLink";
+import {
+  createCrabIcon,
+  getHatSourceForCrab,
+  readStoredCrabProfile,
+  writeStoredCrabProfile,
+} from "./crabColor";
 
 const hatImages = import.meta.glob("../../assets/hats/*.png", {
   eager: true,
@@ -24,17 +31,53 @@ const hats = Object.entries(hatImages).map(([path, source]) => {
 
 function EditCrab() {
   const navigate = useNavigate();
-  const [crabColor, setCrabColor] = useState(
-    localStorage.getItem("profileCrabColor") || "#e74c3c"
-  );
-  const [crabHat, setCrabHat] = useState(localStorage.getItem("profileCrabHat") || "");
+  const initialUserId = localStorage.getItem("userId");
+  const storedCrabProfile = readStoredCrabProfile(initialUserId);
+  const [crabColor, setCrabColor] = useState(storedCrabProfile.color);
+  const [crabHat, setCrabHat] = useState(storedCrabProfile.hat);
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
 
   useEffect(() => {
     let isActive = true;
-    const selectedHat = hats.find((hat) => hat.fileName === crabHat);
 
-    createCrabIcon(UserCrabIcon, crabColor, selectedHat?.source || "").then((nextIcon) => {
+    const syncSavedCrab = async () => {
+      try {
+        const response = await authFetch(`${frontendLink}/users/me`);
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        if (data._id) {
+          localStorage.setItem("userId", data._id);
+        }
+        if (data.userName) {
+          localStorage.setItem("username", data.userName);
+        }
+
+        const savedCrab = writeStoredCrabProfile(data.crab, data._id);
+
+        if (isActive) {
+          setCrabColor(savedCrab.color);
+          setCrabHat(savedCrab.hat);
+        }
+      } catch (error) {
+        console.error("Failed to load saved crab:", error);
+      }
+    };
+
+    syncSavedCrab();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isActive = true;
+    const hatSource = getHatSourceForCrab({ color: crabColor, hat: crabHat }, hatImages);
+
+    createCrabIcon(UserCrabIcon, crabColor, hatSource).then((nextIcon) => {
       if (isActive) {
         setCrabIcon(nextIcon);
       }
@@ -46,19 +89,38 @@ function EditCrab() {
   }, [crabColor, crabHat]);
 
   const handleColorChange = (event) => {
-    const nextColor = event.target.value;
-
-    setCrabColor(nextColor);
-    localStorage.setItem("profileCrabColor", nextColor);
+    setCrabColor(event.target.value);
   };
 
   const handleHatChange = (nextHat) => {
     setCrabHat(nextHat);
+  };
 
-    if (nextHat) {
-      localStorage.setItem("profileCrabHat", nextHat);
-    } else {
-      localStorage.removeItem("profileCrabHat");
+  const handleSave = async () => {
+    const nextCrab = {
+      color: crabColor,
+      hat: crabHat,
+    };
+    const userId = localStorage.getItem("userId");
+
+    try {
+      const response = await authFetch(`${frontendLink}/users/me/prefs`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ crab: nextCrab }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Could not save crab.");
+      }
+
+      const savedUser = await response.json();
+      writeStoredCrabProfile(savedUser.crab || nextCrab, savedUser._id || userId);
+      navigate("/home/profile");
+    } catch (error) {
+      console.error("Failed to save crab:", error);
+      alert("Failed to save crab: " + error.message);
     }
   };
 
@@ -78,11 +140,7 @@ function EditCrab() {
         </header>
 
         <section className="edit-crab-preview-wrap">
-          <img
-            className="edit-crab-preview"
-            src={crabIcon}
-            alt="Profile icon preview"
-          />
+          <img className="edit-crab-preview" src={crabIcon} alt="Profile icon preview" />
         </section>
 
         <section className="edit-crab-controls">
@@ -117,7 +175,7 @@ function EditCrab() {
               </button>
             ))}
           </div>
-          <button type="button" className="edit-crab-save-btn" onClick={() => navigate("/home/profile")}>
+          <button type="button" className="edit-crab-save-btn" onClick={handleSave}>
             Save
           </button>
         </section>

@@ -1,6 +1,8 @@
 //user.js
 const mongoose = require("mongoose");
 
+const DEFAULT_CRAB_COLOR = "#e74c3c";
+
 const UserSchema = new mongoose.Schema(
   {
     // user id just use mongoDB _id
@@ -51,8 +53,11 @@ const UserSchema = new mongoose.Schema(
       default: [],
     },
     crab: {
-      type: [Number],
-      default: [],
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({
+        color: DEFAULT_CRAB_COLOR,
+        hat: "",
+      }),
     },
     isAdmin: {
       type: Boolean,

@@ -6,7 +6,13 @@ import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
 import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
-import { createCrabIcon } from "./crabColor";
+import {
+  clearStoredCrabProfile,
+  createCrabIcon,
+  getHatSourceForCrab,
+  readStoredCrabProfile,
+  writeStoredCrabProfile,
+} from "./crabColor";
 
 const hatImages = import.meta.glob("../../assets/hats/*.png", {
   eager: true,
@@ -16,40 +22,46 @@ const hatImages = import.meta.glob("../../assets/hats/*.png", {
 
 function Profile({ username }) {
   const navigate = useNavigate();
+  const initialUserId = localStorage.getItem("userId");
   const [displayName, setDisplayName] = useState(username || "Guest");
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem("isAdmin") === "true");
+  const [crabProfile, setCrabProfile] = useState(() => readStoredCrabProfile(initialUserId));
+  const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
-    if (!userId) return;
-
-    const verifyAdmin = async () => {
+    const syncUserProfile = async () => {
       try {
-        const response = await authFetch(`${frontendLink}/users/${userId}/admin-status`);
+        const response = await authFetch(`${frontendLink}/users/me`);
         if (!response.ok) {
           return;
         }
         const data = await response.json();
-        const isAdminStatus = data.isAdmin === true;
-        setIsAdmin(isAdminStatus);
-        localStorage.setItem("isAdmin", isAdminStatus ? "true" : "false");
+
+        if (data.userName) {
+          setDisplayName(data.userName);
+          localStorage.setItem("username", data.userName);
+        }
+
+        if (data._id) {
+          localStorage.setItem("userId", data._id);
+        }
+
+        setIsAdmin(data.isAdmin === true);
+        localStorage.setItem("isAdmin", data.isAdmin === true ? "true" : "false");
+        setCrabProfile(writeStoredCrabProfile(data.crab, data._id));
       } catch (err) {
-        console.error("Failed to verify admin status:", err);
+        console.error("Failed to sync user profile:", err);
       }
     };
 
-    verifyAdmin();
-  }, []);
-
-  const savedCrabColor = localStorage.getItem("profileCrabColor") || "#e74c3c";
-  const savedCrabHat = localStorage.getItem("profileCrabHat") || "";
-  const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
+    syncUserProfile();
+  }, [username]);
 
   useEffect(() => {
     let isActive = true;
-    const hatSource = savedCrabHat ? hatImages[`../../assets/hats/${savedCrabHat}`] || "" : "";
+    const hatSource = getHatSourceForCrab(crabProfile, hatImages);
 
-    createCrabIcon(UserCrabIcon, savedCrabColor, hatSource).then((nextIcon) => {
+    createCrabIcon(UserCrabIcon, crabProfile.color, hatSource).then((nextIcon) => {
       if (isActive) {
         setCrabIcon(nextIcon);
       }
@@ -58,7 +70,7 @@ function Profile({ username }) {
     return () => {
       isActive = false;
     };
-  }, [savedCrabColor, savedCrabHat]);
+  }, [crabProfile]);
 
   const handleLogout = async () => {
     const userId = localStorage.getItem("userId");
@@ -71,7 +83,7 @@ function Profile({ username }) {
 
     try {
       // Call backend logout endpoint
-      const response = await authFetch(`${frontendLink}/users/${userId}/logout`, {
+      const response = await authFetch(`${frontendLink}/users/me/logout`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,6 +95,7 @@ function Profile({ username }) {
       }
 
       // Clear authentication data from localStorage
+      clearStoredCrabProfile(userId);
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
@@ -93,6 +106,7 @@ function Profile({ username }) {
     } catch (error) {
       console.error("Logout error:", error);
       // Clear localStorage anyway and navigate to login on error
+      clearStoredCrabProfile(userId);
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
@@ -136,7 +150,7 @@ function Profile({ username }) {
 
     try {
       // Call backend rename endpoint
-      const response = await authFetch(`${frontendLink}/users/${userId}/rename`, {
+      const response = await authFetch(`${frontendLink}/users/me/rename`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -181,7 +195,7 @@ function Profile({ username }) {
     }
 
     try {
-      const response = await authFetch(`${frontendLink}/users/${userId}/password`, {
+      const response = await authFetch(`${frontendLink}/users/me/password`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -219,7 +233,7 @@ function Profile({ username }) {
 
     try {
       // Call backend delete endpoint
-      const response = await authFetch(`${frontendLink}/users/${userId}`, {
+      const response = await authFetch(`${frontendLink}/users/me`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -231,9 +245,11 @@ function Profile({ username }) {
       }
 
       // Clear authentication data from localStorage
+      clearStoredCrabProfile(userId);
       localStorage.removeItem("authToken");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
+      localStorage.removeItem("isAdmin");
 
       // Navigate to login screen
       navigate("/");

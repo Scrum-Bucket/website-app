@@ -2,6 +2,27 @@
 const bcrypt = require("bcrypt");
 const userModel = require("./user.js");
 
+const DEFAULT_CRAB_PROFILE = Object.freeze({
+  color: "#e74c3c",
+  hat: "",
+});
+const CRAB_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const MAX_CRAB_HAT_LENGTH = 80;
+
+function normalizeCrabProfile(crab = {}) {
+  if (!crab || typeof crab !== "object" || Array.isArray(crab)) {
+    return { ...DEFAULT_CRAB_PROFILE };
+  }
+
+  const color =
+    typeof crab.color === "string" && CRAB_COLOR_PATTERN.test(crab.color)
+      ? crab.color
+      : DEFAULT_CRAB_PROFILE.color;
+  const hat = typeof crab.hat === "string" ? crab.hat.trim().slice(0, MAX_CRAB_HAT_LENGTH) : "";
+
+  return { color, hat };
+}
+
 //allows get all
 async function getUsers(userName) {
   if (!userName) {
@@ -91,13 +112,12 @@ async function unbanUser(id) {
 
 // id is user id
 async function addSongsToPlaylist(id, playlistName, songIds) {
-
   // get the user
   const user = await userModel.findById(id);
 
   // Cant find the user
-  if (!user){
-     throw new Error("User not found");
+  if (!user) {
+    throw new Error("User not found");
   }
 
   // p = one playlist (possibly multiple playlists)
@@ -123,14 +143,15 @@ async function addSongsToPlaylist(id, playlistName, songIds) {
   return await user.save();
 }
 
-// changePrefs: update playlist and/or crab lists
-async function changePrefs(id, { playlist, crab }) {
+// changePrefs: update favorite songs and/or saved crab profile
+async function changePrefs(id, { favorites, playlist, crab }) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
 
   const update = {};
+  if (favorites !== undefined) update.favorites = favorites;
   if (playlist !== undefined) update.playlist = playlist;
-  if (crab !== undefined) update.crab = crab;
+  if (crab !== undefined) update.crab = normalizeCrabProfile(crab);
 
   return await userModel.findByIdAndUpdate(id, update, { new: true });
 }
@@ -198,4 +219,6 @@ module.exports = {
   promoteToAdmin,
   demoteFromAdmin,
   isAdmin,
+  DEFAULT_CRAB_PROFILE,
+  normalizeCrabProfile,
 };

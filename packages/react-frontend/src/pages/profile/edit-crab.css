@@ -122,7 +122,10 @@
   justify-content: center;
   padding: 8px;
   font-size: 0.9rem;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .edit-crab-hat-btn img {

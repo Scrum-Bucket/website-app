@@ -6,7 +6,6 @@ import spottedImage from "./animationAssets/spotted.png";
 import copperbandImage from "./animationAssets/copperband.png";
 import swordfishImage from "./animationAssets/swordfish.png";
 import clowntriggerImage from "./animationAssets/clown-trigger-unf.png";
-import seamanImage from "./animationAssets/seaman.png";
 
 const FISH_IMAGE_SOURCES = [
   bloodAngelImage,
@@ -16,7 +15,6 @@ const FISH_IMAGE_SOURCES = [
   copperbandImage,
   swordfishImage,
   clowntriggerImage,
-  seamanImage,
 ];
 
 export default function HomeBackground() {
@@ -32,25 +30,28 @@ export default function HomeBackground() {
     let crabs = [];
     let animationFrameId;
     let fishImages = [];
+    let isActive = true;
 
     function loadFishImages() {
-      return Promise.all(
-        FISH_IMAGE_SOURCES.map(
-          (src) =>
-            new Promise((resolve, reject) => {
-              const image = new Image();
-              image.src = src;
-              image.onload = () => resolve(image);
-              image.onerror = reject;
-            })
-        )
-      );
+      FISH_IMAGE_SOURCES.forEach((src) => {
+        const image = new Image();
+        image.decoding = "async";
+        image.onload = () => {
+          if (!isActive) return;
+
+          fishImages = [...fishImages, image];
+          populateCreatures();
+        };
+        image.src = src;
+      });
     }
 
     function createFish() {
       const sandHeight = height * 0.03;
       const waterBottom = height - sandHeight;
-      const image = fishImages[Math.floor(Math.random() * fishImages.length)];
+      const image = fishImages.length
+        ? fishImages[Math.floor(Math.random() * fishImages.length)]
+        : null;
       const scale = 0.18 + Math.random() * 0.2;
       const drawWidth = 1000 * scale;
       const drawHeight = 1000 * scale;
@@ -98,7 +99,15 @@ export default function HomeBackground() {
         ctx.scale(-1, 1);
       }
 
-      ctx.drawImage(f.image, -f.width / 2, -f.height / 2, f.width, f.height);
+      if (f.image) {
+        ctx.drawImage(f.image, -f.width / 2, -f.height / 2, f.width, f.height);
+      } else {
+        ctx.fillStyle = "#f7b244";
+        ctx.fillRect(-f.width / 2, -f.height / 6, f.width * 0.7, f.height / 3);
+        ctx.fillRect(f.width * 0.12, -f.height / 4, f.width * 0.25, f.height / 2);
+        ctx.fillStyle = "#083047";
+        ctx.fillRect(-f.width * 0.32, -2, 3, 3);
+      }
 
       ctx.restore();
     }
@@ -162,7 +171,7 @@ export default function HomeBackground() {
     }
 
     function resize() {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       width = window.innerWidth;
       height = window.innerHeight;
 
@@ -196,13 +205,12 @@ export default function HomeBackground() {
 
     window.addEventListener("resize", resize);
 
-    loadFishImages().then((images) => {
-      fishImages = images;
-      resize();
-      animationFrameId = requestAnimationFrame(draw);
-    });
+    resize();
+    animationFrameId = requestAnimationFrame(draw);
+    loadFishImages();
 
     return () => {
+      isActive = false;
       window.removeEventListener("resize", resize);
       cancelAnimationFrame(animationFrameId);
     };

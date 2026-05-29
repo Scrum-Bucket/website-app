@@ -154,3 +154,8 @@
   border-radius: 6px;
   font-size: 16px;
 }
+.playlist-header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

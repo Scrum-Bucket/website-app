@@ -1,0 +1,100 @@
+.login-required-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(5, 42, 69, 0.42);
+}
+
+.login-required-window {
+  width: min(620px, 100%);
+  min-height: 280px;
+  padding: 72px 64px 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: url("../assets/leaflet.png") center / 100% 100% no-repeat;
+  animation: loginRequiredFloat 6s ease-in-out infinite;
+}
+
+.login-required-message {
+  max-width: 430px;
+  margin: 0;
+  color: #1d1d1d;
+  font-family: "Blackbeard", "Times New Roman", serif;
+  font-size: 32px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.login-required-message span {
+  display: block;
+}
+
+.login-required-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.login-required-actions button {
+  width: 82px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 10px;
+  background: #1d1d1d;
+  color: #ffffff;
+  font-family: "Blackbeard", "Times New Roman", serif;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.login-required-actions button:hover,
+.login-required-actions button:focus-visible {
+  background: #000000;
+}
+
+@keyframes loginRequiredFloat {
+  0%,
+  100% {
+    transform: translate(-5px, -5px) rotate(-0.6deg) scale(1);
+  }
+
+  25% {
+    transform: translate(2px, -2px) rotate(0.3deg) scale(0.995);
+  }
+
+  50% {
+    transform: translate(4px, 4px) rotate(0.6deg) scale(0.99);
+  }
+
+  75% {
+    transform: translate(-2px, 2px) rotate(-0.3deg) scale(0.995);
+  }
+}
+
+@media (max-width: 620px) {
+  .login-required-window {
+    min-height: 240px;
+    padding: 56px 36px 42px;
+  }
+
+  .login-required-message {
+    font-size: 24px;
+  }
+
+  .login-required-actions {
+    gap: 10px;
+  }
+
+  .login-required-actions button {
+    width: 74px;
+    font-size: 14px;
+  }
+}

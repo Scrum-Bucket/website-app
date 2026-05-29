@@ -20,7 +20,7 @@ function Host({ username }) {
     const fallbackRoom = {
       roomCode,
       host,
-      members: [host, "Player 2", "Player 3"],
+      members: [host],
       queue: [],
       started: false,
     };
@@ -36,8 +36,11 @@ function Host({ username }) {
         throw new Error("Could not create room.");
       }
 
+      const createdRoom = await response.json();
+      sessionStorage.setItem(`roomMemberName:${roomCode}`, createdRoom.assignedMemberName || host);
       navigate(`/home/room/${roomCode}`);
     } catch {
+      sessionStorage.setItem(`roomMemberName:${roomCode}`, host);
       setError("Using a local test room because the backend is unavailable.");
       navigate(`/home/room/${roomCode}`, { state: { room: fallbackRoom } });
     }

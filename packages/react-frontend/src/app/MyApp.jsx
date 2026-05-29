@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { authFetch } from "../authFetch";
 import frontendLink from "../frontendLink";
+import { writeStoredCrabProfile } from "../pages/profile/crabColor";
 
 function MyApp({ onLogin }) {
   const location = useLocation();
@@ -48,8 +49,12 @@ function MyApp({ onLogin }) {
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
       localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+      writeStoredCrabProfile(userData.crab, userData._id);
 
-      onLogin(trimmedUsername);
+      onLogin({
+        username: userData.userName || trimmedUsername,
+        userId: userData._id,
+      });
       navigate("/home");
     } catch (error) {
       setErrorMessage("Connection error. Is the backend running?");
@@ -95,8 +100,12 @@ function MyApp({ onLogin }) {
       localStorage.setItem("username", userData.userName);
       localStorage.setItem("userId", userData._id);
       localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+      writeStoredCrabProfile(userData.crab, userData._id);
 
-      onLogin(trimmedUsername);
+      onLogin({
+        username: userData.userName || trimmedUsername,
+        userId: userData._id,
+      });
       navigate("/home");
     } catch (error) {
       setErrorMessage("Connection error. Is the backend running?");
@@ -105,23 +114,7 @@ function MyApp({ onLogin }) {
   }
 
   async function handleGuestLogin() {
-    try {
-      await fetch(`${frontendLink}/signout`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-        },
-      });
-    } catch {
-      // Guest mode can continue even if the backend is unavailable.
-    }
-
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("username");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("isAdmin");
-    onLogin("Guest");
+    onLogin({ username: "Guest", userId: "" });
     navigate("/home");
   }
 

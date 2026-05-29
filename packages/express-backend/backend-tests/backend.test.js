@@ -17,6 +17,8 @@ const bcrypt = require("bcrypt");
 
 const originalFetch = global.fetch;
 const authHeader = `Bearer ${process.env.BACKEND_ACCESS_TOKEN}`;
+const defaultCrab = { color: "#e74c3c", hat: "" };
+const samuraiCrab = { color: "#2ecc71", hat: "samurai_helmet.png" };
 
 function supertest(app) {
   const request = baseSupertest(app);
@@ -141,7 +143,7 @@ test("create user", async () => {
     passWord: "hashedpassword",
     status: 0,
     favorites: [],
-    crab: [],
+    crab: defaultCrab,
   };
   mockingoose(userModel).toReturn(mockedUser, "save");
 
@@ -156,7 +158,7 @@ test("create user", async () => {
   expect(result.body.passWord).toBeUndefined();
   expect(result.body.status).toBe(0);
   expect(result.body.favorites).toStrictEqual([]);
-  expect(result.body.crab).toStrictEqual([]);
+  expect(result.body.crab).toStrictEqual(defaultCrab);
   expect(result.body.authenticated).toBe(true);
   expect(result.headers["set-cookie"][0]).toContain("userAuthToken=");
 });
@@ -328,13 +330,13 @@ test("change prefs test", async () => {
     userName: "John Doe",
     status: 0,
     favorites: [],
-    crab: [],
+    crab: defaultCrab,
   };
 
   const updatedUser = {
     ...existingUser,
     favorites: [1, 2],
-    crab: [3],
+    crab: samuraiCrab,
   };
 
   mockingoose(userModel).toReturn(existingUser, "findOne");
@@ -342,11 +344,11 @@ test("change prefs test", async () => {
 
   const result = await supertest(backend.app)
     .patch("/users/507f1f77bcf86cd799439011/prefs")
-    .send({ favorites: [1, 2], crab: [3] })
+    .send({ favorites: [1, 2], crab: samuraiCrab })
     .expect(200);
 
   expect(result.body.favorites).toStrictEqual([1, 2]);
-  expect(result.body.crab).toStrictEqual([3]);
+  expect(result.body.crab).toStrictEqual(samuraiCrab);
 });
 
 test("change prefs test fail - user not found", async () => {

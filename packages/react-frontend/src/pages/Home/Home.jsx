@@ -7,8 +7,18 @@ import roomImage from "../../assets/room.png";
 import musicNoteImage from "../../assets/musicnote.png";
 import Background from "../../../animationFiles/home-background.jsx";
 
-function Home({ username }) {
+function Home({ username, onLoginRequired }) {
   const navigate = useNavigate();
+  const isGuest = username === "Guest";
+
+  function openProtectedPage(path) {
+    if (isGuest && onLoginRequired) {
+      onLoginRequired();
+      return;
+    }
+
+    navigate(path);
+  }
 
   return (
     <div className="home-page">
@@ -22,7 +32,7 @@ function Home({ username }) {
               type="button"
               className="profile-btn pixel-bubble-btn"
               aria-label="profile"
-              onClick={() => navigate("/home/profile")}
+              onClick={() => openProtectedPage("/home/profile")}
             >
               Profile
             </button>
@@ -37,7 +47,7 @@ function Home({ username }) {
             <button
               type="button"
               className="pixel-bubble-btn"
-              onClick={() => navigate("/home/host")}
+              onClick={() => openProtectedPage("/home/host")}
             >
               Host
             </button>
@@ -59,7 +69,7 @@ function Home({ username }) {
             <button
               type="button"
               className="pixel-bubble-btn"
-              onClick={() => navigate("/home/playlist")}
+              onClick={() => openProtectedPage("/home/playlist")}
             >
               Playlist
             </button>

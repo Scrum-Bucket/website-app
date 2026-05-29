@@ -27,18 +27,31 @@ function Code({ username }) {
       // Verify the room exists
       const checkRes = await authFetch(`${API}/rooms/${trimmed}`);
       if (!checkRes.ok) {
-        setError("Room not found. Check the code and try again.");
+        const errorData = await checkRes.json().catch(() => ({}));
+        setError(errorData.error || "Room not found. Check the code and try again.");
         setLoading(false);
         return;
       }
 
       // Join the room
-      await authFetch(`${API}/rooms/${trimmed}/join`, {
+      const joinRes = await authFetch(`${API}/rooms/${trimmed}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName: username || "guest" }),
       });
 
+      if (!joinRes.ok) {
+        const errorData = await joinRes.json().catch(() => ({}));
+        setError(errorData.error || "Could not join room. Try again.");
+        setLoading(false);
+        return;
+      }
+
+      const joinedRoom = await joinRes.json();
+      sessionStorage.setItem(
+        `roomMemberName:${trimmed}`,
+        joinedRoom.assignedMemberName || username || "guest"
+      );
       navigate(`/home/room/${trimmed}`);
     } catch {
       setError("Could not connect to server. Try again.");

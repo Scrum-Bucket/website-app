@@ -1,104 +1,319 @@
-/* ── Container ───────────────────────────────────────────────────────────── */
-
-.vote-box-game {
-  position: relative;   /* canvas + cards are absolutely positioned inside */
-  width: 100%;
-  padding: 18px;
-  box-sizing: border-box;
-  overflow: hidden;
-  border-radius: 12px;
-}
-
-/* ── Card ────────────────────────────────────────────────────────────────── */
-
-.vote-box-card {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  height: 120px;
-  z-index: 1;          /* sit above the background canvas */
-
-  background: rgba(47, 80, 189, 0.72);
-  border: 2px solid rgba(231, 244, 255, 0.32);
-  border-radius: 12px;
-  color: #e7f4ff;
-
-  /* smooth vertical slide when rank changes */
-  transition: transform 0.4s cubic-bezier(0.34, 1.26, 0.64, 1);
-  will-change: transform;
-}
-
-.vote-box-inner {
-  height: 100%;
+.vote-game-shell {
+  min-height: 620px;
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: 80px 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 16px;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: 16px;
+  color: #e7f4ff;
 }
 
-/* ── Crab ────────────────────────────────────────────────────────────────── */
-
-.vote-box-crab {
-  width: 68px;
-  height: 68px;
-  object-fit: contain;
-  flex-shrink: 0;
+.vote-song-picker,
+.vote-arena {
+  min-width: 0;
+  border: 2px solid rgba(231, 244, 255, 0.32);
+  border-radius: 8px;
+  background: rgba(47, 80, 189, 0.62);
 }
 
-/* ── Info ────────────────────────────────────────────────────────────────── */
+.vote-play-area {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 10px;
+}
 
-.vote-box-info {
+.vote-song-picker {
+  height: 720px;
+  max-height: 775px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.vote-box-user-name {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #e7f4ff;
-  white-space: nowrap;
+  padding: 16px;
+  align-self: start;
   overflow: hidden;
-  text-overflow: ellipsis;
+  background: rgba(8, 48, 71, 0.86);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
 }
 
-.vote-box-score {
-  min-width: 44px;
-  height: 32px;
-  border-radius: 8px;
-  background: #203c9b;
-  color: #f7b244;
+.vote-panel-heading {
+  margin-bottom: 16px;
+}
+
+.vote-panel-kicker {
+  margin: 0;
+}
+
+.vote-add-songs-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 42px;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 999px;
+  background: #2f50bd;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
   font-size: 20px;
   font-weight: 700;
-  padding: 0 8px;
+  margin: 6px 0 0;
+  padding: 8px 18px;
 }
 
-/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.vote-add-songs-link:hover,
+.vote-add-songs-link:focus-visible {
+  border-color: #f7b244;
+  outline: none;
+}
 
-.vote-box-buttons {
+.vote-panel-kicker {
+  color: #c8e6ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vote-song-search {
+  box-sizing: border-box;
+  width: 100%;
+  flex: 0 0 auto;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #eefbff;
+  color: #083047;
+  font: inherit;
+  margin-bottom: 10px;
+  padding: 12px;
+}
+
+.vote-song-search:focus {
+  border-color: #f7b244;
+  outline: none;
+}
+
+.vote-song-search::placeholder {
+  color: #2f50bd;
+}
+
+.vote-song-list {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.vote-song-empty {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(231, 244, 255, 0.42);
+  border-radius: 8px;
+  font-size: 18px;
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+}
+
+.vote-song-option {
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #eefbff;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  padding: 18px 12px;
+  text-align: left;
+  white-space: normal;
+}
+
+.vote-song-option:hover,
+.vote-song-option:focus-visible {
+  border-color: #f7b244;
+  background: #ffffff;
+}
+
+.vote-song-option span {
+  color: #083047;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.vote-song-option small {
+  color: #2f50bd;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.vote-arena {
+  height: var(--vote-arena-height, 500px);
+  max-height: 835px;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.vote-round-status {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.4fr) minmax(220px, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 2px solid rgba(231, 244, 255, 0.22);
+  background: rgba(8, 48, 71, 0.28);
+}
+
+.vote-round-status div {
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 10px 12px;
+}
+
+.vote-round-status .vote-timer-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border: 2px solid rgba(247, 178, 68, 0.72);
+  background: rgba(8, 48, 71, 0.58);
+  box-shadow: 0 0 0 3px rgba(247, 178, 68, 0.16);
+}
+
+.vote-timer-card .vote-panel-kicker {
+  grid-column: 1 / -1;
+}
+
+.vote-timer-toggle {
+  align-self: center;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #2f50bd;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.vote-timer-toggle:hover,
+.vote-timer-toggle:focus-visible {
+  border-color: #f7b244;
+  outline: none;
+}
+
+.vote-round-status strong {
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.vote-round-status .vote-timer-value {
+  color: #f7b244;
+  font-size: 44px;
+  letter-spacing: 0;
+}
+
+.vote-round-status span {
+  color: #c8e6ff;
+  font-size: 14px;
+}
+
+.vote-box-game {
+  min-height: 0;
+  position: relative;
+  padding: 18px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.vote-box-scroll-area {
+  min-height: 100%;
+  position: relative;
+}
+
+.vote-box-row {
+  min-width: 0;
+  width: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  color: #e7f4ff;
+}
+
+.vote-box-game--stacked .vote-box-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 86px;
+  transition: transform 0.34s ease;
+}
+
+.vote-box-bar {
+  width: 100%;
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+  border: 3px solid #083047;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #eefbff 0%, #9fd7e4 58%, #4aa6dd 100%);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.18);
+  padding: 10px;
+}
+
+.vote-box-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vote-box-score {
+  min-width: 48px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #203c9b;
+  color: #f7b244;
+  font-size: 24px;
+  font-weight: 700;
 }
 
 .vote-box-button {
-  width: 52px;
-  height: 36px;
+  min-width: 58px;
+  min-height: 44px;
   border: none;
   border-radius: 8px;
   color: #ffffff;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   transition:
-    transform 0.1s ease,
-    box-shadow 0.1s ease;
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
 }
 
 .vote-box-button--up {
@@ -111,6 +326,11 @@
   box-shadow: 0 3px 0 #a93024;
 }
 
+.vote-box-button--delete {
+  background: #8b1e1e;
+  box-shadow: 0 3px 0 #5f1515;
+}
+
 .vote-box-button:hover {
   transform: translateY(-1px);
 }
@@ -120,23 +340,266 @@
   box-shadow: none;
 }
 
-/* ── Responsive ──────────────────────────────────────────────────────────── */
+.vote-box-track {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  color: #083047;
+}
 
-@media (max-width: 520px) {
-  .vote-box-inner {
-    grid-template-columns: 56px 1fr auto;
-    gap: 10px;
-    padding: 10px 12px;
+.vote-box-track-title,
+.vote-box-track-artist {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vote-box-track-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.vote-box-track-artist {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vote-empty-round {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(231, 244, 255, 0.42);
+  border-radius: 8px;
+  color: #c8e6ff;
+  font-size: 20px;
+  padding: 28px;
+  text-align: center;
+}
+
+.vote-current-song {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(220px, 1fr) auto;
+  gap: 14px;
+}
+
+.vote-current-song-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 2px solid rgba(247, 178, 68, 0.58);
+  border-radius: 8px;
+  background: rgba(8, 48, 71, 0.58);
+  padding: 12px 14px;
+}
+
+.vote-current-song-heading strong {
+  color: #ffffff;
+  font-size: 26px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.vote-current-song-heading span {
+  color: #c8e6ff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.vote-song-player-frame,
+.vote-song-player-missing {
+  width: 100%;
+  min-height: 300px;
+  border: 3px solid #083047;
+  border-radius: 8px;
+  background: #061927;
+  overflow: hidden;
+}
+
+.vote-song-player-frame iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  border: 0;
+  display: block;
+}
+
+.vote-song-player-missing {
+  display: grid;
+  place-items: center;
+  color: #e7f4ff;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 24px;
+  text-align: center;
+}
+
+.vote-song-player-missing a {
+  color: #f7b244;
+}
+
+.vote-finish-song-btn {
+  justify-self: start;
+  min-height: 46px;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #19be35;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 16px;
+}
+
+.vote-finish-song-btn:hover,
+.vote-finish-song-btn:focus-visible {
+  border-color: #f7b244;
+  outline: none;
+}
+
+.vote-crab-lane {
+  min-height: 230px;
+  max-height: 360px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  justify-content: center;
+  column-gap: 10px;
+  row-gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 6px 18px;
+}
+
+.vote-player-crab {
+  flex: 0 0 96px;
+  min-width: 96px;
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  animation: crabBob 1.9s ease-in-out infinite;
+}
+
+.vote-player-crab:nth-child(even) {
+  margin-top: 54px;
+}
+
+.vote-player-crab img {
+  width: 94px;
+  height: 94px;
+  object-fit: contain;
+  position: relative;
+  z-index: 1;
+  margin-bottom: -8px;
+}
+
+.vote-player-card {
+  box-sizing: border-box;
+  width: fit-content;
+  min-width: 116px;
+  max-width: 170px;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: url("../../assets/leaflet.png") center / cover no-repeat;
+  padding: 12px 14px 9px;
+}
+
+.vote-player-card--host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25em;
+}
+
+.vote-player-card .vote-host-crown {
+  width: 28px;
+  height: 28px;
+  display: block;
+  min-width: 16px;
+  position: static;
+  z-index: auto;
+  margin-bottom: 0;
+  object-fit: contain;
+}
+
+.vote-player-card span {
+  min-width: 88px;
+  max-width: 132px;
+  color: #1d1d1d;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: center;
+}
+
+.vote-player-card--host span {
+  min-width: 68px;
+  max-width: 108px;
+}
+
+@keyframes crabBob {
+  0%,
+  100% {
+    transform: translateY(0);
   }
 
-  .vote-box-crab {
-    width: 48px;
-    height: 48px;
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@media (max-width: 920px) {
+  .vote-game-shell {
+    grid-template-columns: 1fr;
   }
 
-  .vote-box-button {
-    width: 44px;
-    height: 32px;
-    font-size: 15px;
+  .vote-song-picker {
+    align-self: auto;
+    height: auto;
+    max-height: 500px;
+  }
+
+  .vote-song-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .vote-crab-lane {
+    max-height: 420px;
+    column-gap: 6px;
+  }
+
+  .vote-player-crab {
+    flex-basis: 84px;
+    min-width: 84px;
+  }
+
+  .vote-player-crab img {
+    width: 82px;
+    height: 82px;
+  }
+
+  .vote-round-status {
+    grid-template-columns: 1fr;
+  }
+
+  .vote-box-game {
+    padding: 12px;
+  }
+
+  .vote-box-game--stacked .vote-box-row {
+    left: 0;
+    right: 0;
   }
 }

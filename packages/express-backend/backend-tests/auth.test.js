@@ -138,6 +138,46 @@ test("frontend user auth cookie can access protected routes", async () => {
   expect(usersResult.body).toStrictEqual([]);
 });
 
+test("current user profile comes from the frontend user session", async () => {
+  const existingUser = {
+    _id: "507f1f77bcf86cd799439011",
+    userName: "frontend-user",
+    passWord: await bcrypt.hash("password123", 10),
+    status: 0,
+    favorites: [],
+    crab: { color: "#3498db", hat: "pirate_captain_hat.png" },
+  };
+
+  mockingoose(userModel).toReturn(existingUser, "findOne");
+  mockingoose(userModel).toReturn({ ...existingUser, status: 1 }, "findOneAndUpdate");
+
+  const loginResult = await supertest(backend.app)
+    .post("/users/login")
+    .send({ username: "frontend-user", password: "password123" })
+    .expect(200);
+
+  const signinResult = await supertest(backend.app)
+    .post("/signin")
+    .type("form")
+    .send({ token: "test-backend-access-token", next: "/users" })
+    .expect(302);
+
+  mockingoose(userModel).toReturn({ ...existingUser, status: 1 }, "findOne");
+
+  const cookies = [...signinResult.headers["set-cookie"], ...loginResult.headers["set-cookie"]].map(
+    (cookie) => cookie.split(";")[0]
+  );
+
+  const profileResult = await supertest(backend.app)
+    .get("/users/me")
+    .set("Cookie", cookies)
+    .expect(200);
+
+  expect(profileResult.body.userName).toBe("frontend-user");
+  expect(profileResult.body.passWord).toBeUndefined();
+  expect(profileResult.body.crab).toStrictEqual(existingUser.crab);
+});
+
 test("frontend signup creates an authenticated user session", async () => {
   const createdUser = {
     _id: "507f1f77bcf86cd799439012",
@@ -163,10 +203,7 @@ test("frontend signup creates an authenticated user session", async () => {
 });
 
 test("protected browser request without token redirects to signin", async () => {
-  const result = await supertest(backend.app)
-    .get("/users")
-    .set("Accept", "text/html")
-    .expect(302);
+  const result = await supertest(backend.app).get("/users").set("Accept", "text/html").expect(302);
 
   expect(result.headers.location).toBe("/signin?next=%2Fusers");
 });
