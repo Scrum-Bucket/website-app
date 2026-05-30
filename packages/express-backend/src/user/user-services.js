@@ -152,30 +152,6 @@ async function heartbeatUser(id, sessionId) {
   );
 }
 
-async function logoutUserSession(id, sessionId) {
-  if (!sessionId) throw new Error("Session id is required");
-  const user = await userModel.findById(id);
-  if (!user) throw new Error("User not found");
-
-  const activeSessions = getActiveSessions(user);
-  delete activeSessions[sessionId];
-
-  const sessionTimes = Object.values(activeSessions)
-    .map((lastSeenAt) => new Date(lastSeenAt).getTime())
-    .filter(Number.isFinite);
-  const lastActiveAt = sessionTimes.length ? new Date(Math.max(...sessionTimes)) : null;
-
-  return await userModel.findByIdAndUpdate(
-    id,
-    {
-      status: lastActiveAt ? 1 : 0,
-      lastActiveAt,
-      activeSessions,
-    },
-    { new: true }
-  );
-}
-
 async function logoutInactiveUsers(maxInactiveMs) {
   const cutoff = new Date(Date.now() - maxInactiveMs);
   const users = await userModel.find({ status: 1 });
@@ -329,7 +305,6 @@ module.exports = {
   logoutUser,
   registerUserSession,
   heartbeatUser,
-  logoutUserSession,
   logoutInactiveUsers,
   timeoutUser,
   unbanUser,

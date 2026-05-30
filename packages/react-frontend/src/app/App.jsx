@@ -12,7 +12,7 @@ import MyPlaylist from "../pages/Playlist/MyPlaylist";
 import Profile from "../pages/profile/profile";
 import Admin from "../pages/admin/Admin";
 import EditCrab from "../pages/profile/edit-crab";
-import { HEARTBEAT_MS, endCurrentSession, getSessionUser, sendUserHeartbeat } from "../authSession";
+import { HEARTBEAT_MS, getSessionUser, sendUserHeartbeat } from "../authSession";
 
 export function GuestGuard({ username, children }) {
   const navigate = useNavigate();
@@ -63,22 +63,6 @@ export function App() {
     return () => {
       active = false;
       clearInterval(heartbeatId);
-    };
-  }, [isLoggedIn, username]);
-
-  useEffect(() => {
-    if (!isLoggedIn || username === "Guest") {
-      return undefined;
-    }
-
-    function handlePageHide() {
-      endCurrentSession();
-    }
-
-    window.addEventListener("pagehide", handlePageHide);
-
-    return () => {
-      window.removeEventListener("pagehide", handlePageHide);
     };
   }, [isLoggedIn, username]);
 

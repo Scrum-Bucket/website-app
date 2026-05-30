@@ -156,37 +156,6 @@ function Room({ username }) {
     };
   }, [goHomeWithNotice, roomCode, roomMemberName, username]);
 
-  useEffect(() => {
-    if (!roomCode || !roomMemberName) {
-      return undefined;
-    }
-
-    function leaveRoomOnUnload() {
-      const sessionToken = getSessionUser().token;
-      const headers = {
-        "Content-Type": "application/json",
-      };
-
-      if (sessionToken) {
-        headers.Authorization = `Bearer ${sessionToken}`;
-      }
-
-      fetch(`${API}/rooms/${roomCode}/leave`, {
-        method: "POST",
-        credentials: "include",
-        keepalive: true,
-        headers,
-        body: JSON.stringify({ userName: roomMemberName }),
-      }).catch(() => {});
-    }
-
-    window.addEventListener("pagehide", leaveRoomOnUnload);
-
-    return () => {
-      window.removeEventListener("pagehide", leaveRoomOnUnload);
-    };
-  }, [roomCode, roomMemberName]);
-
   async function handleStart() {
     setLocalGameStarted(true);
 

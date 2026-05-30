@@ -395,19 +395,6 @@ app.post("/users/me/heartbeat", async (req, res) => {
   }
 });
 
-app.post("/users/me/session/end", async (req, res) => {
-  const userId = getAuthenticatedUserId(req, res);
-  if (!userId) return;
-
-  await userServices
-    .logoutUserSession(userId, req.auth.sessionId)
-    .then((user) => {
-      clearUserAuthCookie(req, res);
-      res.json(userResponse(user));
-    })
-    .catch((err) => res.status(400).json({ error: err.message }));
-});
-
 app.patch("/users/me/rename", async (req, res) => {
   const userId = getAuthenticatedUserId(req, res);
   if (!userId) return;

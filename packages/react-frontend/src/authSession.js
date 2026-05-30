@@ -66,22 +66,3 @@ export async function sendUserHeartbeat(room = {}) {
 
   return response.json();
 }
-
-export function endCurrentSession() {
-  const sessionToken = sessionStorage.getItem("userAuthToken");
-
-  if (!sessionToken) {
-    return;
-  }
-
-  fetch(`${frontendLink}/users/me/session/end`, {
-    method: "POST",
-    credentials: "include",
-    keepalive: true,
-    headers: {
-      Authorization: `Bearer ${sessionToken}`,
-      "Content-Type": "application/json",
-    },
-    body: "{}",
-  }).catch(() => {});
-}
