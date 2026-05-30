@@ -17,6 +17,9 @@ const DEFAULT_ROOM_OPTIONS = {
   removeSelectedSong: false,
   playOnAllDevices: true,
 };
+const ROOM_CLOSED_NOTICE = "The room was closed because the host left or lost connection.";
+const ROOM_CONNECTION_NOTICE = "You were sent home because the room connection was interrupted.";
+const ROOM_REMOVED_NOTICE = "You were removed from the room because this tab stopped responding.";
 
 function getStoredRoomMemberName(roomCode, username) {
   if (!roomCode || typeof sessionStorage === "undefined") {
@@ -32,6 +35,12 @@ function getMemberName(member, index) {
   }
 
   return member?.name || member?.userName || member?.id || `Player ${index + 1}`;
+}
+
+function roomHasMember(room, memberName) {
+  const members = room?.memberProfiles?.length ? room.memberProfiles : room?.members || [];
+
+  return members.some((member, index) => getMemberName(member, index) === memberName);
 }
 
 function getRoomMemberProfiles(room, username, userId) {
@@ -61,6 +70,20 @@ function Room({ username }) {
   const [showOptions, setShowOptions] = useState(false);
   const [optionsError, setOptionsError] = useState("");
 
+  const goHomeWithNotice = useCallback(
+    (roomNotice) => {
+      if (roomCode) {
+        sessionStorage.removeItem(`roomMemberName:${roomCode}`);
+      }
+
+      navigate("/home", {
+        replace: true,
+        state: { roomNotice },
+      });
+    },
+    [navigate, roomCode]
+  );
+
   const fetchRoom = useCallback(async () => {
     if (!roomCode) {
       setRoom({
@@ -77,33 +100,25 @@ function Room({ username }) {
       const res = await authFetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
         if (res.status === 404) {
-          sessionStorage.removeItem(`roomMemberName:${roomCode}`);
-          navigate("/home");
+          goHomeWithNotice(ROOM_CLOSED_NOTICE);
           return;
         }
 
-        setRoom({
-          roomCode,
-          host: roomMemberName,
-          members: [roomMemberName],
-          queue: [],
-          started: false,
-        });
+        goHomeWithNotice(ROOM_CONNECTION_NOTICE);
         return;
       }
 
       const data = await res.json();
+      if (!roomHasMember(data, roomMemberName)) {
+        goHomeWithNotice(data.closed ? ROOM_CLOSED_NOTICE : ROOM_REMOVED_NOTICE);
+        return;
+      }
+
       setRoom(data);
     } catch {
-      setRoom({
-        roomCode,
-        host: roomMemberName,
-        members: [roomMemberName],
-        queue: [],
-        started: false,
-      });
+      goHomeWithNotice(ROOM_CONNECTION_NOTICE);
     }
-  }, [navigate, roomCode, roomMemberName]);
+  }, [goHomeWithNotice, roomCode, roomMemberName]);
 
   useEffect(() => {
     const initialFetchId = setTimeout(fetchRoom, 0);
@@ -127,11 +142,7 @@ function Room({ username }) {
         await sendUserHeartbeat({ roomCode, roomMemberName });
       } catch {
         if (active) {
-          sessionStorage.removeItem(`roomMemberName:${roomCode}`);
-          navigate("/", {
-            replace: true,
-            state: { loginError: "You were logged out because no active tab was detected." },
-          });
+          goHomeWithNotice(ROOM_CONNECTION_NOTICE);
         }
       }
     }
@@ -143,7 +154,7 @@ function Room({ username }) {
       active = false;
       clearInterval(heartbeatId);
     };
-  }, [navigate, roomCode, roomMemberName, username]);
+  }, [goHomeWithNotice, roomCode, roomMemberName, username]);
 
   useEffect(() => {
     if (!roomCode || !roomMemberName) {

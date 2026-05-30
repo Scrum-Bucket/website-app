@@ -1,5 +1,5 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./home.css";
 import logoImage from "../../assets/logo.png";
 import wifiImage from "../../assets/wifi.png";
@@ -9,7 +9,26 @@ import Background from "../../../animationFiles/home-background.jsx";
 
 function Home({ username, onLoginRequired }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const isGuest = username === "Guest";
+  const [roomNotice, setRoomNotice] = useState(location.state?.roomNotice || "");
+
+  useEffect(() => {
+    if (!location.state?.roomNotice) {
+      return undefined;
+    }
+
+    setRoomNotice(location.state.roomNotice);
+    navigate(".", { replace: true, state: {} });
+
+    const noticeTimer = setTimeout(() => {
+      setRoomNotice("");
+    }, 7000);
+
+    return () => {
+      clearTimeout(noticeTimer);
+    };
+  }, [location.state, navigate]);
 
   function openProtectedPage(path) {
     if (isGuest && onLoginRequired) {
@@ -75,6 +94,12 @@ function Home({ username, onLoginRequired }) {
             </button>
           </div>
         </div>
+
+        {roomNotice ? (
+          <div className="home-room-notice" role="status" aria-live="polite">
+            {roomNotice}
+          </div>
+        ) : null}
       </div>
     </div>
   );
