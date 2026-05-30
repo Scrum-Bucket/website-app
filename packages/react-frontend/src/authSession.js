@@ -2,7 +2,7 @@ import { authFetch } from "./authFetch";
 import frontendLink from "./frontendLink";
 import { clearStoredCrabProfile } from "./pages/profile/crabColor";
 
-export const HEARTBEAT_MS = 5000;
+export const HEARTBEAT_MS = 30000;
 
 export function getSessionUser() {
   return {
