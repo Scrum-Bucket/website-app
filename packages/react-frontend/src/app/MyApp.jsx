@@ -151,11 +151,11 @@ function MyApp({ onLogin }) {
         <button type="button" className="other-button" onClick={handleSignup}>
           Sign Up
         </button>
-        {errorMessage || redirectError ? (
-          <p className="auth-error">{errorMessage || redirectError}</p>
-        ) : null}
         <p className="demo-accounts">Demo accounts: nick/music123 or demo/password1</p>
       </div>
+      {errorMessage || redirectError ? (
+        <p className="auth-error">{errorMessage || redirectError}</p>
+      ) : null}
     </div>
   );
 }
