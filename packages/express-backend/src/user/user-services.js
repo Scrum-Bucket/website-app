@@ -53,7 +53,7 @@ async function createUser(userName, passWord) {
   }
 
   const hashedPassword = await bcrypt.hash(passWord, 10);
-  const newUser = new userModel({ userName, passWord: hashedPassword });
+  const newUser = new userModel({ userName, passWord: hashedPassword, status: 1, lastActiveAt: new Date() });
   try {
     return await newUser.save();
   } catch (err) {
@@ -85,7 +85,11 @@ async function loginUser(userName, password) {
   if (user.status === 2) throw new Error("User is timed out");
 
   console.log("User logged in, updating status to 1");
-  return await userModel.findByIdAndUpdate(user._id, { status: 1 }, { new: true });
+  return await userModel.findByIdAndUpdate(
+    user._id,
+    { status: 1, lastActiveAt: new Date() },
+    { new: true }
+  );
 }
 
 // logoutUser: set status back to 0
@@ -93,7 +97,24 @@ async function logoutUser(id) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   //new:true means return user after its updated
-  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+  return await userModel.findByIdAndUpdate(id, { status: 0, lastActiveAt: null }, { new: true });
+}
+
+async function heartbeatUser(id) {
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  if (user.status !== 1) throw new Error("User is not logged in");
+
+  return await userModel.findByIdAndUpdate(id, { lastActiveAt: new Date() }, { new: true });
+}
+
+async function logoutInactiveUsers(maxInactiveMs) {
+  const cutoff = new Date(Date.now() - maxInactiveMs);
+
+  return await userModel.updateMany(
+    { status: 1, lastActiveAt: { $lt: cutoff } },
+    { status: 0, lastActiveAt: null }
+  );
 }
 
 // timeoutUser: status 2 basically soft ban
@@ -210,6 +231,8 @@ module.exports = {
   deleteUser,
   loginUser,
   logoutUser,
+  heartbeatUser,
+  logoutInactiveUsers,
   timeoutUser,
   unbanUser,
   addSongsToPlaylist,

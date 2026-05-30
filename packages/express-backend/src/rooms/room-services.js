@@ -6,6 +6,7 @@ const ROUND_SECONDS = 120;
 const MIN_SCORE = -20;
 const MAX_SCORE = 40;
 const MAX_ROOM_MEMBERS = 30;
+const MEMBER_HEARTBEAT_TIMEOUT_MS = Number(process.env.ROOM_MEMBER_HEARTBEAT_TIMEOUT_MS) || 75000;
 const MIN_ROUND_SECONDS = 0;
 const MAX_ROUND_SECONDS = 900;
 const DEFAULT_ROOM_OPTIONS = Object.freeze({
@@ -177,6 +178,78 @@ function getMemberId(member, index) {
   return member?.id || member?.userId || member?._id || getMemberName(member, index);
 }
 
+function getMemberActivity(room) {
+  const source = room?.memberActivity || {};
+
+  if (source instanceof Map) {
+    return Object.fromEntries(source);
+  }
+
+  return typeof source === "object" && !Array.isArray(source) ? { ...source } : {};
+}
+
+function setMemberActivity(room, activity) {
+  room.memberActivity = activity;
+  if (typeof room.markModified === "function") {
+    room.markModified("memberActivity");
+  }
+}
+
+function touchRoomMember(room, memberName, at = new Date()) {
+  if (!room || !memberName) return;
+
+  const activity = getMemberActivity(room);
+  activity[memberName] = at.toISOString();
+  setMemberActivity(room, activity);
+}
+
+async function pruneInactiveMembers(room, now = Date.now()) {
+  if (!room) return room;
+
+  const members = Array.isArray(room.members) ? room.members : [];
+  const activity = getMemberActivity(room);
+  let changed = false;
+
+  const activeMembers = members.filter((member, index) => {
+    const memberName = getMemberName(member, index);
+    if (!activity[memberName]) {
+      activity[memberName] = new Date(now).toISOString();
+      changed = true;
+    }
+
+    const lastSeenAt = new Date(activity[memberName]).getTime();
+    const isActive = Number.isFinite(lastSeenAt) && now - lastSeenAt <= MEMBER_HEARTBEAT_TIMEOUT_MS;
+
+    if (!isActive) {
+      delete activity[memberName];
+      changed = true;
+    }
+
+    return isActive;
+  });
+
+  if (activeMembers.length !== members.length) {
+    room.members = activeMembers;
+    changed = true;
+  }
+
+  if (
+    room.host &&
+    activeMembers.length > 0 &&
+    !activeMembers.some((member, index) => getMemberName(member, index) === room.host)
+  ) {
+    await Room.findOneAndDelete({ roomCode: room.roomCode });
+    return null;
+  }
+
+  if (changed) {
+    setMemberActivity(room, activity);
+    return room.save();
+  }
+
+  return room;
+}
+
 async function attachMemberProfiles(room) {
   if (!room) return room;
 
@@ -208,6 +281,9 @@ async function attachMemberProfilesToRooms(rooms) {
 
 async function syncRoomGameState(room) {
   if (!room) return room;
+
+  room = await pruneInactiveMembers(room);
+  if (!room) return null;
 
   let changed = false;
   const roomOptions = getRoomOptions(room);
@@ -276,6 +352,11 @@ async function getPublicRooms() {
   return attachMemberProfilesToRooms(await syncRooms(rooms));
 }
 
+async function pruneInactiveRooms() {
+  const rooms = await Room.find();
+  await syncRooms(rooms);
+}
+
 function findRoomById(id) {
   return Room.findById(id);
 }
@@ -291,6 +372,7 @@ async function addRoom(roomCode, host = null) {
     roomCode,
     host: hostMemberName,
     members: hostMemberName ? [hostMemberName] : [],
+    memberActivity: hostMemberName ? { [hostMemberName]: new Date().toISOString() } : {},
     queue: [],
     currentSong: null,
     roundSeconds: ROUND_SECONDS,
@@ -321,8 +403,21 @@ async function joinRoom(roomCode, userName) {
   );
 
   room.members.push(assignedMemberName);
+  touchRoomMember(room, assignedMemberName);
 
   return attachAssignedMemberName(await attachMemberProfiles(await room.save()), assignedMemberName);
+}
+
+async function recordMemberHeartbeat(roomCode, memberName) {
+  const room = await Room.findOne({ roomCode });
+  if (!room) return null;
+
+  const members = Array.isArray(room.members) ? room.members : [];
+  const isMember = members.some((member, index) => getMemberName(member, index) === memberName);
+  if (!isMember) return attachMemberProfiles(await syncRoomGameState(room));
+
+  touchRoomMember(room, memberName);
+  return attachMemberProfiles(await syncRoomGameState(await room.save()));
 }
 
 async function startRoom(roomCode) {
@@ -528,4 +623,6 @@ module.exports = {
   leaveRoom,
   deleteRoom,
   getPublicRooms,
+  pruneInactiveRooms,
+  recordMemberHeartbeat,
 };

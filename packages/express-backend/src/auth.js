@@ -1,12 +1,14 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { requireEnv } = require("./env");
+const userModel = require("./user/user.js");
 
 const AUTH_COOKIE_NAME = "backendAuthToken";
 const USER_AUTH_COOKIE_NAME = "userAuthToken";
 const DEFAULT_TOKEN_EXPIRES_IN = "600s";
 const DEFAULT_USER_TOKEN_EXPIRES_IN = "2h";
 const DEFAULT_USER_TOKEN_COOKIE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+const DEFAULT_USER_HEARTBEAT_TIMEOUT_MS = 75000;
 
 function getTokenSecret() {
   return requireEnv("TOKEN_SECRET");
@@ -22,6 +24,11 @@ function getTokenExpiresIn() {
 
 function getUserTokenExpiresIn() {
   return process.env.USER_TOKEN_EXPIRES_IN || DEFAULT_USER_TOKEN_EXPIRES_IN;
+}
+
+function getUserHeartbeatTimeoutMs() {
+  const timeout = Number(process.env.USER_HEARTBEAT_TIMEOUT_MS);
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_USER_HEARTBEAT_TIMEOUT_MS;
 }
 
 function generateAccessToken() {
@@ -123,7 +130,7 @@ function rejectUnauthenticated(req, res, message = "Authentication required.") {
   return res.status(401).json({ error: message });
 }
 
-function authenticateUser(req, res, next) {
+async function authenticateUser(req, res, next) {
   if (req.method === "OPTIONS" || isPublicRequest(req)) {
     return next();
   }
@@ -147,6 +154,25 @@ function authenticateUser(req, res, next) {
       if (decoded.type !== "backend-access" && decoded.type !== "frontend-user") {
         authError = new Error("Invalid access token.");
         continue;
+      }
+
+      if (decoded.type === "frontend-user") {
+        const user = await userModel.findById(decoded.userId);
+        if (!user || user.status !== 1) {
+          clearUserAuthCookie(req, res);
+          return rejectUnauthenticated(req, res, "User session is no longer active.");
+        }
+
+        const isHeartbeatRequest = req.method === "POST" && req.path === "/users/me/heartbeat";
+        const lastActiveAt = user.lastActiveAt ? new Date(user.lastActiveAt).getTime() : Date.now();
+        const sessionIsStale =
+          Number.isFinite(lastActiveAt) && Date.now() - lastActiveAt > getUserHeartbeatTimeoutMs();
+
+        if (sessionIsStale && !isHeartbeatRequest) {
+          await userModel.findByIdAndUpdate(decoded.userId, { status: 0, lastActiveAt: null });
+          clearUserAuthCookie(req, res);
+          return rejectUnauthenticated(req, res, "User session expired because no tab was active.");
+        }
       }
 
       req.auth = decoded;

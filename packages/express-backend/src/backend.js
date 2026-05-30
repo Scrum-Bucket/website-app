@@ -17,6 +17,8 @@ const roomServices = require("./rooms/room-services.js");
 const app = express();
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const USER_HEARTBEAT_TIMEOUT_MS = Number(process.env.USER_HEARTBEAT_TIMEOUT_MS) || 75000;
+const AUTO_LOGOUT_INTERVAL_MS = Number(process.env.AUTO_LOGOUT_INTERVAL_MS) || 30000;
 
 app.set("trust proxy", 1);
 
@@ -129,6 +131,19 @@ app.post("/signout", signout);
 app.get("/", (req, res) => {
   res.send("Backend running.");
 });
+
+const autoLogoutInterval = setInterval(() => {
+  userServices.logoutInactiveUsers(USER_HEARTBEAT_TIMEOUT_MS).catch((error) => {
+    console.error("Failed to auto-logout inactive users:", error);
+  });
+  roomServices.pruneInactiveRooms().catch((error) => {
+    console.error("Failed to prune inactive room members:", error);
+  });
+}, AUTO_LOGOUT_INTERVAL_MS);
+
+if (typeof autoLogoutInterval.unref === "function") {
+  autoLogoutInterval.unref();
+}
 
 app.use(authenticateUser);
 
@@ -343,6 +358,31 @@ app.post("/users/me/logout", async (req, res) => {
       res.json(userResponse(user));
     })
     .catch((err) => res.status(400).json({ error: err.message }));
+});
+
+app.post("/users/me/heartbeat", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const roomCode = normalizeRoomCode(req.body.roomCode);
+  const roomMemberName = (req.body.roomMemberName || "").trim();
+
+  try {
+    const user = await userServices.heartbeatUser(userId);
+
+    if (roomCode && roomMemberName) {
+      await roomServices.recordMemberHeartbeat(roomCode, roomMemberName);
+    }
+
+    res.json({
+      authenticated: true,
+      userId: user._id,
+      lastActiveAt: user.lastActiveAt,
+    });
+  } catch (err) {
+    clearUserAuthCookie(req, res);
+    res.status(401).json({ error: err.message });
+  }
 });
 
 app.patch("/users/me/rename", async (req, res) => {

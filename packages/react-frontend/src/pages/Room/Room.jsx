@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import GameBackground from "../../../animationFiles/game-background.jsx";
 import { authFetch } from "../../authFetch";
+import { HEARTBEAT_MS, sendUserHeartbeat } from "../../authSession";
 import LoginRequiredModal from "../../app/LoginRequiredModal";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
@@ -113,6 +114,36 @@ function Room({ username }) {
       clearInterval(pollId);
     };
   }, [fetchRoom]);
+
+  useEffect(() => {
+    if (!roomCode || username === "Guest") {
+      return undefined;
+    }
+
+    let active = true;
+
+    async function heartbeatRoomMembership() {
+      try {
+        await sendUserHeartbeat({ roomCode, roomMemberName });
+      } catch {
+        if (active) {
+          sessionStorage.removeItem(`roomMemberName:${roomCode}`);
+          navigate("/", {
+            replace: true,
+            state: { loginError: "You were logged out because no active tab was detected." },
+          });
+        }
+      }
+    }
+
+    heartbeatRoomMembership();
+    const heartbeatId = setInterval(heartbeatRoomMembership, HEARTBEAT_MS);
+
+    return () => {
+      active = false;
+      clearInterval(heartbeatId);
+    };
+  }, [navigate, roomCode, roomMemberName, username]);
 
   async function handleStart() {
     setLocalGameStarted(true);

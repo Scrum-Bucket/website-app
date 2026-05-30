@@ -48,6 +48,10 @@ const UserSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    lastActiveAt: {
+      type: Date,
+      default: null,
+    },
     favorites: {
       type: [Number], // SongIDs
       default: [],
