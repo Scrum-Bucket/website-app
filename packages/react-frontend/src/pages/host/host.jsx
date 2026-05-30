@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./host.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
+import { getSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
 
 function createRoomCode() {
@@ -15,7 +16,7 @@ function Host({ username }) {
 
   async function handleCreateRoom() {
     setError("");
-    const host = username || localStorage.getItem("username") || "guest";
+    const host = username || getSessionUser().username || "guest";
     const roomCode = createRoomCode();
     const fallbackRoom = {
       roomCode,

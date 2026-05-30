@@ -31,25 +31,44 @@ function getUserHeartbeatTimeoutMs() {
   return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_USER_HEARTBEAT_TIMEOUT_MS;
 }
 
+function getActiveSessions(user) {
+  const source = user?.activeSessions || {};
+
+  if (source instanceof Map) {
+    return Object.fromEntries(source);
+  }
+
+  return typeof source === "object" && !Array.isArray(source) ? { ...source } : {};
+}
+
 function generateAccessToken() {
   return jwt.sign({ type: "backend-access" }, getTokenSecret(), {
     expiresIn: getTokenExpiresIn(),
   });
 }
 
-function generateUserAccessToken(user) {
-  return jwt.sign(
+function generateUserSessionToken(user) {
+  const sessionId = crypto.randomUUID();
+
+  const token = jwt.sign(
     {
       type: "frontend-user",
       userId: user._id?.toString(),
       username: user.userName,
       isAdmin: user.isAdmin === true,
+      sessionId,
     },
     getTokenSecret(),
     {
       expiresIn: getUserTokenExpiresIn(),
     }
   );
+
+  return { token, sessionId };
+}
+
+function generateUserAccessToken(user) {
+  return generateUserSessionToken(user).token;
 }
 
 function parseCookies(cookieHeader = "") {
@@ -163,13 +182,22 @@ async function authenticateUser(req, res, next) {
           return rejectUnauthenticated(req, res, "User session is no longer active.");
         }
 
-        const isHeartbeatRequest = req.method === "POST" && req.path === "/users/me/heartbeat";
-        const lastActiveAt = user.lastActiveAt ? new Date(user.lastActiveAt).getTime() : Date.now();
+        const sessionId = decoded.sessionId;
+        const activeSessions = getActiveSessions(user);
+        const lastActiveAt = activeSessions[sessionId]
+          ? new Date(activeSessions[sessionId]).getTime()
+          : Date.now();
         const sessionIsStale =
           Number.isFinite(lastActiveAt) && Date.now() - lastActiveAt > getUserHeartbeatTimeoutMs();
 
-        if (sessionIsStale && !isHeartbeatRequest) {
-          await userModel.findByIdAndUpdate(decoded.userId, { status: 0, lastActiveAt: null });
+        if (sessionIsStale) {
+          delete activeSessions[sessionId];
+          const stillActive = Object.keys(activeSessions).length > 0;
+          await userModel.findByIdAndUpdate(decoded.userId, {
+            status: stillActive ? 1 : 0,
+            lastActiveAt: stillActive ? user.lastActiveAt : null,
+            activeSessions,
+          });
           clearUserAuthCookie(req, res);
           return rejectUnauthenticated(req, res, "User session expired because no tab was active.");
         }
@@ -240,8 +268,9 @@ function getUserCookieOptions(req) {
 }
 
 function setUserAuthCookie(req, res, user) {
-  const token = generateUserAccessToken(user);
+  const { token, sessionId } = generateUserSessionToken(user);
   res.cookie(USER_AUTH_COOKIE_NAME, token, getUserCookieOptions(req));
+  return { token, sessionId };
 }
 
 function clearUserAuthCookie(req, res) {

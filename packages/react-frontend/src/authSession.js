@@ -4,8 +4,32 @@ import { clearStoredCrabProfile } from "./pages/profile/crabColor";
 
 export const HEARTBEAT_MS = 5000;
 
+export function getSessionUser() {
+  return {
+    username: sessionStorage.getItem("username") || "",
+    userId: sessionStorage.getItem("userId") || "",
+    isAdmin: sessionStorage.getItem("isAdmin") === "true",
+    token: sessionStorage.getItem("userAuthToken") || "",
+  };
+}
+
+export function setSessionUser(userData, fallbackUsername = "") {
+  sessionStorage.setItem("username", userData.userName || fallbackUsername);
+  sessionStorage.setItem("userId", userData._id || "");
+  sessionStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+
+  if (userData.sessionToken) {
+    sessionStorage.setItem("userAuthToken", userData.sessionToken);
+  }
+
+  localStorage.setItem("username", userData.userName || fallbackUsername);
+  localStorage.setItem("userId", userData._id || "");
+  localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+  localStorage.removeItem("authToken");
+}
+
 export function clearStoredAuth() {
-  const userId = localStorage.getItem("userId");
+  const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
 
   if (userId) {
     clearStoredCrabProfile(userId);
@@ -15,6 +39,10 @@ export function clearStoredAuth() {
   localStorage.removeItem("username");
   localStorage.removeItem("userId");
   localStorage.removeItem("isAdmin");
+  sessionStorage.removeItem("userAuthToken");
+  sessionStorage.removeItem("username");
+  sessionStorage.removeItem("userId");
+  sessionStorage.removeItem("isAdmin");
 }
 
 export async function sendUserHeartbeat(room = {}) {
@@ -37,4 +65,23 @@ export async function sendUserHeartbeat(room = {}) {
   }
 
   return response.json();
+}
+
+export function endCurrentSession() {
+  const sessionToken = sessionStorage.getItem("userAuthToken");
+
+  if (!sessionToken) {
+    return;
+  }
+
+  fetch(`${frontendLink}/users/me/session/end`, {
+    method: "POST",
+    credentials: "include",
+    keepalive: true,
+    headers: {
+      Authorization: `Bearer ${sessionToken}`,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  }).catch(() => {});
 }

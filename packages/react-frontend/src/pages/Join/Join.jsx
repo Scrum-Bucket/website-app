@@ -4,6 +4,7 @@ import "./join.css";
 import logoImage from "../../assets/logo.png";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
+import { getSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
 
 const publicRooms = [];
@@ -53,10 +54,11 @@ function Join() {
 
   async function joinRoom(code) {
     const normalizedCode = code.trim().toUpperCase();
+    const currentUsername = getSessionUser().username || "guest";
     const response = await authFetch(`${frontendLink}/rooms/${normalizedCode}/join`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userName: localStorage.getItem("username") || "guest" }),
+      body: JSON.stringify({ userName: currentUsername }),
     });
 
     if (!response.ok) {
@@ -66,7 +68,7 @@ function Join() {
     const joinedRoom = await response.json();
     sessionStorage.setItem(
       `roomMemberName:${normalizedCode}`,
-      joinedRoom.assignedMemberName || localStorage.getItem("username") || "guest"
+      joinedRoom.assignedMemberName || currentUsername
     );
 
     return normalizedCode;

@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import GameBackground from "../../../animationFiles/game-background.jsx";
 import { authFetch } from "../../authFetch";
-import { HEARTBEAT_MS, sendUserHeartbeat } from "../../authSession";
+import { HEARTBEAT_MS, getSessionUser, sendUserHeartbeat } from "../../authSession";
 import LoginRequiredModal from "../../app/LoginRequiredModal";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
@@ -34,7 +34,7 @@ function getMemberName(member, index) {
   return member?.name || member?.userName || member?.id || `Player ${index + 1}`;
 }
 
-function getRoomMemberProfiles(room, username) {
+function getRoomMemberProfiles(room, username, userId) {
   const sourceMembers = room?.memberProfiles?.length ? room.memberProfiles : room?.members || [];
   const currentUserName = username || "guest";
 
@@ -44,7 +44,7 @@ function getRoomMemberProfiles(room, username) {
     return {
       id: typeof member === "string" ? member : member.id || member.userId || name,
       name,
-      crab: member.crab || (name === currentUserName ? readStoredCrabProfile() : undefined),
+      crab: member.crab || (name === currentUserName ? readStoredCrabProfile(userId) : undefined),
     };
   });
 }
@@ -234,7 +234,7 @@ function Room({ username }) {
 
   const isHost = room.host === roomMemberName;
   const gameStarted = room.started || localGameStarted;
-  const memberProfiles = getRoomMemberProfiles(room, roomMemberName);
+  const memberProfiles = getRoomMemberProfiles(room, roomMemberName, getSessionUser().userId);
   const roomOptions = { ...DEFAULT_ROOM_OPTIONS, ...(room.options || {}) };
 
   if (!gameStarted) {

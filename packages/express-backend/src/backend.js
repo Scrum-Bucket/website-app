@@ -112,6 +112,16 @@ function userResponse(user) {
   return { ...userData, authenticated: true };
 }
 
+async function authenticatedUserResponse(req, res, user) {
+  const { token, sessionId } = setUserAuthCookie(req, res, user);
+  const sessionUser = (await userServices.registerUserSession(user._id, sessionId)) || user;
+
+  return {
+    ...userResponse(sessionUser),
+    sessionToken: token,
+  };
+}
+
 function getAuthenticatedUserId(req, res) {
   const userId = req.auth?.type === "frontend-user" ? req.auth.userId : null;
 
@@ -368,7 +378,7 @@ app.post("/users/me/heartbeat", async (req, res) => {
   const roomMemberName = (req.body.roomMemberName || "").trim();
 
   try {
-    const user = await userServices.heartbeatUser(userId);
+    const user = await userServices.heartbeatUser(userId, req.auth.sessionId);
 
     if (roomCode && roomMemberName) {
       await roomServices.recordMemberHeartbeat(roomCode, roomMemberName);
@@ -383,6 +393,19 @@ app.post("/users/me/heartbeat", async (req, res) => {
     clearUserAuthCookie(req, res);
     res.status(401).json({ error: err.message });
   }
+});
+
+app.post("/users/me/session/end", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  await userServices
+    .logoutUserSession(userId, req.auth.sessionId)
+    .then((user) => {
+      clearUserAuthCookie(req, res);
+      res.json(userResponse(user));
+    })
+    .catch((err) => res.status(400).json({ error: err.message }));
 });
 
 app.patch("/users/me/rename", async (req, res) => {
@@ -448,9 +471,8 @@ app.post("/users", async (req, res) => {
 
   await userServices
     .createUser(userName, passWord)
-    .then((created) => {
-      setUserAuthCookie(req, res, created);
-      res.status(201).json(userResponse(created));
+    .then(async (created) => {
+      res.status(201).json(await authenticatedUserResponse(req, res, created));
     })
     .catch((err) => {
       if (
@@ -480,9 +502,8 @@ app.post("/users/login", async (req, res) => {
   const { username, password } = req.body;
   await userServices
     .loginUser(username, password)
-    .then((user) => {
-      setUserAuthCookie(req, res, user);
-      res.json(userResponse(user));
+    .then(async (user) => {
+      res.json(await authenticatedUserResponse(req, res, user));
     })
     .catch((err) => res.status(400).json({ error: err.message }));
 });

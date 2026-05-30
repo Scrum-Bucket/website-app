@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { authFetch } from "../authFetch";
+import { setSessionUser } from "../authSession";
 import frontendLink from "../frontendLink";
 import { writeStoredCrabProfile } from "../pages/profile/crabColor";
 
@@ -44,11 +45,7 @@ function MyApp({ onLogin }) {
       const userData = await response.json();
       setErrorMessage("");
 
-      // Store username, userId, and admin status in localStorage
-      localStorage.removeItem("authToken");
-      localStorage.setItem("username", userData.userName);
-      localStorage.setItem("userId", userData._id);
-      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+      setSessionUser(userData, trimmedUsername);
       writeStoredCrabProfile(userData.crab, userData._id);
 
       onLogin({
@@ -96,10 +93,7 @@ function MyApp({ onLogin }) {
       const userData = await response.json();
       setErrorMessage("");
 
-      // Store username, userId, and admin status in localStorage
-      localStorage.setItem("username", userData.userName);
-      localStorage.setItem("userId", userData._id);
-      localStorage.setItem("isAdmin", userData.isAdmin ? "true" : "false");
+      setSessionUser(userData, trimmedUsername);
       writeStoredCrabProfile(userData.crab, userData._id);
 
       onLogin({

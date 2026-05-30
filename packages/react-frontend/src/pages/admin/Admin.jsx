@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./admin.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
+import { getSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
 
 function Admin() {
@@ -31,7 +32,7 @@ function Admin() {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
+    const userId = getSessionUser().userId;
     if (!userId) {
       navigate("/home/profile");
       return;
