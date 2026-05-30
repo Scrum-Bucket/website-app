@@ -209,6 +209,8 @@ async function pruneInactiveMembers(room, now = Date.now()) {
   const members = Array.isArray(room.members) ? room.members : [];
   const activity = getMemberActivity(room);
   let changed = false;
+  const hostWasMember =
+    Boolean(room.host) && members.some((member, index) => getMemberName(member, index) === room.host);
 
   const activeMembers = members.filter((member, index) => {
     const memberName = getMemberName(member, index);
@@ -233,11 +235,11 @@ async function pruneInactiveMembers(room, now = Date.now()) {
     changed = true;
   }
 
-  if (
-    room.host &&
-    activeMembers.length > 0 &&
-    !activeMembers.some((member, index) => getMemberName(member, index) === room.host)
-  ) {
+  const hostIsStillActive = activeMembers.some(
+    (member, index) => getMemberName(member, index) === room.host
+  );
+
+  if (hostWasMember && !hostIsStillActive) {
     await Room.findOneAndDelete({ roomCode: room.roomCode });
     return null;
   }
@@ -598,6 +600,9 @@ async function leaveRoom(roomCode, userName) {
   }
 
   room.members = (room.members || []).filter((member, index) => getMemberName(member, index) !== userName);
+  const activity = getMemberActivity(room);
+  delete activity[userName];
+  setMemberActivity(room, activity);
 
   return attachMemberProfiles(await room.save());
 }

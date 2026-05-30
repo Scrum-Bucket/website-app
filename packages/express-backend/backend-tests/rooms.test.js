@@ -162,6 +162,43 @@ test("host leaving closes the room", async () => {
   expect(result.members).toStrictEqual([]);
 });
 
+test("inactive participant is removed from the room", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    members: ["Captain", "Sailor"],
+    memberActivity: {
+      Captain: new Date().toISOString(),
+      Sailor: new Date(Date.now() - 120000).toISOString(),
+    },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.findRoomByCode("PLAY1");
+
+  expect(room.save).toHaveBeenCalled();
+  expect(result.members).toStrictEqual(["Captain"]);
+});
+
+test("inactive host closes the room", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    members: ["Captain", "Sailor"],
+    memberActivity: {
+      Captain: new Date(Date.now() - 120000).toISOString(),
+      Sailor: new Date().toISOString(),
+    },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+  Room.findOneAndDelete = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.findRoomByCode("PLAY1");
+
+  expect(Room.findOneAndDelete).toHaveBeenCalledWith({ roomCode: "PLAY1" });
+  expect(result).toBeNull();
+});
+
 test("host can update room options", async () => {
   const room = makeRoom({
     host: "Captain",
