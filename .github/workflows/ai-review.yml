@@ -29,11 +29,24 @@ jobs:
       - name: Create PR diff
         id: diff
         run: |
-          git diff --unified=80 origin/${{ github.base_ref }}...HEAD \
+          MAX_DIFF_CHARS=12000
+
+          git diff --unified=3 origin/${{ github.base_ref }}...HEAD \
             -- . \
             ':(exclude)package-lock.json' \
             ':(exclude)packages/**/package-lock.json' \
-            > diff.txt
+            > diff-full.txt
+
+          if [ "$(wc -c < diff-full.txt)" -gt "$MAX_DIFF_CHARS" ]; then
+            {
+              echo "NOTE: This diff was truncated to fit the AI review model context window."
+              echo "Review the included changes only and mention that large parts of the diff were omitted."
+              echo
+              head -c "$MAX_DIFF_CHARS" diff-full.txt
+            } > diff.txt
+          else
+            cp diff-full.txt diff.txt
+          fi
 
           if [ -s diff.txt ]; then
             echo "has_diff=true" >> "$GITHUB_OUTPUT"
