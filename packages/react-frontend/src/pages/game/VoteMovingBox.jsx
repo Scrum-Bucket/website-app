@@ -43,6 +43,18 @@ const VOTE_ARENA_MIN_HEIGHT = 500;
 const VOTE_ARENA_MAX_HEIGHT = 745;
 const VOTE_ARENA_CHROME_HEIGHT = 132;
 const VOTE_PLAYBACK_ARENA_HEIGHT = 640;
+const VOTE_BOX_COLORS = [
+  { start: "#fff4cc", middle: "#ffd67a", end: "#f2a84a" },
+  { start: "#d9f7ff", middle: "#8edff2", end: "#4db4d7" },
+  { start: "#e7f7d5", middle: "#addf76", end: "#73b95c" },
+  { start: "#ffe2ec", middle: "#f5a0bd", end: "#d86f9b" },
+  { start: "#e9e1ff", middle: "#bca3ee", end: "#8b75d6" },
+  { start: "#ffe8d3", middle: "#f5b174", end: "#dc7e45" },
+  { start: "#daf5ea", middle: "#8ed6ba", end: "#4aa889" },
+  { start: "#e3edff", middle: "#9ebdf1", end: "#638bd8" },
+  { start: "#f7e6bd", middle: "#e2c464", end: "#b99b3b" },
+  { start: "#f0dcff", middle: "#d09cf1", end: "#aa6ed0" },
+];
 
 let youtubeApiPromise;
 
@@ -132,14 +144,42 @@ function getQueueEntryScore(entry) {
   return Number.isFinite(entry?.score) ? entry.score : entry?.upvotes || 0;
 }
 
+function getStableColorIndex(value) {
+  const text = String(value || "");
+  let hash = 0;
+
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash * 31 + text.charCodeAt(index)) % VOTE_BOX_COLORS.length;
+  }
+
+  return hash;
+}
+
+function getNextQueueColorIndex(queue = []) {
+  const usedColorIndexes = new Set(
+    queue
+      .map((entry) => entry.colorIndex)
+      .filter((colorIndex) => Number.isInteger(colorIndex))
+  );
+
+  for (let colorIndex = 0; colorIndex < VOTE_BOX_COLORS.length; colorIndex += 1) {
+    if (!usedColorIndexes.has(colorIndex)) {
+      return colorIndex;
+    }
+  }
+
+  return queue.length % VOTE_BOX_COLORS.length;
+}
+
 function normalizeQueueEntries(queue) {
   const sourceQueue = Array.isArray(queue) ? queue : [];
 
   return sourceQueue.map((entry, index) => {
     const songId = entry.songId || entry.id || `${entry.name || "song"}-${index}`;
+    const entryId = entry.entryId || songId;
 
     return {
-      entryId: entry.entryId || songId,
+      entryId,
       song: {
         id: songId,
         name: entry.name || entry.title || "Untitled song",
@@ -149,6 +189,9 @@ function normalizeQueueEntries(queue) {
         source: entry.source || "Room queue",
       },
       score: getQueueEntryScore(entry),
+      colorIndex: Number.isInteger(entry.colorIndex)
+        ? entry.colorIndex
+        : getStableColorIndex(entryId),
       addedBy: entry.addedBy || null,
     };
   });
@@ -195,6 +238,22 @@ function makeCurrentSongFromQueueEntry(entry) {
   };
 }
 
+function isSameQueueEntry(entry, targetEntry) {
+  if (!targetEntry) return false;
+
+  return (entry.entryId || entry.songId) === (targetEntry.entryId || targetEntry.songId);
+}
+
+function getQueueAfterWinnerStarts(queue, winningEntry, options = {}) {
+  const sourceQueue = Array.isArray(queue) ? queue : [];
+
+  if (options.continuousPlaylistMode === "playQueue") {
+    return sourceQueue.filter((entry) => !isSameQueueEntry(entry, winningEntry));
+  }
+
+  return [];
+}
+
 function getRoomTimeLeft(room, now) {
   const roundSeconds = room?.roundSeconds ?? ROUND_SECONDS;
 
@@ -213,13 +272,19 @@ function getRoomTimeLeft(room, now) {
   return clamp(room?.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);
 }
 
-function VoteMovingBoxItem({ canDelete, entry, onDelete, onVote, stackIndex }) {
+function VoteMovingBoxItem({ canDelete, entry, isVotingPaused, onDelete, onVote, stackIndex }) {
   const { song, score } = entry;
+  const color = VOTE_BOX_COLORS[entry.colorIndex % VOTE_BOX_COLORS.length];
 
   return (
     <article
       className="vote-box-row"
-      style={{ transform: `translateY(${stackIndex * (STACK_CARD_HEIGHT + STACK_CARD_GAP)}px)` }}
+      style={{
+        "--vote-box-start": color.start,
+        "--vote-box-middle": color.middle,
+        "--vote-box-end": color.end,
+        transform: `translateY(${stackIndex * (STACK_CARD_HEIGHT + STACK_CARD_GAP)}px)`,
+      }}
     >
       <div className="vote-box-bar" aria-label={`${song.name} score ${score}`}>
         <span className="vote-box-score">{score}</span>
@@ -232,6 +297,7 @@ function VoteMovingBoxItem({ canDelete, entry, onDelete, onVote, stackIndex }) {
             type="button"
             className="vote-box-button vote-box-button--up"
             onClick={() => onVote(entry.entryId, 1)}
+            disabled={isVotingPaused}
             aria-label={`Upvote ${song.name}`}
           >
             Up
@@ -240,6 +306,7 @@ function VoteMovingBoxItem({ canDelete, entry, onDelete, onVote, stackIndex }) {
             type="button"
             className="vote-box-button vote-box-button--down"
             onClick={() => onVote(entry.entryId, -1)}
+            disabled={isVotingPaused}
             aria-label={`Downvote ${song.name}`}
           >
             Down
@@ -546,11 +613,16 @@ function VoteMovingBox({
   const isCurrentUserHost = hostName === currentUserName;
   const shouldPlayAudio = playOnAllDevices || isCurrentUserHost;
   const activeRoom = roomCode ? room : localRoom;
+  const activeRoomOptions = activeRoom?.options || {};
   const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
   const timeLeft = getRoomTimeLeft(activeRoom, now);
   const isTimerPaused = Boolean(activeRoom?.timerPaused);
   const nowPlaying = normalizeCurrentSong(activeRoom?.currentSong);
   const nowPlayingKey = nowPlaying?.entryId || nowPlaying?.songId || nowPlaying?.name || "";
+  const willContinueQueuePlayback =
+    activeRoomOptions.continuousPlaylistMode === "playQueue" && entries.length > 0;
+  const isVotingPaused =
+    Boolean(activeRoomOptions.pauseVotingWhenTimerPaused) && isTimerPaused && !nowPlaying;
   const rankedEntries = useMemo(() => [...entries].sort((a, b) => b.score - a.score), [entries]);
   const stackHeight = entries.length
     ? entries.length * STACK_CARD_HEIGHT + (entries.length - 1) * STACK_CARD_GAP
@@ -623,7 +695,11 @@ function VoteMovingBox({
           return {
             ...currentRoom,
             currentSong: makeCurrentSongFromQueueEntry(winningEntry),
-            queue: [],
+            queue: getQueueAfterWinnerStarts(
+              currentRoom.queue,
+              winningEntry,
+              currentRoom.options || activeRoomOptions
+            ),
             timerPaused: true,
             timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
             roundEndsAt: null,
@@ -675,6 +751,7 @@ function VoteMovingBox({
           videoId: song.videoId,
           score: 0,
           upvotes: 0,
+          colorIndex: getNextQueueColorIndex(currentRoom.queue || []),
           addedBy: currentUserName,
         },
       ],
@@ -682,6 +759,10 @@ function VoteMovingBox({
   };
 
   const handleVote = async (entryId, amount) => {
+    if (isVotingPaused) {
+      return;
+    }
+
     if (roomCode) {
       await updateRoomFromResponse(
         await authFetch(`${API}/rooms/${roomCode}/vote`, {
@@ -788,12 +869,37 @@ function VoteMovingBox({
 
     updateLocalRoom((currentRoom) => ({
       ...currentRoom,
-      currentSong: null,
-      timerPaused: false,
       timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
-      roundEndsAt: new Date(
-        Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
-      ).toISOString(),
+      ...(() => {
+        if ((currentRoom.options || activeRoomOptions).continuousPlaylistMode !== "playQueue") {
+          return {
+            currentSong: null,
+            timerPaused: false,
+            roundEndsAt: new Date(
+              Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
+            ).toISOString(),
+          };
+        }
+
+        const nextEntry = getWinningQueueEntry(currentRoom.queue);
+
+        if (!nextEntry) {
+          return {
+            currentSong: null,
+            timerPaused: false,
+            roundEndsAt: new Date(
+              Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
+            ).toISOString(),
+          };
+        }
+
+        return {
+          currentSong: makeCurrentSongFromQueueEntry(nextEntry),
+          queue: (currentRoom.queue || []).filter((entry) => !isSameQueueEntry(entry, nextEntry)),
+          timerPaused: true,
+          roundEndsAt: null,
+        };
+      })(),
     }));
   };
 
@@ -817,7 +923,7 @@ function VoteMovingBox({
                   type="button"
                   onClick={handleCurrentSongComplete}
                 >
-                  Restart voting
+                  {willContinueQueuePlayback ? "Next song" : "Restart voting"}
                 </button>
               ) : (
                 <strong className="vote-timer-value">
@@ -858,6 +964,7 @@ function VoteMovingBox({
                     <VoteMovingBoxItem
                       canDelete={isCurrentUserHost || entry.addedBy === currentUserName}
                       entry={entry}
+                      isVotingPaused={isVotingPaused}
                       onDelete={handleDeleteSong}
                       stackIndex={stackIndex}
                       onVote={handleVote}

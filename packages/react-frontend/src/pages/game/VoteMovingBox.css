@@ -277,7 +277,12 @@
   justify-self: center;
   border: 3px solid #083047;
   border-radius: 12px;
-  background: linear-gradient(90deg, #eefbff 0%, #9fd7e4 58%, #4aa6dd 100%);
+  background: linear-gradient(
+    90deg,
+    var(--vote-box-start, #eefbff) 0%,
+    var(--vote-box-middle, #9fd7e4) 58%,
+    var(--vote-box-end, #4aa6dd) 100%
+  );
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.18);
   padding: 10px;
 }
@@ -333,6 +338,12 @@
 
 .vote-box-button:hover {
   transform: translateY(-1px);
+}
+
+.vote-box-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
 }
 
 .vote-box-button:active {

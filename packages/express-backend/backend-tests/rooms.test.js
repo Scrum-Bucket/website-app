@@ -176,6 +176,7 @@ test("host can update room options", async () => {
     continuousPlaylistMode: "removeVotes",
     removeSelectedSong: true,
     playOnAllDevices: false,
+    pauseVotingWhenTimerPaused: true,
   });
 
   expect(room.save).toHaveBeenCalled();
@@ -184,8 +185,37 @@ test("host can update room options", async () => {
     continuousPlaylistMode: "removeVotes",
     removeSelectedSong: true,
     playOnAllDevices: false,
+    pauseVotingWhenTimerPaused: true,
   });
   expect(result.roundSeconds).toBe(21);
+});
+
+test("voting can be locked while the host pauses the timer", async () => {
+  const room = makeRoom({
+    timerPaused: true,
+    roundEndsAt: null,
+    timerRemainingSeconds: 60,
+    options: {
+      roundSeconds: 120,
+      continuousPlaylistMode: "removeSongs",
+      removeSelectedSong: false,
+      playOnAllDevices: true,
+      pauseVotingWhenTimerPaused: true,
+    },
+    queue: [
+      {
+        entryId: "entry-1",
+        songId: "song-1",
+        name: "Hellfire",
+        artist: "The Bells",
+        score: 8,
+      },
+    ],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.voteSong("PLAY1", "entry-1", 1)).rejects.toThrow("Voting is paused");
+  expect(room.save).not.toHaveBeenCalled();
 });
 
 test("expired round can keep songs and remove votes", async () => {
@@ -256,4 +286,77 @@ test("expired round can remove the selected song separately from vote cleanup", 
   expect(result.queue).toHaveLength(1);
   expect(result.queue[0].name).toBe("Sail Away");
   expect(result.queue[0].score).toBe(0);
+});
+
+test("expired round can start queue playback without clearing the remaining queue", async () => {
+  const room = makeRoom({
+    options: {
+      roundSeconds: 120,
+      continuousPlaylistMode: "playQueue",
+      removeSelectedSong: false,
+      playOnAllDevices: true,
+    },
+    queue: [
+      {
+        entryId: "entry-1",
+        songId: "song-1",
+        name: "Hellfire",
+        artist: "The Bells",
+        score: 8,
+      },
+      {
+        entryId: "entry-2",
+        songId: "song-2",
+        name: "Sail Away",
+        artist: "The Bells",
+        score: 2,
+      },
+    ],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.findRoomByCode("PLAY1");
+
+  expect(result.currentSong.name).toBe("Hellfire");
+  expect(result.queue).toHaveLength(1);
+  expect(result.queue[0].name).toBe("Sail Away");
+  expect(result.timerPaused).toBe(true);
+  expect(result.roundEndsAt).toBeNull();
+});
+
+test("completing a song in queue playback starts the next queued song before voting", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    options: {
+      roundSeconds: 120,
+      continuousPlaylistMode: "playQueue",
+      removeSelectedSong: false,
+      playOnAllDevices: true,
+    },
+    currentSong: {
+      entryId: "entry-1",
+      songId: "song-1",
+      name: "Hellfire",
+    },
+    queue: [
+      {
+        entryId: "entry-2",
+        songId: "song-2",
+        name: "Sail Away",
+        artist: "The Bells",
+        score: 2,
+      },
+    ],
+    roundEndsAt: null,
+    timerPaused: true,
+    timerRemainingSeconds: 120,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.completeCurrentSong("PLAY1", "entry-1", "Captain");
+
+  expect(result.currentSong.name).toBe("Sail Away");
+  expect(result.queue).toStrictEqual([]);
+  expect(result.timerPaused).toBe(true);
+  expect(result.roundEndsAt).toBeNull();
 });
