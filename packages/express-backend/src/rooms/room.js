@@ -27,6 +27,7 @@ const RoomSchema = new mongoose.Schema(
           videoId: { type: String, default: "" },
           score: { type: Number, default: 0 },
           upvotes: { type: Number, default: 0 },
+          colorIndex: { type: Number },
           addedBy: { type: String, default: null },
         },
       ],
@@ -56,11 +57,12 @@ const RoomSchema = new mongoose.Schema(
       roundSeconds: { type: Number, default: 120 },
       continuousPlaylistMode: {
         type: String,
-        enum: ["removeSongs", "removeVotes", "keepAll"],
+        enum: ["removeSongs", "removeVotes", "keepAll", "playQueue"],
         default: "removeSongs",
       },
       removeSelectedSong: { type: Boolean, default: false },
       playOnAllDevices: { type: Boolean, default: true },
+      pauseVotingWhenTimerPaused: { type: Boolean, default: false },
     },
     host: {
       type: String,

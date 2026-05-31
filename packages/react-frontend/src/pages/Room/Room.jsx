@@ -16,6 +16,7 @@ const DEFAULT_ROOM_OPTIONS = {
   continuousPlaylistMode: "removeSongs",
   removeSelectedSong: false,
   playOnAllDevices: true,
+  pauseVotingWhenTimerPaused: false,
 };
 const ROOM_CLOSED_NOTICE = "The room was closed because the host left or lost connection.";
 const ROOM_CONNECTION_NOTICE = "You were sent home because the room connection was interrupted.";
@@ -378,6 +379,9 @@ function RoomOptionsModal({ error, onClose, onSave, options }) {
   );
   const [removeSelectedSong, setRemoveSelectedSong] = useState(options.removeSelectedSong);
   const [playOnAllDevices, setPlayOnAllDevices] = useState(options.playOnAllDevices);
+  const [pauseVotingWhenTimerPaused, setPauseVotingWhenTimerPaused] = useState(
+    options.pauseVotingWhenTimerPaused
+  );
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -386,6 +390,7 @@ function RoomOptionsModal({ error, onClose, onSave, options }) {
       continuousPlaylistMode,
       removeSelectedSong,
       playOnAllDevices,
+      pauseVotingWhenTimerPaused,
     });
   }
 
@@ -444,6 +449,16 @@ function RoomOptionsModal({ error, onClose, onSave, options }) {
             <input
               type="radio"
               name="continuousPlaylistMode"
+              value="playQueue"
+              checked={continuousPlaylistMode === "playQueue"}
+              onChange={(event) => setContinuousPlaylistMode(event.target.value)}
+            />
+            Play queue before voting again
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="continuousPlaylistMode"
               value="keepAll"
               checked={continuousPlaylistMode === "keepAll"}
               onChange={(event) => setContinuousPlaylistMode(event.target.value)}
@@ -457,7 +472,7 @@ function RoomOptionsModal({ error, onClose, onSave, options }) {
             type="checkbox"
             checked={removeSelectedSong}
             onChange={(event) => setRemoveSelectedSong(event.target.checked)}
-            disabled={continuousPlaylistMode === "removeSongs"}
+            disabled={continuousPlaylistMode === "removeSongs" || continuousPlaylistMode === "playQueue"}
           />
           Remove selected song from queue
         </label>
@@ -469,6 +484,15 @@ function RoomOptionsModal({ error, onClose, onSave, options }) {
             onChange={(event) => setPlayOnAllDevices(event.target.checked)}
           />
           Play songs on other users' computers
+        </label>
+
+        <label className="room-options-check">
+          <input
+            type="checkbox"
+            checked={pauseVotingWhenTimerPaused}
+            onChange={(event) => setPauseVotingWhenTimerPaused(event.target.checked)}
+          />
+          Pause voting when timer is paused
         </label>
 
         {error ? <p className="room-options-error">{error}</p> : null}

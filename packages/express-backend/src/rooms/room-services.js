@@ -9,13 +9,20 @@ const MAX_ROOM_MEMBERS = 30;
 const MEMBER_HEARTBEAT_TIMEOUT_MS = Number(process.env.ROOM_MEMBER_HEARTBEAT_TIMEOUT_MS) || 75000;
 const MIN_ROUND_SECONDS = 0;
 const MAX_ROUND_SECONDS = 900;
+const VOTE_BOX_COLOR_COUNT = 10;
 const DEFAULT_ROOM_OPTIONS = Object.freeze({
   roundSeconds: ROUND_SECONDS,
   continuousPlaylistMode: "removeSongs",
   removeSelectedSong: false,
   playOnAllDevices: true,
+  pauseVotingWhenTimerPaused: false,
 });
-const CONTINUOUS_PLAYLIST_MODES = new Set(["removeSongs", "removeVotes", "keepAll"]);
+const CONTINUOUS_PLAYLIST_MODES = new Set([
+  "removeSongs",
+  "removeVotes",
+  "keepAll",
+  "playQueue",
+]);
 const GUEST_MEMBER_NAMES = [
   "Anonymous Fish",
   "Anonymous Crab",
@@ -50,6 +57,10 @@ function normalizeRoomOptions(options = {}) {
       typeof options.playOnAllDevices === "boolean"
         ? options.playOnAllDevices
         : DEFAULT_ROOM_OPTIONS.playOnAllDevices,
+    pauseVotingWhenTimerPaused:
+      typeof options.pauseVotingWhenTimerPaused === "boolean"
+        ? options.pauseVotingWhenTimerPaused
+        : DEFAULT_ROOM_OPTIONS.pauseVotingWhenTimerPaused,
   };
 }
 
@@ -69,6 +80,10 @@ function applyQueueCleanupMode(queue, winningEntry, options) {
       ? []
       : queue.filter((entry) => !(options.removeSelectedSong && isWinningEntry(entry, winningEntry)));
 
+  if (options.continuousPlaylistMode === "playQueue") {
+    return queue.filter((entry) => !isWinningEntry(entry, winningEntry));
+  }
+
   if (options.continuousPlaylistMode === "removeVotes") {
     nextQueue = nextQueue.map((entry) => ({
       ...entry,
@@ -82,6 +97,22 @@ function applyQueueCleanupMode(queue, winningEntry, options) {
 
 function makeEntryId() {
   return `entry-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getNextQueueColorIndex(queue = []) {
+  const usedColorIndexes = new Set(
+    queue
+      .map((entry) => entry.colorIndex)
+      .filter((colorIndex) => Number.isInteger(colorIndex))
+  );
+
+  for (let colorIndex = 0; colorIndex < VOTE_BOX_COLOR_COUNT; colorIndex += 1) {
+    if (!usedColorIndexes.has(colorIndex)) {
+      return colorIndex;
+    }
+  }
+
+  return queue.length % VOTE_BOX_COLOR_COUNT;
 }
 
 function getRandomGuestMemberName() {
@@ -459,6 +490,7 @@ async function addSongToQueue(
     videoId,
     score: 0,
     upvotes: 0,
+    colorIndex: getNextQueueColorIndex(room.queue),
     addedBy,
   });
 
@@ -468,6 +500,11 @@ async function addSongToQueue(
 async function voteSong(roomCode, entryId, amount) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) throw new Error("Room not found");
+
+  const roomOptions = getRoomOptions(room);
+  if (room.timerPaused && !room.currentSong && roomOptions.pauseVotingWhenTimerPaused) {
+    throw new Error("Voting is paused");
+  }
 
   const idx = room.queue.findIndex((s) => s.entryId === entryId || s.songId === entryId);
   if (idx === -1) throw new Error("Song not in queue");
@@ -542,10 +579,27 @@ async function completeCurrentSong(roomCode, entryId = null, userName = null) {
   }
 
   if (room.currentSong) {
-    room.currentSong = null;
     const roomOptions = getRoomOptions(room);
     room.options = roomOptions;
     room.roundSeconds = roomOptions.roundSeconds;
+
+    if (roomOptions.continuousPlaylistMode === "playQueue") {
+      const nextEntry = getWinningEntry(room.queue);
+
+      if (nextEntry) {
+        room.currentSong = makeCurrentSong(nextEntry);
+        room.queue = room.queue.filter((entry) => !isWinningEntry(entry, nextEntry));
+        room.timerPaused = true;
+        room.timerRemainingSeconds = room.roundSeconds;
+        room.roundEndsAt = null;
+        room.markModified("queue");
+        room.markModified("currentSong");
+
+        return attachMemberProfiles(await room.save());
+      }
+    }
+
+    room.currentSong = null;
     room.timerPaused = false;
     room.timerRemainingSeconds = room.roundSeconds;
     room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
