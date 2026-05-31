@@ -12,16 +12,23 @@ messages:
 
       Keep feedback concise and actionable.
       Do not suggest style-only changes or broad refactors.
+      Do not quote long code blocks or repeat the diff.
 
   - role: user
     content: |-
       Review this pull request diff.
 
       Return:
-      - high-impact findings first
-      - file paths and line numbers when clear
-      - test gaps only when they matter
-      - a short summary at the end
+      - At most 5 findings total.
+      - Only include correctness, security, regression, or meaningful test-gap issues.
+      - For each finding, use this format:
+        - Severity: [High|Medium|Low]
+        - Location: file path and line number when clear
+        - Issue: 1-2 concise sentences
+        - Fix: 1 concise sentence
+      - If there are no high-impact findings, say exactly: "No high-impact findings."
+      - End with a summary of 2 bullets or fewer.
+      - Keep the full response under 600 words.
 
       Diff:
 {{diff}}
@@ -30,4 +37,4 @@ model: openai/gpt-4.1-mini
 
 modelParameters:
   temperature: 0.2
-  maxCompletionTokens: 1200
+  maxCompletionTokens: 2000
