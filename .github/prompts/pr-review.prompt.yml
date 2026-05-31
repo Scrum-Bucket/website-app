@@ -28,7 +28,8 @@ messages:
         - Fix: 1 concise sentence
       - If there are no high-impact findings, say exactly: "No high-impact findings."
       - End with a summary of 2 bullets or fewer.
-      - Keep the full response under 600 words.
+      - Keep the full response under 1000 words.
+      - If you will be cut off, then say "(Cut off)"
 
       Diff:
 {{diff}}
@@ -37,4 +38,4 @@ model: openai/gpt-4.1-mini
 
 modelParameters:
   temperature: 0.2
-  maxCompletionTokens: 2000
+  maxCompletionTokens: 3000
