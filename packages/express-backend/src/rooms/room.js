@@ -12,6 +12,10 @@ const RoomSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    memberActivity: {
+      type: mongoose.Schema.Types.Mixed,
+      default: () => ({}),
+    },
     queue: {
       type: [
         {

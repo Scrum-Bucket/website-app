@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import MyApp from "./MyApp";
 import LoginRequiredModal from "./LoginRequiredModal";
@@ -12,6 +12,7 @@ import MyPlaylist from "../pages/Playlist/MyPlaylist";
 import Profile from "../pages/profile/profile";
 import Admin from "../pages/admin/Admin";
 import EditCrab from "../pages/profile/edit-crab";
+import { HEARTBEAT_MS, getSessionUser, sendUserHeartbeat } from "../authSession";
 
 export function GuestGuard({ username, children }) {
   const navigate = useNavigate();
@@ -32,9 +33,38 @@ export function GuestGuard({ username, children }) {
 }
 
 export function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
-  const [userId, setUserId] = useState("");
+  const savedSession = getSessionUser();
+  const [isLoggedIn, setIsLoggedIn] = useState(Boolean(savedSession.username));
+  const [username, setUsername] = useState(savedSession.username);
+  const [userId, setUserId] = useState(savedSession.userId);
+
+  useEffect(() => {
+    if (!isLoggedIn || username === "Guest") {
+      return undefined;
+    }
+
+    let active = true;
+
+    async function heartbeat() {
+      try {
+        await sendUserHeartbeat();
+      } catch {
+        if (active) {
+          setUsername("");
+          setUserId("");
+          setIsLoggedIn(false);
+        }
+      }
+    }
+
+    heartbeat();
+    const heartbeatId = setInterval(heartbeat, HEARTBEAT_MS);
+
+    return () => {
+      active = false;
+      clearInterval(heartbeatId);
+    };
+  }, [isLoggedIn, username]);
 
   return (
     <Routes>

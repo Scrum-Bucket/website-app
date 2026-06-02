@@ -128,6 +128,7 @@ test("frontend user auth cookie can access protected routes", async () => {
     .send({ username: "frontend-user", password: "password123" })
     .expect(200);
 
+  mockingoose(userModel).toReturn({ ...existingUser, status: 1, lastActiveAt: new Date() }, "findOne");
   mockingoose(userModel).toReturn([], "find");
 
   const usersResult = await supertest(backend.app)

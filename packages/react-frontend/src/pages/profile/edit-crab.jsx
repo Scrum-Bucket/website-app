@@ -5,6 +5,7 @@ import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
 import { authFetch } from "../../authFetch";
+import { getSessionUser, setSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
 import {
   createCrabIcon,
@@ -31,7 +32,7 @@ const hats = Object.entries(hatImages).map(([path, source]) => {
 
 function EditCrab() {
   const navigate = useNavigate();
-  const initialUserId = localStorage.getItem("userId");
+  const initialUserId = getSessionUser().userId || localStorage.getItem("userId");
   const storedCrabProfile = readStoredCrabProfile(initialUserId);
   const [crabColor, setCrabColor] = useState(storedCrabProfile.color);
   const [crabHat, setCrabHat] = useState(storedCrabProfile.hat);
@@ -48,12 +49,7 @@ function EditCrab() {
         }
 
         const data = await response.json();
-        if (data._id) {
-          localStorage.setItem("userId", data._id);
-        }
-        if (data.userName) {
-          localStorage.setItem("username", data.userName);
-        }
+        setSessionUser(data, data.userName);
 
         const savedCrab = writeStoredCrabProfile(data.crab, data._id);
 
@@ -101,7 +97,7 @@ function EditCrab() {
       color: crabColor,
       hat: crabHat,
     };
-    const userId = localStorage.getItem("userId");
+    const userId = getSessionUser().userId || localStorage.getItem("userId");
 
     try {
       const response = await authFetch(`${frontendLink}/users/me/prefs`, {

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./admin.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
+import { getSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
 
 function Admin() {
@@ -11,6 +12,8 @@ function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [adminVerified, setAdminVerified] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showLoggedInOnly, setShowLoggedInOnly] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -31,7 +34,7 @@ function Admin() {
   };
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
+    const userId = getSessionUser().userId;
     if (!userId) {
       navigate("/home/profile");
       return;
@@ -181,6 +184,18 @@ function Admin() {
     return <div>Loading...</div>;
   }
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredUsers = users.filter((user) => {
+    const matchesLoggedInFilter = !showLoggedInOnly || user.status === 1;
+    const searchableText = [user.userName, user._id, user.isAdmin ? "admin" : "user"]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    const matchesSearch = !normalizedSearch || searchableText.includes(normalizedSearch);
+
+    return matchesLoggedInFilter && matchesSearch;
+  });
+
   return (
     <div className="admin-page">
       <OtherBackground />
@@ -199,6 +214,26 @@ function Admin() {
         {error && <div className="admin-error">{error}</div>}
 
         <section className="admin-controls">
+          <label className="admin-search" htmlFor="admin-user-search">
+            <span>Search</span>
+            <input
+              id="admin-user-search"
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Username or ID"
+            />
+          </label>
+
+          <label className="admin-filter-check">
+            <input
+              type="checkbox"
+              checked={showLoggedInOnly}
+              onChange={(event) => setShowLoggedInOnly(event.target.checked)}
+            />
+            <span>Logged in only</span>
+          </label>
+
           <button
             className="admin-control-btn"
             type="button"
@@ -211,13 +246,20 @@ function Admin() {
 
         <section className="admin-users">
           <h2>User Management</h2>
+          {!loading && users.length > 0 ? (
+            <p className="admin-result-count">
+              Showing {filteredUsers.length} of {users.length} users
+            </p>
+          ) : null}
           {loading ? (
             <div className="admin-loading">Loading users...</div>
           ) : users.length === 0 ? (
             <div className="admin-no-users">No users found</div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="admin-no-users">No users match your filters</div>
           ) : (
             <div className="admin-users-list">
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <div key={user._id} className="admin-user-card">
                   <div className="admin-user-info">
                     <div className="admin-user-name">

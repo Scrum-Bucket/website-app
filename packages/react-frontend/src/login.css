@@ -32,8 +32,10 @@ body {
   min-height: 100vh;
   width: 100vw;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   background: #8ed6ff url("./assets/login background.png") center / cover no-repeat;
 }
 
@@ -112,11 +114,19 @@ body {
 }
 
 .auth-error {
-  margin: 8px auto 0;
-  width: 180px;
+  margin: 0 auto;
+  width: min(520px, 100%);
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 42px;
   text-align: center;
   color: #a11f1f;
-  font-size: 12px;
+  font-family: "Blackbeard", "Times New Roman", serif;
+  font-size: 22px;
+  line-height: 1.15;
+  background: url("./assets/leaflet.png") center / 100% 100% no-repeat;
 }
 /* Login form styles */
 .login-row {
@@ -180,4 +190,12 @@ body {
   font-size: 16px;
   font-family: inherit;
   cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .auth-error {
+    min-height: 84px;
+    padding: 18px 28px;
+    font-size: 19px;
+  }
 }

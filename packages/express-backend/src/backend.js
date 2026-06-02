@@ -17,6 +17,8 @@ const roomServices = require("./rooms/room-services.js");
 const app = express();
 const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const USER_HEARTBEAT_TIMEOUT_MS = Number(process.env.USER_HEARTBEAT_TIMEOUT_MS) || 75000;
+const AUTO_LOGOUT_INTERVAL_MS = Number(process.env.AUTO_LOGOUT_INTERVAL_MS) || 30000;
 
 app.set("trust proxy", 1);
 
@@ -110,6 +112,16 @@ function userResponse(user) {
   return { ...userData, authenticated: true };
 }
 
+async function authenticatedUserResponse(req, res, user) {
+  const { token, sessionId } = setUserAuthCookie(req, res, user);
+  const sessionUser = (await userServices.registerUserSession(user._id, sessionId)) || user;
+
+  return {
+    ...userResponse(sessionUser),
+    sessionToken: token,
+  };
+}
+
 function getAuthenticatedUserId(req, res) {
   const userId = req.auth?.type === "frontend-user" ? req.auth.userId : null;
 
@@ -129,6 +141,19 @@ app.post("/signout", signout);
 app.get("/", (req, res) => {
   res.send("Backend running.");
 });
+
+const autoLogoutInterval = setInterval(() => {
+  userServices.logoutInactiveUsers(USER_HEARTBEAT_TIMEOUT_MS).catch((error) => {
+    console.error("Failed to auto-logout inactive users:", error);
+  });
+  roomServices.pruneInactiveRooms().catch((error) => {
+    console.error("Failed to prune inactive room members:", error);
+  });
+}, AUTO_LOGOUT_INTERVAL_MS);
+
+if (typeof autoLogoutInterval.unref === "function") {
+  autoLogoutInterval.unref();
+}
 
 app.use(authenticateUser);
 
@@ -345,6 +370,31 @@ app.post("/users/me/logout", async (req, res) => {
     .catch((err) => res.status(400).json({ error: err.message }));
 });
 
+app.post("/users/me/heartbeat", async (req, res) => {
+  const userId = getAuthenticatedUserId(req, res);
+  if (!userId) return;
+
+  const roomCode = normalizeRoomCode(req.body.roomCode);
+  const roomMemberName = (req.body.roomMemberName || "").trim();
+
+  try {
+    const user = await userServices.heartbeatUser(userId, req.auth.sessionId);
+
+    if (roomCode && roomMemberName) {
+      await roomServices.recordMemberHeartbeat(roomCode, roomMemberName);
+    }
+
+    res.json({
+      authenticated: true,
+      userId: user._id,
+      lastActiveAt: user.lastActiveAt,
+    });
+  } catch (err) {
+    clearUserAuthCookie(req, res);
+    res.status(401).json({ error: err.message });
+  }
+});
+
 app.patch("/users/me/rename", async (req, res) => {
   const userId = getAuthenticatedUserId(req, res);
   if (!userId) return;
@@ -408,9 +458,8 @@ app.post("/users", async (req, res) => {
 
   await userServices
     .createUser(userName, passWord)
-    .then((created) => {
-      setUserAuthCookie(req, res, created);
-      res.status(201).json(userResponse(created));
+    .then(async (created) => {
+      res.status(201).json(await authenticatedUserResponse(req, res, created));
     })
     .catch((err) => {
       if (
@@ -440,9 +489,8 @@ app.post("/users/login", async (req, res) => {
   const { username, password } = req.body;
   await userServices
     .loginUser(username, password)
-    .then((user) => {
-      setUserAuthCookie(req, res, user);
-      res.json(userResponse(user));
+    .then(async (user) => {
+      res.json(await authenticatedUserResponse(req, res, user));
     })
     .catch((err) => res.status(400).json({ error: err.message }));
 });

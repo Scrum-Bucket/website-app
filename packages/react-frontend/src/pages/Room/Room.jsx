@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import "./room.css";
 import GameBackground from "../../../animationFiles/game-background.jsx";
 import { authFetch } from "../../authFetch";
+import { HEARTBEAT_MS, getSessionUser, sendUserHeartbeat } from "../../authSession";
 import LoginRequiredModal from "../../app/LoginRequiredModal";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
@@ -17,6 +18,9 @@ const DEFAULT_ROOM_OPTIONS = {
   playOnAllDevices: true,
   pauseVotingWhenTimerPaused: false,
 };
+const ROOM_CLOSED_NOTICE = "The room was closed because the host left or lost connection.";
+const ROOM_CONNECTION_NOTICE = "You were sent home because the room connection was interrupted.";
+const ROOM_REMOVED_NOTICE = "You were removed from the room because this tab stopped responding.";
 
 function getStoredRoomMemberName(roomCode, username) {
   if (!roomCode || typeof sessionStorage === "undefined") {
@@ -34,7 +38,13 @@ function getMemberName(member, index) {
   return member?.name || member?.userName || member?.id || `Player ${index + 1}`;
 }
 
-function getRoomMemberProfiles(room, username) {
+function roomHasMember(room, memberName) {
+  const members = room?.memberProfiles?.length ? room.memberProfiles : room?.members || [];
+
+  return members.some((member, index) => getMemberName(member, index) === memberName);
+}
+
+function getRoomMemberProfiles(room, username, userId) {
   const sourceMembers = room?.memberProfiles?.length ? room.memberProfiles : room?.members || [];
   const currentUserName = username || "guest";
 
@@ -44,7 +54,7 @@ function getRoomMemberProfiles(room, username) {
     return {
       id: typeof member === "string" ? member : member.id || member.userId || name,
       name,
-      crab: member.crab || (name === currentUserName ? readStoredCrabProfile() : undefined),
+      crab: member.crab || (name === currentUserName ? readStoredCrabProfile(userId) : undefined),
     };
   });
 }
@@ -60,6 +70,20 @@ function Room({ username }) {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [optionsError, setOptionsError] = useState("");
+
+  const goHomeWithNotice = useCallback(
+    (roomNotice) => {
+      if (roomCode) {
+        sessionStorage.removeItem(`roomMemberName:${roomCode}`);
+      }
+
+      navigate("/home", {
+        replace: true,
+        state: { roomNotice },
+      });
+    },
+    [navigate, roomCode]
+  );
 
   const fetchRoom = useCallback(async () => {
     if (!roomCode) {
@@ -77,33 +101,25 @@ function Room({ username }) {
       const res = await authFetch(`${API}/rooms/${roomCode}`);
       if (!res.ok) {
         if (res.status === 404) {
-          sessionStorage.removeItem(`roomMemberName:${roomCode}`);
-          navigate("/home");
+          goHomeWithNotice(ROOM_CLOSED_NOTICE);
           return;
         }
 
-        setRoom({
-          roomCode,
-          host: roomMemberName,
-          members: [roomMemberName],
-          queue: [],
-          started: false,
-        });
+        goHomeWithNotice(ROOM_CONNECTION_NOTICE);
         return;
       }
 
       const data = await res.json();
+      if (!roomHasMember(data, roomMemberName)) {
+        goHomeWithNotice(data.closed ? ROOM_CLOSED_NOTICE : ROOM_REMOVED_NOTICE);
+        return;
+      }
+
       setRoom(data);
     } catch {
-      setRoom({
-        roomCode,
-        host: roomMemberName,
-        members: [roomMemberName],
-        queue: [],
-        started: false,
-      });
+      goHomeWithNotice(ROOM_CONNECTION_NOTICE);
     }
-  }, [navigate, roomCode, roomMemberName]);
+  }, [goHomeWithNotice, roomCode, roomMemberName]);
 
   useEffect(() => {
     const initialFetchId = setTimeout(fetchRoom, 0);
@@ -114,6 +130,32 @@ function Room({ username }) {
       clearInterval(pollId);
     };
   }, [fetchRoom]);
+
+  useEffect(() => {
+    if (!roomCode || username === "Guest") {
+      return undefined;
+    }
+
+    let active = true;
+
+    async function heartbeatRoomMembership() {
+      try {
+        await sendUserHeartbeat({ roomCode, roomMemberName });
+      } catch {
+        if (active) {
+          goHomeWithNotice(ROOM_CONNECTION_NOTICE);
+        }
+      }
+    }
+
+    heartbeatRoomMembership();
+    const heartbeatId = setInterval(heartbeatRoomMembership, HEARTBEAT_MS);
+
+    return () => {
+      active = false;
+      clearInterval(heartbeatId);
+    };
+  }, [goHomeWithNotice, roomCode, roomMemberName, username]);
 
   async function handleStart() {
     setLocalGameStarted(true);
@@ -204,7 +246,7 @@ function Room({ username }) {
 
   const isHost = room.host === roomMemberName;
   const gameStarted = room.started || localGameStarted;
-  const memberProfiles = getRoomMemberProfiles(room, roomMemberName);
+  const memberProfiles = getRoomMemberProfiles(room, roomMemberName, getSessionUser().userId);
   const roomOptions = { ...DEFAULT_ROOM_OPTIONS, ...(room.options || {}) };
 
   if (!gameStarted) {
