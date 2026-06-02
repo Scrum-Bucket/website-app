@@ -613,7 +613,7 @@ function VoteMovingBox({
   const isCurrentUserHost = hostName === currentUserName;
   const shouldPlayAudio = playOnAllDevices || isCurrentUserHost;
   const activeRoom = roomCode ? room : localRoom;
-  const activeRoomOptions = activeRoom?.options || {};
+  const activeRoomOptions = useMemo(() => activeRoom?.options || {}, [activeRoom?.options]);
   const entries = useMemo(() => normalizeQueueEntries(activeRoom?.queue), [activeRoom?.queue]);
   const timeLeft = getRoomTimeLeft(activeRoom, now);
   const isTimerPaused = Boolean(activeRoom?.timerPaused);
@@ -717,7 +717,7 @@ function VoteMovingBox({
     }, 0);
 
     return () => clearTimeout(updateTimerId);
-  }, [activeRoom, now, roomCode, timeLeft, updateLocalRoom]);
+  }, [activeRoom, activeRoomOptions, now, roomCode, timeLeft, updateLocalRoom]);
 
   const handleAddSong = async (song) => {
     if (roomCode) {

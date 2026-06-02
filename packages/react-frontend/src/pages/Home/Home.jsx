@@ -18,7 +18,9 @@ function Home({ username, onLoginRequired }) {
       return undefined;
     }
 
-    setRoomNotice(location.state.roomNotice);
+    const showNoticeTimer = setTimeout(() => {
+      setRoomNotice(location.state.roomNotice);
+    }, 0);
     navigate(".", { replace: true, state: {} });
 
     const noticeTimer = setTimeout(() => {
@@ -26,6 +28,7 @@ function Home({ username, onLoginRequired }) {
     }, 7000);
 
     return () => {
+      clearTimeout(showNoticeTimer);
       clearTimeout(noticeTimer);
     };
   }, [location.state, navigate]);
