@@ -31,41 +31,81 @@ jobs:
         run: |
           MAX_CHUNKS=5
           MAX_CHUNK_CHARS=12000
+          BASE_REF="origin/${{ github.base_ref }}"
+          RANGE="$BASE_REF...HEAD"
 
-          git diff --unified=3 origin/${{ github.base_ref }}...HEAD \
-            -- . \
+          git diff --name-only "$RANGE" -- . \
             ':(exclude)package-lock.json' \
             ':(exclude)packages/**/package-lock.json' \
-            > diff-full.txt
+            ':(exclude).github/workflows/ai-review.yml' \
+            ':(exclude).github/prompts/pr-review.prompt.yml' \
+            > diff-files.txt
 
-          if [ -s diff-full.txt ]; then
+          if [ -s diff-files.txt ]; then
             echo "has_diff=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_diff=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          split -C "$MAX_CHUNK_CHARS" -d -a 2 diff-full.txt diff-chunk-
+          chunk_count=1
+          current_size=0
+          omitted_chunks=false
+          : > "diff-chunk-${chunk_count}.txt"
 
-          chunk_count=0
-          for chunk in diff-chunk-*; do
-            chunk_count=$((chunk_count + 1))
+          while IFS= read -r changed_file; do
+            git diff --unified=3 "$RANGE" -- "$changed_file" > file-diff.txt
+            file_size="$(wc -c < file-diff.txt)"
 
-            if [ "$chunk_count" -le "$MAX_CHUNKS" ]; then
-              output="diff-chunk-${chunk_count}.txt"
+            if [ "$file_size" -gt "$MAX_CHUNK_CHARS" ]; then
               {
-                if [ "$chunk_count" -gt 1 ]; then
-                  echo "NOTE: This is chunk $chunk_count of the PR diff. Earlier chunks were reviewed separately."
+                echo "NOTE: The diff for $changed_file was truncated to fit one GitHub Models request."
+                echo
+                head -c "$MAX_CHUNK_CHARS" file-diff.txt
+              } > file-diff-limited.txt
+              mv file-diff-limited.txt file-diff.txt
+              file_size="$(wc -c < file-diff.txt)"
+            fi
+
+            if [ "$current_size" -gt 0 ] && [ $((current_size + file_size)) -gt "$MAX_CHUNK_CHARS" ]; then
+              chunk_count=$((chunk_count + 1))
+              current_size=0
+
+              if [ "$chunk_count" -gt "$MAX_CHUNKS" ]; then
+                omitted_chunks=true
+                break
+              fi
+
+              : > "diff-chunk-${chunk_count}.txt"
+            fi
+
+            {
+              if [ "$current_size" -gt 0 ]; then
+                echo
+              fi
+              cat file-diff.txt
+            } >> "diff-chunk-${chunk_count}.txt"
+
+            current_size=$((current_size + file_size))
+          done < diff-files.txt
+
+          for chunk in 1 2 3 4 5; do
+            if [ -s "diff-chunk-${chunk}.txt" ]; then
+              if [ "$chunk" -gt 1 ]; then
+                {
+                  echo "NOTE: This is chunk $chunk of the PR diff. Earlier chunks were reviewed separately."
                   echo
-                fi
-                cat "$chunk"
-              } > "$output"
-              sed 's/^/        /' "$output" > "diff-chunk-${chunk_count}-indented.txt"
-              echo "chunk_${chunk_count}=true" >> "$GITHUB_OUTPUT"
+                  cat "diff-chunk-${chunk}.txt"
+                } > "diff-chunk-${chunk}-with-note.txt"
+                mv "diff-chunk-${chunk}-with-note.txt" "diff-chunk-${chunk}.txt"
+              fi
+
+              sed 's/^/        /' "diff-chunk-${chunk}.txt" > "diff-chunk-${chunk}-indented.txt"
+              echo "chunk_${chunk}=true" >> "$GITHUB_OUTPUT"
             fi
           done
 
-          if [ "$chunk_count" -gt "$MAX_CHUNKS" ]; then
+          if [ "$omitted_chunks" = "true" ]; then
             echo "omitted_chunks=true" >> "$GITHUB_OUTPUT"
           else
             echo "omitted_chunks=false" >> "$GITHUB_OUTPUT"
