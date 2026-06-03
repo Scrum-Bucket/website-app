@@ -236,6 +236,8 @@ jobs:
                 echo
               fi
             done
+
+            echo "_AI review workflow completed for processed diff chunks._"
           } > ai-review.md
 
       - name: Comment on PR

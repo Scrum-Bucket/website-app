@@ -13,6 +13,8 @@ messages:
       Keep feedback concise and actionable.
       Every finding must describe a concrete bug that is visible in the provided diff.
       Do not report speculative performance, memory, reproducibility, or maintainability concerns unless the diff shows a clear user-visible failure path.
+      Do not flag mixed random number sources unless deterministic output is explicitly required by code, tests, or user-visible behavior.
+      Before reporting a possible null, missing data, or overflow issue, verify that the precondition is reachable in the provided diff.
       Do not suggest style-only changes or broad refactors.
       Do not quote long code blocks or repeat the diff.
 
@@ -21,7 +23,7 @@ messages:
       Review this pull request diff chunk. It may be one part of a larger pull request.
 
       Return:
-      - At most 2 findings total for this chunk.
+      - At most 1 finding total for this chunk.
       - Only include correctness, security, regression, or meaningful test-gap issues.
       - For each finding, use this format:
         - Severity: [High|Medium|Low]
@@ -30,8 +32,9 @@ messages:
         - Fix: 1 concise sentence
       - If there are no high-impact findings, say exactly: "No high-impact findings."
       - Do not include a finding unless you can complete Severity, Location, Issue, and Fix.
-      - End with a summary of 1 bullet or fewer.
-      - Keep the full response under 350 words.
+      - Do not include a summary.
+      - Keep the full response under 180 words.
+      - End with exactly: "Chunk review complete."
       - If you will be cut off, then say "(Cut off)"
 
       Diff:
@@ -41,4 +44,4 @@ model: openai/gpt-4.1-mini
 
 modelParameters:
   temperature: 0.2
-  maxCompletionTokens: 1200
+  maxCompletionTokens: 900
