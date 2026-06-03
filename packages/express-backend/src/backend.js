@@ -201,16 +201,53 @@ app.post("/users/:id/playlists/youtube/:playlistId", async (req, res) => {
   }
 });
 
-function compileSingleSong(videoItem) {
-  const videoId = videoItem.id;
+function getBestThumbnail(thumbnails = {}) {
+  return (
+    thumbnails.maxres?.url ||
+    thumbnails.high?.url ||
+    thumbnails.medium?.url ||
+    thumbnails.default?.url ||
+    ""
+  );
+}
+
+function compileSong(item) {
+  const snippet = item.snippet || {};
+  const videoId = item.id || snippet.resourceId?.videoId;
 
   return {
     songLink: `https://www.youtube.com/watch?v=${videoId}`,
     details: {
-      title: videoItem.snippet.title,
+      title: snippet.title,
       videoId,
+      artist: snippet.videoOwnerChannelTitle || snippet.channelTitle || "Unknown Artist",
+      thumbnail: getBestThumbnail(snippet.thumbnails),
     },
   };
+}
+
+async function compileSongs(playlistItems, playlistId) {
+  const songs = [];
+
+  for (const item of playlistItems["items"]) {
+    if (isValidSong(item)) {
+      songs.push(compileSong(item));
+    }
+  }
+
+  while (playlistItems["nextPageToken"] !== undefined) {
+    const nextPageResponse = await getSongs(playlistId, playlistItems["nextPageToken"]);
+
+    for (const item of nextPageResponse["items"]) {
+      if (isValidSong(item)) {
+        songs.push(compileSong(item));
+      }
+    }
+
+    playlistItems = nextPageResponse;
+  }
+
+  return songs;
 }
 
 app.post("/users/:id/songs/youtube/:videoId", async (req, res) => {
@@ -232,7 +269,7 @@ app.post("/users/:id/songs/youtube/:videoId", async (req, res) => {
       return;
     }
 
-    const songData = compileSingleSong(content.items[0]);
+    const songData = compileSong(content.items[0]);
     const savedSong = await songServices.findOrCreateSong(songData);
 
     await userServices.addSongsToPlaylist(id, playlistName, [savedSong._id]);
@@ -277,47 +314,6 @@ function isValidSong(item) {
   return title !== "Private video" && title !== "Deleted video";
 }
 
-async function compileSongs(playlistItems, playlistId) {
-  const songs = [];
-  for (const item of playlistItems["items"]) {
-    if (isValidSong(item)) {
-      const videoId = item.snippet.resourceId.videoId;
-
-      songs.push({
-        songLink: `https://www.youtube.com/watch?v=${videoId}`,
-        details: {
-          title: item.snippet.title,
-          videoId,
-        },
-      });
-    }
-  }
-
-  while (playlistItems["nextPageToken"] !== undefined) {
-    console.log("Next Page Token:", playlistItems["nextPageToken"]);
-    console.log("Current Songs Count:", songs.length);
-    const nextPageResponse = await getSongs(playlistId, playlistItems["nextPageToken"]);
-    console.log("Next Page token", nextPageResponse["nextPageToken"]);
-
-    for (const item of nextPageResponse["items"]) {
-      if (isValidSong(item)) {
-        const videoId = item.snippet.resourceId.videoId;
-
-        songs.push({
-          songLink: `https://www.youtube.com/watch?v=${videoId}`,
-          details: {
-            title: item.snippet.title,
-            videoId,
-          },
-        });
-      }
-    }
-
-    playlistItems = nextPageResponse;
-  }
-  console.log("Extracted Songs:", songs);
-  return songs;
-}
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 
@@ -739,8 +735,10 @@ app.post("/rooms/:roomCode/start", async (req, res) => {
 // POST /rooms/:roomCode/queue  – add a song  { songId, name, artist }
 app.post("/rooms/:roomCode/queue", async (req, res) => {
   const roomCode = normalizeRoomCode(req.params.roomCode);
-  const { songId, name, artist, addedBy, songLink, videoId } = req.body;
+  const { songId, name, artist, addedBy, songLink, videoId, thumbnail } = req.body;
+
   if (!songId) return res.status(400).json({ error: "songId is required." });
+
   await roomServices
     .addSongToQueue(
       roomCode,
@@ -749,7 +747,8 @@ app.post("/rooms/:roomCode/queue", async (req, res) => {
       artist || "Unknown",
       addedBy || null,
       songLink || "",
-      videoId || ""
+      videoId || "",
+      thumbnail || ""
     )
     .then((room) => {
       if (!room) return res.status(404).json({ error: "Room not found." });

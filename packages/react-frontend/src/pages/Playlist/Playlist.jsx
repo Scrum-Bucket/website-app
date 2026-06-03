@@ -25,12 +25,12 @@ function getYoutubeInput(input) {
     const playlistId = url.searchParams.get("list");
     const videoId = url.searchParams.get("v");
 
-    if (playlistId) {
-      return { type: "playlist", id: playlistId };
-    }
-
     if (videoId) {
       return { type: "song", id: videoId };
+    }
+
+    if (playlistId) {
+      return { type: "playlist", id: playlistId };
     }
 
     if (url.hostname.includes("youtu.be")) {

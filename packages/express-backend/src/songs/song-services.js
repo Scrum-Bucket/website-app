@@ -82,20 +82,17 @@ async function findOrCreateSong(songData) {
   const existingSong = await song.findOne({ songLink: normalizedSongData.songLink });
 
   if (existingSong) {
-    const videoId = getSongVideoId(existingSong);
+    const existingDetails =
+      existingSong.details && typeof existingSong.details === "object"
+        ? existingSong.details
+        : {};
 
-    if (!videoId && normalizedSongData.details?.videoId) {
-      existingSong.details = {
-        ...(existingSong.details && typeof existingSong.details === "object"
-          ? existingSong.details
-          : {}),
-        videoId: normalizedSongData.details.videoId,
-      };
+    existingSong.details = {
+      ...existingDetails,
+      ...normalizedSongData.details,
+    };
 
-      return existingSong.save();
-    }
-
-    return existingSong;
+    return existingSong.save();
   }
 
   // make the song if it doesnt exist
