@@ -22,6 +22,10 @@ Run `npm run dev` in a terminal in the following directories:
 1. packages/express-backend
 2. packages/react-frontend
 
+## Backend Authentication
+
+Protected backend endpoints require authentication. Use `BACKEND_ACCESS_TOKEN` for the shared backend sign-in/token flow and `TOKEN_SECRET` for signing backend and frontend user session tokens. Public routes such as frontend login, signup, and room join remain available without a backend access token.
+
 ## Code Coverage
 
 ```

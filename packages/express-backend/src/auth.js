@@ -18,10 +18,6 @@ function getSharedAccessToken() {
   return process.env.BACKEND_ACCESS_TOKEN || process.env.BACKEND_AUTH_TOKEN || "";
 }
 
-function isBackendAccessTokenRequired() {
-  return process.env.REQUIRE_BACKEND_ACCESS_TOKEN === "true";
-}
-
 function getTokenExpiresIn() {
   return process.env.TOKEN_EXPIRES_IN || DEFAULT_TOKEN_EXPIRES_IN;
 }
@@ -160,12 +156,7 @@ async function authenticateUser(req, res, next) {
 
   const tokens = getRequestTokens(req);
   if (!tokens.length) {
-    if (isBackendAccessTokenRequired()) {
-      return rejectUnauthenticated(req, res);
-    }
-
-    req.auth = { type: "anonymous" };
-    return next();
+    return rejectUnauthenticated(req, res);
   }
 
   const sharedAccessToken = getSharedAccessToken();
@@ -220,12 +211,7 @@ async function authenticateUser(req, res, next) {
   }
 
   console.log("Token authentication failed:", authError?.message || "No valid token");
-  if (isBackendAccessTokenRequired()) {
-    return rejectUnauthenticated(req, res, "Invalid or expired access token.");
-  }
-
-  req.auth = { type: "anonymous" };
-  return next();
+  return rejectUnauthenticated(req, res, "Invalid or expired access token.");
 }
 
 function requireBackendAccess(req, res, next) {

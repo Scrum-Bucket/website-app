@@ -1,7 +1,7 @@
 const originalSkipDotenv = process.env.SKIP_DOTENV;
 const originalBackendAccessToken = process.env.BACKEND_ACCESS_TOKEN;
 const originalCorsOrigin = process.env.CORS_ORIGIN;
-const originalRequireBackendAccessToken = process.env.REQUIRE_BACKEND_ACCESS_TOKEN;
+const originalNodeEnv = process.env.NODE_ENV;
 const originalTokenSecret = process.env.TOKEN_SECRET;
 
 process.env.SKIP_DOTENV = "true";
@@ -32,7 +32,7 @@ afterAll(() => {
   restoreEnv("SKIP_DOTENV", originalSkipDotenv);
   restoreEnv("BACKEND_ACCESS_TOKEN", originalBackendAccessToken);
   restoreEnv("CORS_ORIGIN", originalCorsOrigin);
-  restoreEnv("REQUIRE_BACKEND_ACCESS_TOKEN", originalRequireBackendAccessToken);
+  restoreEnv("NODE_ENV", originalNodeEnv);
   restoreEnv("TOKEN_SECRET", originalTokenSecret);
 });
 
@@ -80,19 +80,17 @@ test("backend same-origin signin form post is not blocked by cors", async () => 
   expect(result.headers["set-cookie"][0]).toContain("backendAuthToken=");
 });
 
-test("api request without backend access token is allowed", async () => {
-  mockingoose(userModel).toReturn([], "find");
-
+test("api request without backend access token is rejected", async () => {
   const result = await supertest(backend.app)
     .get("/users")
     .set("Accept", "application/json")
-    .expect(200);
+    .expect(401);
 
-  expect(result.body).toStrictEqual([]);
+  expect(result.body.error).toBe("Authentication required.");
 });
 
-test("backend access token can be required with env flag", async () => {
-  process.env.REQUIRE_BACKEND_ACCESS_TOKEN = "true";
+test("production-like api request without backend access token is rejected", async () => {
+  process.env.NODE_ENV = "production";
 
   try {
     const result = await supertest(backend.app)
@@ -102,7 +100,7 @@ test("backend access token can be required with env flag", async () => {
 
     expect(result.body.error).toBe("Authentication required.");
   } finally {
-    restoreEnv("REQUIRE_BACKEND_ACCESS_TOKEN", originalRequireBackendAccessToken);
+    restoreEnv("NODE_ENV", originalNodeEnv);
   }
 });
 
@@ -222,24 +220,20 @@ test("frontend signup creates an authenticated user session", async () => {
   expect(result.headers["set-cookie"][0]).toContain("userAuthToken=");
 });
 
-test("browser request without backend access token is allowed", async () => {
-  mockingoose(userModel).toReturn([], "find");
+test("browser request without backend access token redirects to signin", async () => {
+  const result = await supertest(backend.app).get("/users").set("Accept", "text/html").expect(302);
 
-  const result = await supertest(backend.app).get("/users").set("Accept", "text/html").expect(200);
-
-  expect(result.body).toStrictEqual([]);
+  expect(result.headers.location).toBe("/signin?next=%2Fusers");
 });
 
-test("invalid bearer token is ignored when backend access token is disabled", async () => {
-  mockingoose(userModel).toReturn([], "find");
-
+test("invalid bearer token is rejected", async () => {
   const result = await supertest(backend.app)
     .get("/users")
     .set("Accept", "application/json")
     .set("Authorization", "Bearer invalid-token")
-    .expect(200);
+    .expect(401);
 
-  expect(result.body).toStrictEqual([]);
+  expect(result.body.error).toBe("Invalid or expired access token.");
 });
 
 test("current user profile still requires a frontend user session", async () => {
@@ -248,7 +242,7 @@ test("current user profile still requires a frontend user session", async () => 
     .set("Accept", "application/json")
     .expect(401);
 
-  expect(result.body.error).toBe("User session required.");
+  expect(result.body.error).toBe("Authentication required.");
 });
 
 test("protected request accepts shared backend access token", async () => {
