@@ -86,7 +86,20 @@ export function clearStoredCrabProfile(userKey) {
 export function getHatSourceForCrab(crab, hatImages) {
   const normalizedCrab = normalizeCrabProfile(crab);
 
-  return normalizedCrab.hat ? hatImages[`../../assets/hats/${normalizedCrab.hat}`] || "" : "";
+  if (!normalizedCrab.hat) {
+    return "";
+  }
+
+  const exactPath = `../../assets/hats/${normalizedCrab.hat}`;
+  if (hatImages[exactPath]) {
+    return hatImages[exactPath];
+  }
+
+  const matchingPath = Object.keys(hatImages).find(
+    (path) => path.split("/").pop() === normalizedCrab.hat
+  );
+
+  return matchingPath ? hatImages[matchingPath] : "";
 }
 
 function hexToRgb(hexColor) {

@@ -13,6 +13,7 @@ const supertest = require("supertest");
 const mockingoose = require("mockingoose").default;
 const backend = require("../src/backend.js");
 const userModel = require("../src/user/user.js");
+const roomModel = require("../src/rooms/room.js");
 const bcrypt = require("bcrypt");
 
 function restoreEnv(name, value) {
@@ -40,6 +41,14 @@ test("signin page is public", async () => {
   const result = await supertest(backend.app).get("/signin").expect(200);
 
   expect(result.text).toContain("Backend Sign In");
+});
+
+test("responses include baseline security headers", async () => {
+  const result = await supertest(backend.app).get("/signin").expect(200);
+
+  expect(result.headers["x-content-type-options"]).toBe("nosniff");
+  expect(result.headers["x-frame-options"]).toBe("DENY");
+  expect(result.headers["referrer-policy"]).toBe("no-referrer");
 });
 
 test("deployed frontend origin can make credentialed cors requests", async () => {
@@ -87,6 +96,58 @@ test("api request without backend access token is rejected", async () => {
     .expect(401);
 
   expect(result.body.error).toBe("Authentication required.");
+});
+
+test("unauthenticated room listing cannot enumerate private rooms", async () => {
+  const result = await supertest(backend.app)
+    .get("/rooms")
+    .set("Accept", "application/json")
+    .expect(401);
+
+  expect(result.body.error).toBe("Authentication required.");
+});
+
+test("unauthenticated public room listing is limited to public rooms", async () => {
+  mockingoose(roomModel).toReturn(
+    [
+      {
+        _id: "507f1f77bcf86cd799439031",
+        roomCode: "PUB123",
+        privacy: "public",
+        members: [],
+        queue: [],
+        started: false,
+      },
+    ],
+    "find"
+  );
+
+  const result = await supertest(backend.app)
+    .get("/rooms?privacy=public")
+    .set("Accept", "application/json")
+    .expect(200);
+
+  expect(result.body).toHaveLength(1);
+  expect(result.body[0].roomCode).toBe("PUB123");
+});
+
+test("room host actions require a signed room member token even with backend auth", async () => {
+  const result = await supertest(backend.app)
+    .post("/rooms/PUB123/timer")
+    .set("Authorization", "Bearer test-backend-access-token")
+    .send({ paused: true, userName: "Captain" })
+    .expect(403);
+
+  expect(result.body.error).toBe("Valid room member token required.");
+});
+
+test("room heartbeat is public but still requires a signed room member token", async () => {
+  const result = await supertest(backend.app)
+    .post("/rooms/PUB123/heartbeat")
+    .set("Accept", "application/json")
+    .expect(403);
+
+  expect(result.body.error).toBe("Valid room member token required.");
 });
 
 test("production-like api request without backend access token is rejected", async () => {

@@ -8,9 +8,18 @@ import LoginRequiredModal from "../../app/LoginRequiredModal";
 import frontendLink from "../../frontendLink";
 import VoteMovingBox from "../game/VoteMovingBox";
 import { readStoredCrabProfile } from "../profile/crabColor";
+import {
+  clearRoomMemberSession,
+  getRoomMemberName,
+  roomMemberHeaders,
+  sendRoomMemberHeartbeat,
+} from "./roomMemberSession";
 
 const API = frontendLink;
-const POLL_MS = 2000;
+const ACTIVE_POLL_MS = 1500;
+const BACKGROUND_POLL_MS = 10000;
+const LOBBY_POLL_MS = 5000;
+const PLAYBACK_POLL_MS = 3000;
 const DEFAULT_ROOM_OPTIONS = {
   roundSeconds: 120,
   continuousPlaylistMode: "removeSongs",
@@ -21,14 +30,6 @@ const DEFAULT_ROOM_OPTIONS = {
 const ROOM_CLOSED_NOTICE = "The room was closed because the host left or lost connection.";
 const ROOM_CONNECTION_NOTICE = "You were sent home because the room connection was interrupted.";
 const ROOM_REMOVED_NOTICE = "You were removed from the room because this tab stopped responding.";
-
-function getStoredRoomMemberName(roomCode, username) {
-  if (!roomCode || typeof sessionStorage === "undefined") {
-    return username || "guest";
-  }
-
-  return sessionStorage.getItem(`roomMemberName:${roomCode}`) || username || "guest";
-}
 
 function getMemberName(member, index) {
   if (typeof member === "string") {
@@ -59,22 +60,39 @@ function getRoomMemberProfiles(room, username, userId) {
   });
 }
 
+function getRoomPollDelay(room) {
+  if (typeof document !== "undefined" && document.hidden) {
+    return BACKGROUND_POLL_MS;
+  }
+
+  if (!room?.started) {
+    return LOBBY_POLL_MS;
+  }
+
+  if (room.currentSong) {
+    return PLAYBACK_POLL_MS;
+  }
+
+  return ACTIVE_POLL_MS;
+}
+
 function Room({ username }) {
   const { roomCode } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const roomMemberName = getStoredRoomMemberName(roomCode, username);
+  const roomMemberName = getRoomMemberName(roomCode, username || "guest");
 
   const [room, setRoom] = useState(location.state?.room || null);
   const [localGameStarted, setLocalGameStarted] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [optionsError, setOptionsError] = useState("");
+  const roomPollDelay = getRoomPollDelay(room);
 
   const goHomeWithNotice = useCallback(
     (roomNotice) => {
       if (roomCode) {
-        sessionStorage.removeItem(`roomMemberName:${roomCode}`);
+        clearRoomMemberSession(roomCode);
       }
 
       navigate("/home", {
@@ -122,17 +140,27 @@ function Room({ username }) {
   }, [goHomeWithNotice, roomCode, roomMemberName]);
 
   useEffect(() => {
-    const initialFetchId = setTimeout(fetchRoom, 0);
-    const pollId = setInterval(fetchRoom, POLL_MS);
+    let active = true;
+    let pollId;
+
+    async function pollRoom() {
+      await fetchRoom();
+
+      if (active) {
+        pollId = setTimeout(pollRoom, roomPollDelay);
+      }
+    }
+
+    pollId = setTimeout(pollRoom, 0);
 
     return () => {
-      clearTimeout(initialFetchId);
-      clearInterval(pollId);
+      active = false;
+      clearTimeout(pollId);
     };
-  }, [fetchRoom]);
+  }, [fetchRoom, roomPollDelay]);
 
   useEffect(() => {
-    if (!roomCode || username === "Guest") {
+    if (!roomCode) {
       return undefined;
     }
 
@@ -140,7 +168,11 @@ function Room({ username }) {
 
     async function heartbeatRoomMembership() {
       try {
-        await sendUserHeartbeat({ roomCode, roomMemberName });
+        if (username === "Guest") {
+          await sendRoomMemberHeartbeat(roomCode);
+        } else {
+          await sendUserHeartbeat({ roomCode, roomMemberName });
+        }
       } catch {
         if (active) {
           goHomeWithNotice(ROOM_CONNECTION_NOTICE);
@@ -175,7 +207,7 @@ function Room({ username }) {
     try {
       const res = await authFetch(`${API}/rooms/${roomCode}/start`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...roomMemberHeaders(roomCode) },
       });
 
       if (res.ok) {
@@ -195,11 +227,10 @@ function Room({ username }) {
     try {
       await authFetch(`${API}/rooms/${roomCode}/leave`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userName: roomMemberName }),
+        headers: { "Content-Type": "application/json", ...roomMemberHeaders(roomCode) },
       });
     } finally {
-      sessionStorage.removeItem(`roomMemberName:${roomCode}`);
+      clearRoomMemberSession(roomCode);
       navigate(destination);
     }
   }
@@ -214,9 +245,8 @@ function Room({ username }) {
     try {
       const response = await authFetch(`${API}/rooms/${roomCode}/options`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...roomMemberHeaders(roomCode) },
         body: JSON.stringify({
-          userName: roomMemberName,
           options: nextOptions,
         }),
       });

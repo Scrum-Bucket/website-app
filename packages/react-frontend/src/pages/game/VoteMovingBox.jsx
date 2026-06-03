@@ -35,6 +35,7 @@ import {
   normalizeUsers,
 } from "./utils/gameUtils";
 import { createRoomActionExecutor } from "./utils/roomActionTemplate";
+import { roomMemberHeaders } from "../Room/roomMemberSession";
 
 const API = frontendLink;
 
@@ -184,7 +185,7 @@ function VoteMovingBox({
       remoteAction: (activeRoomCode) =>
         authFetch(`${API}/rooms/${activeRoomCode}/queue`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...roomMemberHeaders(activeRoomCode) },
           body: JSON.stringify({
             songId: song.id,
             name: song.name,
@@ -225,7 +226,7 @@ function VoteMovingBox({
       remoteAction: (activeRoomCode) =>
         authFetch(`${API}/rooms/${activeRoomCode}/vote`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...roomMemberHeaders(activeRoomCode) },
           body: JSON.stringify({ entryId, amount }),
         }),
       localAction: () =>
@@ -255,8 +256,7 @@ function VoteMovingBox({
       remoteAction: (activeRoomCode) =>
         authFetch(`${API}/rooms/${activeRoomCode}/queue/${encodeURIComponent(entryId)}`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userName: currentUserName }),
+          headers: { "Content-Type": "application/json", ...roomMemberHeaders(activeRoomCode) },
         }),
       localAction: () =>
         updateLocalRoom((currentRoom) => ({
@@ -280,8 +280,8 @@ function VoteMovingBox({
       remoteAction: (activeRoomCode) =>
         authFetch(`${API}/rooms/${activeRoomCode}/timer`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paused, userName: currentUserName }),
+          headers: { "Content-Type": "application/json", ...roomMemberHeaders(activeRoomCode) },
+          body: JSON.stringify({ paused }),
         }),
       localAction: () =>
         updateLocalRoom((currentRoom) => ({
@@ -312,8 +312,8 @@ function VoteMovingBox({
       remoteAction: (activeRoomCode) =>
         authFetch(`${API}/rooms/${activeRoomCode}/current-song/complete`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ entryId: nowPlaying.entryId, userName: currentUserName }),
+          headers: { "Content-Type": "application/json", ...roomMemberHeaders(activeRoomCode) },
+          body: JSON.stringify({ entryId: nowPlaying.entryId }),
         }),
       localAction: () =>
         updateLocalRoom((currentRoom) => ({

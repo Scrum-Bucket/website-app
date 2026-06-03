@@ -180,6 +180,27 @@ test("inactive participant is removed from the room", async () => {
   expect(result.members).toStrictEqual(["Captain"]);
 });
 
+test("room member heartbeat refreshes guest activity", async () => {
+  const staleActivity = new Date(Date.now() - 60000).toISOString();
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    members: ["Captain", "Anonymous Fish"],
+    memberActivity: {
+      Captain: new Date().toISOString(),
+      "Anonymous Fish": staleActivity,
+    },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await roomServices.recordMemberHeartbeat("PLAY1", "Anonymous Fish");
+
+  expect(room.save).toHaveBeenCalled();
+  expect(new Date(room.memberActivity["Anonymous Fish"]).getTime()).toBeGreaterThan(
+    new Date(staleActivity).getTime()
+  );
+});
+
 test("inactive host closes the room", async () => {
   const room = makeRoom({
     host: "Captain",
@@ -225,6 +246,40 @@ test("host can update room options", async () => {
     pauseVotingWhenTimerPaused: true,
   });
   expect(result.roundSeconds).toBe(21);
+});
+
+test("only host can start room", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.startRoom("PLAY1", "Sailor")).rejects.toThrow(
+    "Only the host can start the room"
+  );
+  expect(room.save).not.toHaveBeenCalled();
+});
+
+test("vote amount is applied one step at a time", async () => {
+  const room = makeRoom({
+    started: false,
+    roundEndsAt: null,
+    queue: [
+      {
+        entryId: "entry-1",
+        songId: "song-1",
+        name: "Hellfire",
+        score: 8,
+      },
+    ],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.voteSong("PLAY1", "entry-1", 1);
+
+  expect(result.queue[0].score).toBe(9);
+  expect(room.save).toHaveBeenCalled();
 });
 
 test("voting can be locked while the host pauses the timer", async () => {

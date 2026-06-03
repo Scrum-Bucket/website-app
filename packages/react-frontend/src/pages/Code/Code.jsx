@@ -4,6 +4,7 @@ import "./code.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
+import { setRoomMemberSession } from "../Room/roomMemberSession";
 
 const API = frontendLink;
 
@@ -48,10 +49,10 @@ function Code({ username }) {
       }
 
       const joinedRoom = await joinRes.json();
-      sessionStorage.setItem(
-        `roomMemberName:${trimmed}`,
-        joinedRoom.assignedMemberName || username || "guest"
-      );
+      setRoomMemberSession(trimmed, {
+        memberName: joinedRoom.assignedMemberName || username || "guest",
+        token: joinedRoom.roomMemberToken,
+      });
       navigate(`/home/room/${trimmed}`);
     } catch {
       setError("Could not connect to server. Try again.");

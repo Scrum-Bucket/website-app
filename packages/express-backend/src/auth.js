@@ -121,11 +121,15 @@ function isPublicRequest(req) {
     return true;
   }
 
-  if (req.method === "GET" && /^\/rooms(?:\/[^/]+)?$/.test(req.path)) {
+  if (req.method === "GET" && req.path === "/rooms") {
+    return req.query.privacy === "public" || Boolean(req.query.roomCode);
+  }
+
+  if (req.method === "GET" && /^\/rooms\/[^/]+$/.test(req.path)) {
     return true;
   }
 
-  if (req.method === "POST" && /^\/rooms\/[^/]+\/(?:join|leave|vote)$/.test(req.path)) {
+  if (req.method === "POST" && /^\/rooms\/[^/]+\/(?:join|leave|vote|heartbeat)$/.test(req.path)) {
     return true;
   }
 

@@ -1,5 +1,6 @@
 const express = require("express");
 const { clearUserAuthCookie } = require("../auth");
+const { createRateLimiter } = require("../http/rate-limit.js");
 const roomServices = require("../rooms/room-services.js");
 const userServices = require("../user/user-services.js");
 const { normalizeRoomCode } = require("../utils/room-code.js");
@@ -11,6 +12,10 @@ const {
 
 function createUsersRouter() {
   const router = express.Router();
+  const authRateLimiter = createRateLimiter({
+    maxRequests: Number(process.env.AUTH_RATE_LIMIT_MAX) || 30,
+    windowMs: Number(process.env.AUTH_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
+  });
 
   router.get("/", async (req, res) => {
     const { userName } = req.query;
@@ -140,7 +145,7 @@ function createUsersRouter() {
       .catch((err) => res.status(500).json({ error: err.message }));
   });
 
-  router.post("/", async (req, res) => {
+  router.post("/", authRateLimiter, async (req, res) => {
     console.log("Received create user request with body:", req.body);
     const userName = req.body.username;
     const passWord = req.body.password;
@@ -172,7 +177,7 @@ function createUsersRouter() {
       .catch((err) => res.status(500).json({ error: err.message }));
   });
 
-  router.post("/login", async (req, res) => {
+  router.post("/login", authRateLimiter, async (req, res) => {
     const { username, password } = req.body;
     await userServices
       .loginUser(username, password)

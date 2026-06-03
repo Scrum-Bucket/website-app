@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import UserCrabIcon from "../../../assets/user-crab.png";
 import CrownIcon from "../../../assets/hats/crown.png";
 import {
@@ -14,8 +14,18 @@ const hatImages = import.meta.glob("../../../assets/hats/*.png", {
 
 function CrabLane({ hostName, users }) {
   const [crabIcons, setCrabIcons] = useState({});
+  const iconSignatureRef = useRef("");
+  const iconSignature = useMemo(
+    () => users.map((user) => `${user.id}:${user.crab.color}:${user.crab.hat}`).join("|"),
+    [users]
+  );
 
   useEffect(() => {
+    if (iconSignatureRef.current === iconSignature) {
+      return undefined;
+    }
+
+    iconSignatureRef.current = iconSignature;
     let isActive = true;
 
     Promise.all(
@@ -34,7 +44,7 @@ function CrabLane({ hostName, users }) {
     return () => {
       isActive = false;
     };
-  }, [users]);
+  }, [iconSignature, users]);
 
   return (
     <div className="vote-crab-lane" aria-label="Players">
