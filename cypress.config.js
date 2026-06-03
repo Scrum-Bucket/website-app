@@ -6,6 +6,17 @@ import { createServer as createViteServer } from "vite";
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REQUIRED_ACCEPTANCE_ENV = ["TOKEN_SECRET", "BACKEND_ACCESS_TOKEN"];
+
+function requireAcceptanceEnv() {
+  const missing = REQUIRED_ACCEPTANCE_ENV.filter((name) => !process.env[name]);
+
+  if (missing.length) {
+    throw new Error(
+      `Cypress acceptance tests require explicit environment variables: ${missing.join(", ")}`
+    );
+  }
+}
 
 export default defineConfig({
   e2e: {
@@ -13,10 +24,8 @@ export default defineConfig({
     supportFile: "cypress/support/e2e.js",
     defaultCommandTimeout: 10000,
     async setupNodeEvents(on, config) {
+      requireAcceptanceEnv();
       process.env.SKIP_DOTENV = "true";
-      process.env.TOKEN_SECRET = process.env.TOKEN_SECRET || "acceptance-test-token-secret";
-      process.env.BACKEND_ACCESS_TOKEN =
-        process.env.BACKEND_ACCESS_TOKEN || "acceptance-test-access-token";
 
       const frontendRoot = path.join(__dirname, "packages", "react-frontend");
       const viteServer = await createViteServer({
