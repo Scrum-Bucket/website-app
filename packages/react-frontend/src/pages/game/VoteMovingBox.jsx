@@ -10,6 +10,7 @@ import {
   getSongId,
   getSongLink,
   getSongVideoId,
+  getSongThumbnail,
   getSongTitle,
   readAccountPlaylist,
 } from "../Playlist/playlistStorage";
@@ -123,6 +124,7 @@ function normalizeSongs(songs) {
     id: getSongId(song) || `${getSongTitle(song)}-${index}`,
     name: getSongTitle(song),
     artist: getSongArtist(song) || "Unknown artist",
+    thumbnail: getSongThumbnail(song),
     songLink: getSongLink(song),
     videoId: getSongVideoId(song),
     source: song.source || "My Playlist",
@@ -184,6 +186,7 @@ function normalizeQueueEntries(queue) {
         id: songId,
         name: entry.name || entry.title || "Untitled song",
         artist: entry.artist || "Unknown artist",
+        thumbnail: entry.thumbnail || "",
         songLink: entry.songLink || "",
         videoId: entry.videoId || "",
         source: entry.source || "Room queue",
@@ -211,6 +214,7 @@ function normalizeCurrentSong(song) {
     songId: song.songId || song.id || "",
     name: song.name || song.title || "Untitled song",
     artist: song.artist || "",
+    thumbnail: song.thumbnail || "",
     songLink: song.songLink || "",
     videoId: song.videoId || "",
     score: getQueueEntryScore(song),
@@ -232,6 +236,7 @@ function makeCurrentSongFromQueueEntry(entry) {
     songId: entry.songId,
     name: entry.name,
     artist: entry.artist,
+    thumbnail: entry.thumbnail || "",
     songLink: entry.songLink || "",
     videoId: entry.videoId || "",
     score: getQueueEntryScore(entry),
@@ -289,8 +294,13 @@ function VoteMovingBoxItem({ canDelete, entry, isVotingPaused, onDelete, onVote,
       <div className="vote-box-bar" aria-label={`${song.name} score ${score}`}>
         <span className="vote-box-score">{score}</span>
         <div className="vote-box-track">
-          <span className="vote-box-track-title">{song.name}</span>
-          <span className="vote-box-track-artist">{song.artist}</span>
+          {song.thumbnail && (
+            <img className="vote-song-thumbnail" src={song.thumbnail} alt="" aria-hidden="true" />
+          )}
+          <div className="vote-box-track-text">
+            <span className="vote-box-track-title">{song.name}</span>
+            <span className="vote-box-track-artist">{song.artist}</span>
+          </div>
         </div>
         <div className="vote-box-actions">
           <button
@@ -516,6 +526,9 @@ function SongPicker({ isGuest, onAddSong, onLoginRequired, songs }) {
                   onClick={() => onAddSong(song)}
                   key={song.id}
                 >
+                  {song.thumbnail && (
+                    <img className="vote-song-option-thumbnail" src={song.thumbnail} alt="" aria-hidden="true" />
+                  )}
                   <span>{song.name}</span>
                   <small>
                     {song.artist} / {song.source}
@@ -729,6 +742,7 @@ function VoteMovingBox({
             songId: song.id,
             name: song.name,
             artist: song.artist,
+            thumbnail: song.thumbnail,
             songLink: song.songLink,
             videoId: song.videoId,
             addedBy: currentUserName,
@@ -747,6 +761,7 @@ function VoteMovingBox({
           songId: song.id,
           name: song.name,
           artist: song.artist,
+          thumbnail: song.thumbnail,
           songLink: song.songLink,
           videoId: song.videoId,
           score: 0,

@@ -184,6 +184,7 @@ function makeCurrentSong(entry) {
     artist: entry.artist,
     songLink: entry.songLink || "",
     videoId: entry.videoId || "",
+    thumbnail: entry.thumbnail || "",
     score: getEntryScore(entry),
     playbackStartedAt: new Date(),
   };
@@ -476,23 +477,25 @@ async function addSongToQueue(
   artist,
   addedBy = null,
   songLink = "",
-  videoId = ""
+  videoId = "",
+  thumbnail = ""
 ) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) return null;
 
-  room.queue.push({
-    entryId: makeEntryId(),
-    songId,
-    name,
-    artist,
-    songLink,
-    videoId,
-    score: 0,
-    upvotes: 0,
-    colorIndex: getNextQueueColorIndex(room.queue),
-    addedBy,
-  });
+room.queue.push({
+  entryId: makeEntryId(),
+  songId,
+  name,
+  artist,
+  songLink,
+  videoId,
+  thumbnail,
+  score: 0,
+  upvotes: 0,
+  colorIndex: getNextQueueColorIndex(room.queue),
+  addedBy,
+});
 
   return attachMemberProfiles(await room.save());
 }
