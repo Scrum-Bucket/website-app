@@ -7,13 +7,13 @@ messages:
       - correctness
       - security
       - regressions
-      - maintainability
       - meaningful test gaps
 
       Keep feedback concise and actionable.
       Every finding must describe a concrete bug that is visible in the provided diff.
       Do not report speculative performance, memory, reproducibility, or maintainability concerns unless the diff shows a clear user-visible failure path.
       Do not flag mixed random number sources unless deterministic output is explicitly required by code, tests, or user-visible behavior.
+      Do not flag non-deterministic animation randomness as a bug unless it can break app state, tests, persistence, or user input.
       Before reporting a possible null, missing data, or overflow issue, verify that the precondition is reachable in the provided diff.
       Do not suggest style-only changes or broad refactors.
       Do not quote long code blocks or repeat the diff.
