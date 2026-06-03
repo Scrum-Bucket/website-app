@@ -29,7 +29,8 @@ jobs:
       - name: Create PR diff
         id: diff
         run: |
-          MAX_DIFF_CHARS=60000
+          MAX_CHUNKS=5
+          MAX_CHUNK_CHARS=12000
 
           git diff --unified=3 origin/${{ github.base_ref }}...HEAD \
             -- . \
@@ -37,37 +38,145 @@ jobs:
             ':(exclude)packages/**/package-lock.json' \
             > diff-full.txt
 
-          if [ "$(wc -c < diff-full.txt)" -gt "$MAX_DIFF_CHARS" ]; then
-            {
-              echo "NOTE: This diff was truncated to fit the AI review model context window."
-              echo "Review the included changes only and mention that large parts of the diff were omitted."
-              echo
-              head -c "$MAX_DIFF_CHARS" diff-full.txt
-            } > diff.txt
-          else
-            cp diff-full.txt diff.txt
-          fi
-
-          if [ -s diff.txt ]; then
+          if [ -s diff-full.txt ]; then
             echo "has_diff=true" >> "$GITHUB_OUTPUT"
           else
             echo "has_diff=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-      - name: Indent diff for YAML
-        if: steps.diff.outputs.has_diff == 'true'
-        run: |
-          sed 's/^/        /' diff.txt > diff-indented.txt
+          split -C "$MAX_CHUNK_CHARS" -d -a 2 diff-full.txt diff-chunk-
 
-      - name: Review with GitHub Models
-        if: steps.diff.outputs.has_diff == 'true'
-        id: ai_review
+          chunk_count=0
+          for chunk in diff-chunk-*; do
+            chunk_count=$((chunk_count + 1))
+
+            if [ "$chunk_count" -le "$MAX_CHUNKS" ]; then
+              output="diff-chunk-${chunk_count}.txt"
+              {
+                if [ "$chunk_count" -gt 1 ]; then
+                  echo "NOTE: This is chunk $chunk_count of the PR diff. Earlier chunks were reviewed separately."
+                  echo
+                fi
+                cat "$chunk"
+              } > "$output"
+              sed 's/^/        /' "$output" > "diff-chunk-${chunk_count}-indented.txt"
+              echo "chunk_${chunk_count}=true" >> "$GITHUB_OUTPUT"
+            fi
+          done
+
+          if [ "$chunk_count" -gt "$MAX_CHUNKS" ]; then
+            echo "omitted_chunks=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "omitted_chunks=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Review diff chunk 1
+        if: steps.diff.outputs.chunk_1 == 'true'
+        id: review_chunk_1
         uses: actions/ai-inference@v1
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           prompt-file: ./.github/prompts/pr-review.prompt.yml
           file_input: |
-            diff: ./diff-indented.txt
+            diff: ./diff-chunk-1-indented.txt
+
+      - name: Review diff chunk 2
+        if: steps.diff.outputs.chunk_2 == 'true'
+        id: review_chunk_2
+        uses: actions/ai-inference@v1
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prompt-file: ./.github/prompts/pr-review.prompt.yml
+          file_input: |
+            diff: ./diff-chunk-2-indented.txt
+
+      - name: Review diff chunk 3
+        if: steps.diff.outputs.chunk_3 == 'true'
+        id: review_chunk_3
+        uses: actions/ai-inference@v1
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prompt-file: ./.github/prompts/pr-review.prompt.yml
+          file_input: |
+            diff: ./diff-chunk-3-indented.txt
+
+      - name: Review diff chunk 4
+        if: steps.diff.outputs.chunk_4 == 'true'
+        id: review_chunk_4
+        uses: actions/ai-inference@v1
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prompt-file: ./.github/prompts/pr-review.prompt.yml
+          file_input: |
+            diff: ./diff-chunk-4-indented.txt
+
+      - name: Review diff chunk 5
+        if: steps.diff.outputs.chunk_5 == 'true'
+        id: review_chunk_5
+        uses: actions/ai-inference@v1
+        continue-on-error: true
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prompt-file: ./.github/prompts/pr-review.prompt.yml
+          file_input: |
+            diff: ./diff-chunk-5-indented.txt
+
+      - name: Combine review comments
+        if: steps.diff.outputs.has_diff == 'true'
+        run: |
+          {
+            echo "## AI Code Review"
+            echo
+            if [ "${{ steps.diff.outputs.omitted_chunks }}" = "true" ]; then
+              echo "> Some diff chunks were omitted after the first 5 chunks to stay within GitHub Models limits."
+              echo
+            fi
+
+            for chunk in 1 2 3 4 5; do
+              response_file=""
+              outcome=""
+
+              case "$chunk" in
+                1)
+                  response_file="${{ steps.review_chunk_1.outputs.response-file }}"
+                  outcome="${{ steps.review_chunk_1.outcome }}"
+                  ;;
+                2)
+                  response_file="${{ steps.review_chunk_2.outputs.response-file }}"
+                  outcome="${{ steps.review_chunk_2.outcome }}"
+                  ;;
+                3)
+                  response_file="${{ steps.review_chunk_3.outputs.response-file }}"
+                  outcome="${{ steps.review_chunk_3.outcome }}"
+                  ;;
+                4)
+                  response_file="${{ steps.review_chunk_4.outputs.response-file }}"
+                  outcome="${{ steps.review_chunk_4.outcome }}"
+                  ;;
+                5)
+                  response_file="${{ steps.review_chunk_5.outputs.response-file }}"
+                  outcome="${{ steps.review_chunk_5.outcome }}"
+                  ;;
+              esac
+
+              if [ "$outcome" = "success" ] && [ -n "$response_file" ] && [ -f "$response_file" ]; then
+                echo "### Diff chunk $chunk"
+                echo
+                cat "$response_file"
+                echo
+              elif [ "$outcome" = "failure" ]; then
+                echo "### Diff chunk $chunk"
+                echo
+                echo "Review failed for this chunk."
+                echo
+              fi
+            done
+          } > ai-review.md
 
       - name: Comment on PR
         if: steps.diff.outputs.has_diff == 'true'
@@ -76,4 +185,4 @@ jobs:
         run: |
           gh pr comment ${{ github.event.pull_request.number }} \
             --repo ${{ github.repository }} \
-            --body-file "${{ steps.ai_review.outputs.response-file }}"
+            --body-file ai-review.md
