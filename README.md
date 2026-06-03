@@ -5,8 +5,6 @@ frontend: https://polite-sea-008d19c10.7.azurestaticapps.net/
 backend: https://crabrave-g0ave8bxcmgxasa0.westus3-01.azurewebsites.net/users
 (The rest of this README shall be for running locally)
 
-At the present time, accessing the backend requires an authentication token (from an .env file) which will be required for accessing or modifying data in the backend.
-
 To test api endpoints, install supertest: `npm install supertest`
 
 To run backend and frontend at once in root, install concurrently: `npm install concurrently`
@@ -23,6 +21,10 @@ Run `npm run dev` in a terminal in the following directories:
 
 1. packages/express-backend
 2. packages/react-frontend
+
+## Backend Authentication
+
+Protected backend endpoints require authentication. Use `BACKEND_ACCESS_TOKEN` for the shared backend sign-in/token flow and `TOKEN_SECRET` for signing backend and frontend user session tokens. Public routes such as frontend login, signup, and room join remain available without a backend access token.
 
 ## Code Coverage
 
@@ -54,5 +56,4 @@ Time:        1.819 s
 
 ## Demo
 
-## (Note: Needs to be updated)
 - [Watch the Demo Video](https://drive.google.com/file/d/1uAM1H02-eCvunkPq36HE16gq0xVT5WIq/view?usp=sharing)

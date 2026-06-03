@@ -1,6 +1,7 @@
 const originalSkipDotenv = process.env.SKIP_DOTENV;
 const originalBackendAccessToken = process.env.BACKEND_ACCESS_TOKEN;
 const originalCorsOrigin = process.env.CORS_ORIGIN;
+const originalNodeEnv = process.env.NODE_ENV;
 const originalTokenSecret = process.env.TOKEN_SECRET;
 
 process.env.SKIP_DOTENV = "true";
@@ -31,6 +32,7 @@ afterAll(() => {
   restoreEnv("SKIP_DOTENV", originalSkipDotenv);
   restoreEnv("BACKEND_ACCESS_TOKEN", originalBackendAccessToken);
   restoreEnv("CORS_ORIGIN", originalCorsOrigin);
+  restoreEnv("NODE_ENV", originalNodeEnv);
   restoreEnv("TOKEN_SECRET", originalTokenSecret);
 });
 
@@ -78,13 +80,28 @@ test("backend same-origin signin form post is not blocked by cors", async () => 
   expect(result.headers["set-cookie"][0]).toContain("backendAuthToken=");
 });
 
-test("protected api request without token is rejected", async () => {
+test("api request without backend access token is rejected", async () => {
   const result = await supertest(backend.app)
     .get("/users")
     .set("Accept", "application/json")
     .expect(401);
 
   expect(result.body.error).toBe("Authentication required.");
+});
+
+test("production-like api request without backend access token is rejected", async () => {
+  process.env.NODE_ENV = "production";
+
+  try {
+    const result = await supertest(backend.app)
+      .get("/users")
+      .set("Accept", "application/json")
+      .expect(401);
+
+    expect(result.body.error).toBe("Authentication required.");
+  } finally {
+    restoreEnv("NODE_ENV", originalNodeEnv);
+  }
 });
 
 test("frontend login does not require backend access token", async () => {
@@ -203,13 +220,13 @@ test("frontend signup creates an authenticated user session", async () => {
   expect(result.headers["set-cookie"][0]).toContain("userAuthToken=");
 });
 
-test("protected browser request without token redirects to signin", async () => {
+test("browser request without backend access token redirects to signin", async () => {
   const result = await supertest(backend.app).get("/users").set("Accept", "text/html").expect(302);
 
   expect(result.headers.location).toBe("/signin?next=%2Fusers");
 });
 
-test("protected request rejects invalid bearer token", async () => {
+test("invalid bearer token is rejected", async () => {
   const result = await supertest(backend.app)
     .get("/users")
     .set("Accept", "application/json")
@@ -217,6 +234,15 @@ test("protected request rejects invalid bearer token", async () => {
     .expect(401);
 
   expect(result.body.error).toBe("Invalid or expired access token.");
+});
+
+test("current user profile still requires a frontend user session", async () => {
+  const result = await supertest(backend.app)
+    .get("/users/me")
+    .set("Accept", "application/json")
+    .expect(401);
+
+  expect(result.body.error).toBe("Authentication required.");
 });
 
 test("protected request accepts shared backend access token", async () => {

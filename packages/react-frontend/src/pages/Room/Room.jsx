@@ -253,63 +253,63 @@ function Room({ username }) {
     return (
       <div className="room-page">
         <GameBackground />
+        <div className="room-window">
+          <header className="room-top-row">
+            <div className="room-logo" aria-label="logo">
+              <span>J</span>
+            </div>
+            <div className="room-id-bar">
+              <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
+              {isHost && (
+                <button
+                  className="room-options-btn"
+                  type="button"
+                  onClick={() => setShowOptions(true)}
+                >
+                  Options
+                </button>
+              )}
+            </div>
+            <button
+              className="room-menu-btn"
+              type="button"
+              aria-label="leave room"
+              onClick={handleLeave}
+            >
+              x
+            </button>
+          </header>
 
-        <header className="room-top-row">
-          <div className="room-logo" aria-label="logo">
-            <span>J</span>
-          </div>
-          <div className="room-id-bar">
-            <span className="room-id-label">ROOM CODE: {room.roomCode}</span>
+          <div className="room-lobby">
+            <h2 className="room-lobby-title">Waiting for host to start...</h2>
+            <div className="room-lobby-members">
+              <p className="room-lobby-members-label">Players in room</p>
+              <ul className="room-members-list">
+                {memberProfiles.map((member) => (
+                  <li key={member.id} className="room-member-item">
+                    {member.name}
+                    {member.name === room.host ? " Host" : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
             {isHost && (
-              <button
-                className="room-options-btn"
-                type="button"
-                onClick={() => setShowOptions(true)}
-              >
-                Options
+              <button className="room-start-btn" type="button" onClick={handleStart}>
+                Start Game
               </button>
             )}
           </div>
-          <button
-            className="room-menu-btn"
-            type="button"
-            aria-label="leave room"
-            onClick={handleLeave}
-          >
-            x
-          </button>
-        </header>
 
-        <div className="room-lobby">
-          <h2 className="room-lobby-title">Waiting for host to start...</h2>
-
-          <div className="room-lobby-members">
-            <p className="room-lobby-members-label">Players in room</p>
-            <ul className="room-members-list">
-              {memberProfiles.map((member) => (
-                <li key={member.id} className="room-member-item">
-                  {member.name}
-                  {member.name === room.host ? " Host" : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {isHost && (
-            <button className="room-start-btn" type="button" onClick={handleStart}>
-              Start Game
-            </button>
-          )}
+          {showOptions ? (
+            <RoomOptionsModal
+              error={optionsError}
+              options={roomOptions}
+              onClose={() => setShowOptions(false)}
+              onSave={handleSaveOptions}
+            />
+          ) : null}
         </div>
-
-        {showOptions ? (
-          <RoomOptionsModal
-            error={optionsError}
-            options={roomOptions}
-            onClose={() => setShowOptions(false)}
-            onSave={handleSaveOptions}
-          />
-        ) : null}
       </div>
     );
   }
