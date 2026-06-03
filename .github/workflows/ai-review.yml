@@ -82,6 +82,11 @@ jobs:
           file_input: |
             diff: ./diff-chunk-1-indented.txt
 
+      - name: Save review chunk 1
+        if: steps.diff.outputs.chunk_1 == 'true' && steps.review_chunk_1.outcome == 'success'
+        run: |
+          cp "${{ steps.review_chunk_1.outputs.response-file }}" ai-review-chunk-1.md
+
       - name: Review diff chunk 2
         if: steps.diff.outputs.chunk_2 == 'true'
         id: review_chunk_2
@@ -92,6 +97,11 @@ jobs:
           prompt-file: ./.github/prompts/pr-review.prompt.yml
           file_input: |
             diff: ./diff-chunk-2-indented.txt
+
+      - name: Save review chunk 2
+        if: steps.diff.outputs.chunk_2 == 'true' && steps.review_chunk_2.outcome == 'success'
+        run: |
+          cp "${{ steps.review_chunk_2.outputs.response-file }}" ai-review-chunk-2.md
 
       - name: Review diff chunk 3
         if: steps.diff.outputs.chunk_3 == 'true'
@@ -104,6 +114,11 @@ jobs:
           file_input: |
             diff: ./diff-chunk-3-indented.txt
 
+      - name: Save review chunk 3
+        if: steps.diff.outputs.chunk_3 == 'true' && steps.review_chunk_3.outcome == 'success'
+        run: |
+          cp "${{ steps.review_chunk_3.outputs.response-file }}" ai-review-chunk-3.md
+
       - name: Review diff chunk 4
         if: steps.diff.outputs.chunk_4 == 'true'
         id: review_chunk_4
@@ -115,6 +130,11 @@ jobs:
           file_input: |
             diff: ./diff-chunk-4-indented.txt
 
+      - name: Save review chunk 4
+        if: steps.diff.outputs.chunk_4 == 'true' && steps.review_chunk_4.outcome == 'success'
+        run: |
+          cp "${{ steps.review_chunk_4.outputs.response-file }}" ai-review-chunk-4.md
+
       - name: Review diff chunk 5
         if: steps.diff.outputs.chunk_5 == 'true'
         id: review_chunk_5
@@ -125,6 +145,11 @@ jobs:
           prompt-file: ./.github/prompts/pr-review.prompt.yml
           file_input: |
             diff: ./diff-chunk-5-indented.txt
+
+      - name: Save review chunk 5
+        if: steps.diff.outputs.chunk_5 == 'true' && steps.review_chunk_5.outcome == 'success'
+        run: |
+          cp "${{ steps.review_chunk_5.outputs.response-file }}" ai-review-chunk-5.md
 
       - name: Combine review comments
         if: steps.diff.outputs.has_diff == 'true'
@@ -138,33 +163,28 @@ jobs:
             fi
 
             for chunk in 1 2 3 4 5; do
-              response_file=""
               outcome=""
+              response_file="ai-review-chunk-$chunk.md"
 
               case "$chunk" in
                 1)
-                  response_file="${{ steps.review_chunk_1.outputs.response-file }}"
                   outcome="${{ steps.review_chunk_1.outcome }}"
                   ;;
                 2)
-                  response_file="${{ steps.review_chunk_2.outputs.response-file }}"
                   outcome="${{ steps.review_chunk_2.outcome }}"
                   ;;
                 3)
-                  response_file="${{ steps.review_chunk_3.outputs.response-file }}"
                   outcome="${{ steps.review_chunk_3.outcome }}"
                   ;;
                 4)
-                  response_file="${{ steps.review_chunk_4.outputs.response-file }}"
                   outcome="${{ steps.review_chunk_4.outcome }}"
                   ;;
                 5)
-                  response_file="${{ steps.review_chunk_5.outputs.response-file }}"
                   outcome="${{ steps.review_chunk_5.outcome }}"
                   ;;
               esac
 
-              if [ "$outcome" = "success" ] && [ -n "$response_file" ] && [ -f "$response_file" ]; then
+              if [ "$outcome" = "success" ] && [ -f "$response_file" ]; then
                 echo "### Diff chunk $chunk"
                 echo
                 cat "$response_file"
