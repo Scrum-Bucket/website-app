@@ -29,7 +29,7 @@ jobs:
       - name: Create PR diff
         id: diff
         run: |
-          MAX_DIFF_CHARS=12000
+          MAX_DIFF_CHARS=60000
 
           git diff --unified=3 origin/${{ github.base_ref }}...HEAD \
             -- . \
