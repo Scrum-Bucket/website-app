@@ -31,6 +31,19 @@ export default [
     },
   },
 
+  // Cypress acceptance tests
+  {
+    files: ["cypress/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.mocha,
+        cy: "readonly",
+        Cypress: "readonly",
+      },
+    },
+  },
+
   // IMPORTANT: keep this LAST so it disables rules that conflict with Prettier
   eslintConfigPrettier,
 ];

@@ -1,14 +1,17 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const { requireEnv } = require("./env");
+const userModel = require("./user/user.js");
 
 const AUTH_COOKIE_NAME = "backendAuthToken";
 const USER_AUTH_COOKIE_NAME = "userAuthToken";
 const DEFAULT_TOKEN_EXPIRES_IN = "600s";
 const DEFAULT_USER_TOKEN_EXPIRES_IN = "2h";
 const DEFAULT_USER_TOKEN_COOKIE_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+const DEFAULT_USER_HEARTBEAT_TIMEOUT_MS = 75000;
 
 function getTokenSecret() {
-  return process.env.TOKEN_SECRET || "local-dev-token-secret";
+  return requireEnv("TOKEN_SECRET");
 }
 
 function getSharedAccessToken() {
@@ -27,25 +30,49 @@ function getUserTokenExpiresIn() {
   return process.env.USER_TOKEN_EXPIRES_IN || DEFAULT_USER_TOKEN_EXPIRES_IN;
 }
 
+function getUserHeartbeatTimeoutMs() {
+  const timeout = Number(process.env.USER_HEARTBEAT_TIMEOUT_MS);
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_USER_HEARTBEAT_TIMEOUT_MS;
+}
+
+function getActiveSessions(user) {
+  const source = user?.activeSessions || {};
+
+  if (source instanceof Map) {
+    return Object.fromEntries(source);
+  }
+
+  return typeof source === "object" && !Array.isArray(source) ? { ...source } : {};
+}
+
 function generateAccessToken() {
   return jwt.sign({ type: "backend-access" }, getTokenSecret(), {
     expiresIn: getTokenExpiresIn(),
   });
 }
 
-function generateUserAccessToken(user) {
-  return jwt.sign(
+function generateUserSessionToken(user) {
+  const sessionId = crypto.randomUUID();
+
+  const token = jwt.sign(
     {
       type: "frontend-user",
       userId: user._id?.toString(),
       username: user.userName,
       isAdmin: user.isAdmin === true,
+      sessionId,
     },
     getTokenSecret(),
     {
       expiresIn: getUserTokenExpiresIn(),
     }
   );
+
+  return { token, sessionId };
+}
+
+function generateUserAccessToken(user) {
+  return generateUserSessionToken(user).token;
 }
 
 function parseCookies(cookieHeader = "") {
@@ -126,7 +153,7 @@ function rejectUnauthenticated(req, res, message = "Authentication required.") {
   return res.status(401).json({ error: message });
 }
 
-function authenticateUser(req, res, next) {
+async function authenticateUser(req, res, next) {
   if (req.method === "OPTIONS" || isPublicRequest(req)) {
     return next();
   }
@@ -155,6 +182,34 @@ function authenticateUser(req, res, next) {
       if (decoded.type !== "backend-access" && decoded.type !== "frontend-user") {
         authError = new Error("Invalid access token.");
         continue;
+      }
+
+      if (decoded.type === "frontend-user") {
+        const user = await userModel.findById(decoded.userId);
+        if (!user || user.status !== 1) {
+          clearUserAuthCookie(req, res);
+          return rejectUnauthenticated(req, res, "User session is no longer active.");
+        }
+
+        const sessionId = decoded.sessionId;
+        const activeSessions = getActiveSessions(user);
+        const lastActiveAt = activeSessions[sessionId]
+          ? new Date(activeSessions[sessionId]).getTime()
+          : Date.now();
+        const sessionIsStale =
+          Number.isFinite(lastActiveAt) && Date.now() - lastActiveAt > getUserHeartbeatTimeoutMs();
+
+        if (sessionIsStale) {
+          delete activeSessions[sessionId];
+          const stillActive = Object.keys(activeSessions).length > 0;
+          await userModel.findByIdAndUpdate(decoded.userId, {
+            status: stillActive ? 1 : 0,
+            lastActiveAt: stillActive ? user.lastActiveAt : null,
+            activeSessions,
+          });
+          clearUserAuthCookie(req, res);
+          return rejectUnauthenticated(req, res, "User session expired because no tab was active.");
+        }
       }
 
       req.auth = decoded;
@@ -227,8 +282,9 @@ function getUserCookieOptions(req) {
 }
 
 function setUserAuthCookie(req, res, user) {
-  const token = generateUserAccessToken(user);
+  const { token, sessionId } = generateUserSessionToken(user);
   res.cookie(USER_AUTH_COOKIE_NAME, token, getUserCookieOptions(req));
+  return { token, sessionId };
 }
 
 function clearUserAuthCookie(req, res) {

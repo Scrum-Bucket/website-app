@@ -6,15 +6,23 @@ const ROUND_SECONDS = 120;
 const MIN_SCORE = -20;
 const MAX_SCORE = 40;
 const MAX_ROOM_MEMBERS = 30;
+const MEMBER_HEARTBEAT_TIMEOUT_MS = Number(process.env.ROOM_MEMBER_HEARTBEAT_TIMEOUT_MS) || 75000;
 const MIN_ROUND_SECONDS = 0;
 const MAX_ROUND_SECONDS = 900;
+const VOTE_BOX_COLOR_COUNT = 10;
 const DEFAULT_ROOM_OPTIONS = Object.freeze({
   roundSeconds: ROUND_SECONDS,
   continuousPlaylistMode: "removeSongs",
   removeSelectedSong: false,
   playOnAllDevices: true,
+  pauseVotingWhenTimerPaused: false,
 });
-const CONTINUOUS_PLAYLIST_MODES = new Set(["removeSongs", "removeVotes", "keepAll"]);
+const CONTINUOUS_PLAYLIST_MODES = new Set([
+  "removeSongs",
+  "removeVotes",
+  "keepAll",
+  "playQueue",
+]);
 const GUEST_MEMBER_NAMES = [
   "Anonymous Fish",
   "Anonymous Crab",
@@ -49,6 +57,10 @@ function normalizeRoomOptions(options = {}) {
       typeof options.playOnAllDevices === "boolean"
         ? options.playOnAllDevices
         : DEFAULT_ROOM_OPTIONS.playOnAllDevices,
+    pauseVotingWhenTimerPaused:
+      typeof options.pauseVotingWhenTimerPaused === "boolean"
+        ? options.pauseVotingWhenTimerPaused
+        : DEFAULT_ROOM_OPTIONS.pauseVotingWhenTimerPaused,
   };
 }
 
@@ -68,6 +80,10 @@ function applyQueueCleanupMode(queue, winningEntry, options) {
       ? []
       : queue.filter((entry) => !(options.removeSelectedSong && isWinningEntry(entry, winningEntry)));
 
+  if (options.continuousPlaylistMode === "playQueue") {
+    return queue.filter((entry) => !isWinningEntry(entry, winningEntry));
+  }
+
   if (options.continuousPlaylistMode === "removeVotes") {
     nextQueue = nextQueue.map((entry) => ({
       ...entry,
@@ -81,6 +97,22 @@ function applyQueueCleanupMode(queue, winningEntry, options) {
 
 function makeEntryId() {
   return `entry-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getNextQueueColorIndex(queue = []) {
+  const usedColorIndexes = new Set(
+    queue
+      .map((entry) => entry.colorIndex)
+      .filter((colorIndex) => Number.isInteger(colorIndex))
+  );
+
+  for (let colorIndex = 0; colorIndex < VOTE_BOX_COLOR_COUNT; colorIndex += 1) {
+    if (!usedColorIndexes.has(colorIndex)) {
+      return colorIndex;
+    }
+  }
+
+  return queue.length % VOTE_BOX_COLOR_COUNT;
 }
 
 function getRandomGuestMemberName() {
@@ -177,6 +209,80 @@ function getMemberId(member, index) {
   return member?.id || member?.userId || member?._id || getMemberName(member, index);
 }
 
+function getMemberActivity(room) {
+  const source = room?.memberActivity || {};
+
+  if (source instanceof Map) {
+    return Object.fromEntries(source);
+  }
+
+  return typeof source === "object" && !Array.isArray(source) ? { ...source } : {};
+}
+
+function setMemberActivity(room, activity) {
+  room.memberActivity = activity;
+  if (typeof room.markModified === "function") {
+    room.markModified("memberActivity");
+  }
+}
+
+function touchRoomMember(room, memberName, at = new Date()) {
+  if (!room || !memberName) return;
+
+  const activity = getMemberActivity(room);
+  activity[memberName] = at.toISOString();
+  setMemberActivity(room, activity);
+}
+
+async function pruneInactiveMembers(room, now = Date.now()) {
+  if (!room) return room;
+
+  const members = Array.isArray(room.members) ? room.members : [];
+  const activity = getMemberActivity(room);
+  let changed = false;
+  const hostWasMember =
+    Boolean(room.host) && members.some((member, index) => getMemberName(member, index) === room.host);
+
+  const activeMembers = members.filter((member, index) => {
+    const memberName = getMemberName(member, index);
+    if (!activity[memberName]) {
+      activity[memberName] = new Date(now).toISOString();
+      changed = true;
+    }
+
+    const lastSeenAt = new Date(activity[memberName]).getTime();
+    const isActive = Number.isFinite(lastSeenAt) && now - lastSeenAt <= MEMBER_HEARTBEAT_TIMEOUT_MS;
+
+    if (!isActive) {
+      delete activity[memberName];
+      changed = true;
+    }
+
+    return isActive;
+  });
+
+  if (activeMembers.length !== members.length) {
+    room.members = activeMembers;
+    changed = true;
+  }
+
+  const hostIsStillActive = activeMembers.some(
+    (member, index) => getMemberName(member, index) === room.host
+  );
+
+  if (hostWasMember && !hostIsStillActive) {
+    await Room.findOneAndDelete({ roomCode: room.roomCode });
+    return null;
+  }
+
+  if (changed) {
+    setMemberActivity(room, activity);
+    return room.save();
+  }
+
+  return room;
+}
+
 async function attachMemberProfiles(room) {
   if (!room) return room;
 
@@ -208,6 +314,9 @@ async function attachMemberProfilesToRooms(rooms) {
 
 async function syncRoomGameState(room) {
   if (!room) return room;
+
+  room = await pruneInactiveMembers(room);
+  if (!room) return null;
 
   let changed = false;
   const roomOptions = getRoomOptions(room);
@@ -276,6 +385,11 @@ async function getPublicRooms() {
   return attachMemberProfilesToRooms(await syncRooms(rooms));
 }
 
+async function pruneInactiveRooms() {
+  const rooms = await Room.find();
+  await syncRooms(rooms);
+}
+
 function findRoomById(id) {
   return Room.findById(id);
 }
@@ -291,6 +405,7 @@ async function addRoom(roomCode, host = null) {
     roomCode,
     host: hostMemberName,
     members: hostMemberName ? [hostMemberName] : [],
+    memberActivity: hostMemberName ? { [hostMemberName]: new Date().toISOString() } : {},
     queue: [],
     currentSong: null,
     roundSeconds: ROUND_SECONDS,
@@ -321,8 +436,21 @@ async function joinRoom(roomCode, userName) {
   );
 
   room.members.push(assignedMemberName);
+  touchRoomMember(room, assignedMemberName);
 
   return attachAssignedMemberName(await attachMemberProfiles(await room.save()), assignedMemberName);
+}
+
+async function recordMemberHeartbeat(roomCode, memberName) {
+  const room = await Room.findOne({ roomCode });
+  if (!room) return null;
+
+  const members = Array.isArray(room.members) ? room.members : [];
+  const isMember = members.some((member, index) => getMemberName(member, index) === memberName);
+  if (!isMember) return attachMemberProfiles(await syncRoomGameState(room));
+
+  touchRoomMember(room, memberName);
+  return attachMemberProfiles(await syncRoomGameState(await room.save()));
 }
 
 async function startRoom(roomCode) {
@@ -362,6 +490,7 @@ async function addSongToQueue(
     videoId,
     score: 0,
     upvotes: 0,
+    colorIndex: getNextQueueColorIndex(room.queue),
     addedBy,
   });
 
@@ -371,6 +500,11 @@ async function addSongToQueue(
 async function voteSong(roomCode, entryId, amount) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) throw new Error("Room not found");
+
+  const roomOptions = getRoomOptions(room);
+  if (room.timerPaused && !room.currentSong && roomOptions.pauseVotingWhenTimerPaused) {
+    throw new Error("Voting is paused");
+  }
 
   const idx = room.queue.findIndex((s) => s.entryId === entryId || s.songId === entryId);
   if (idx === -1) throw new Error("Song not in queue");
@@ -445,10 +579,27 @@ async function completeCurrentSong(roomCode, entryId = null, userName = null) {
   }
 
   if (room.currentSong) {
-    room.currentSong = null;
     const roomOptions = getRoomOptions(room);
     room.options = roomOptions;
     room.roundSeconds = roomOptions.roundSeconds;
+
+    if (roomOptions.continuousPlaylistMode === "playQueue") {
+      const nextEntry = getWinningEntry(room.queue);
+
+      if (nextEntry) {
+        room.currentSong = makeCurrentSong(nextEntry);
+        room.queue = room.queue.filter((entry) => !isWinningEntry(entry, nextEntry));
+        room.timerPaused = true;
+        room.timerRemainingSeconds = room.roundSeconds;
+        room.roundEndsAt = null;
+        room.markModified("queue");
+        room.markModified("currentSong");
+
+        return attachMemberProfiles(await room.save());
+      }
+    }
+
+    room.currentSong = null;
     room.timerPaused = false;
     room.timerRemainingSeconds = room.roundSeconds;
     room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
@@ -503,6 +654,9 @@ async function leaveRoom(roomCode, userName) {
   }
 
   room.members = (room.members || []).filter((member, index) => getMemberName(member, index) !== userName);
+  const activity = getMemberActivity(room);
+  delete activity[userName];
+  setMemberActivity(room, activity);
 
   return attachMemberProfiles(await room.save());
 }
@@ -528,4 +682,6 @@ module.exports = {
   leaveRoom,
   deleteRoom,
   getPublicRooms,
+  pruneInactiveRooms,
+  recordMemberHeartbeat,
 };

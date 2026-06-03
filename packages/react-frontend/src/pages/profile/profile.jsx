@@ -5,9 +5,9 @@ import OtherBackground from "../../../animationFiles/other-background.jsx";
 import HouseIcon from "../../assets/House.PNG";
 import UserCrabIcon from "../../assets/user-crab.png";
 import { authFetch } from "../../authFetch";
+import { clearStoredAuth, getSessionUser, setSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
 import {
-  clearStoredCrabProfile,
   createCrabIcon,
   getHatSourceForCrab,
   readStoredCrabProfile,
@@ -22,9 +22,9 @@ const hatImages = import.meta.glob("../../assets/hats/*.png", {
 
 function Profile({ username }) {
   const navigate = useNavigate();
-  const initialUserId = localStorage.getItem("userId");
+  const initialUserId = getSessionUser().userId || localStorage.getItem("userId");
   const [displayName, setDisplayName] = useState(username || "Guest");
-  const [isAdmin, setIsAdmin] = useState(localStorage.getItem("isAdmin") === "true");
+  const [isAdmin, setIsAdmin] = useState(getSessionUser().isAdmin);
   const [crabProfile, setCrabProfile] = useState(() => readStoredCrabProfile(initialUserId));
   const [crabIcon, setCrabIcon] = useState(UserCrabIcon);
 
@@ -39,15 +39,15 @@ function Profile({ username }) {
 
         if (data.userName) {
           setDisplayName(data.userName);
-          localStorage.setItem("username", data.userName);
+          sessionStorage.setItem("username", data.userName);
         }
 
         if (data._id) {
-          localStorage.setItem("userId", data._id);
+          sessionStorage.setItem("userId", data._id);
         }
 
         setIsAdmin(data.isAdmin === true);
-        localStorage.setItem("isAdmin", data.isAdmin === true ? "true" : "false");
+        setSessionUser(data, data.userName);
         setCrabProfile(writeStoredCrabProfile(data.crab, data._id));
       } catch (err) {
         console.error("Failed to sync user profile:", err);
@@ -73,7 +73,7 @@ function Profile({ username }) {
   }, [crabProfile]);
 
   const handleLogout = async () => {
-    const userId = localStorage.getItem("userId");
+    const userId = getSessionUser().userId;
 
     if (!userId) {
       // If no userId, just navigate to login
@@ -94,23 +94,14 @@ function Profile({ username }) {
         throw new Error("Logout failed");
       }
 
-      // Clear authentication data from localStorage
-      clearStoredCrabProfile(userId);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("username");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("isAdmin");
+      clearStoredAuth();
 
       // Navigate to login screen
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
       // Clear localStorage anyway and navigate to login on error
-      clearStoredCrabProfile(userId);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("username");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("isAdmin");
+      clearStoredAuth();
       navigate("/");
     }
   };
@@ -120,8 +111,7 @@ function Profile({ username }) {
   };
 
   const handleRenameUser = async () => {
-    const userId = localStorage.getItem("userId");
-    const currentUsername = localStorage.getItem("username");
+    const { userId, username: currentUsername } = getSessionUser();
 
     if (!userId) {
       console.error("No user ID found");
@@ -164,6 +154,7 @@ function Profile({ username }) {
       }
 
       // Update localStorage with new username
+      sessionStorage.setItem("username", trimmedUsername);
       localStorage.setItem("username", trimmedUsername);
 
       // Update the display name state to show the new username immediately
@@ -176,7 +167,7 @@ function Profile({ username }) {
   };
 
   const handleChangePassword = async () => {
-    const userId = localStorage.getItem("userId");
+    const userId = getSessionUser().userId;
 
     if (!userId) {
       console.error("No user ID found");
@@ -215,7 +206,7 @@ function Profile({ username }) {
   };
 
   const handleDeleteUser = async () => {
-    const userId = localStorage.getItem("userId");
+    const userId = getSessionUser().userId;
 
     if (!userId) {
       console.error("No user ID found");
@@ -244,12 +235,7 @@ function Profile({ username }) {
         throw new Error("Delete failed");
       }
 
-      // Clear authentication data from localStorage
-      clearStoredCrabProfile(userId);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("username");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("isAdmin");
+      clearStoredAuth();
 
       // Navigate to login screen
       navigate("/");

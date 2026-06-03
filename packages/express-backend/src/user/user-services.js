@@ -9,6 +9,16 @@ const DEFAULT_CRAB_PROFILE = Object.freeze({
 const CRAB_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const MAX_CRAB_HAT_LENGTH = 80;
 
+function getActiveSessions(user) {
+  const source = user?.activeSessions || {};
+
+  if (source instanceof Map) {
+    return Object.fromEntries(source);
+  }
+
+  return typeof source === "object" && !Array.isArray(source) ? { ...source } : {};
+}
+
 function normalizeCrabProfile(crab = {}) {
   if (!crab || typeof crab !== "object" || Array.isArray(crab)) {
     return { ...DEFAULT_CRAB_PROFILE };
@@ -53,7 +63,13 @@ async function createUser(userName, passWord) {
   }
 
   const hashedPassword = await bcrypt.hash(passWord, 10);
-  const newUser = new userModel({ userName, passWord: hashedPassword });
+  const newUser = new userModel({
+    userName,
+    passWord: hashedPassword,
+    status: 1,
+    lastActiveAt: new Date(),
+    activeSessions: {},
+  });
   try {
     return await newUser.save();
   } catch (err) {
@@ -85,7 +101,11 @@ async function loginUser(userName, password) {
   if (user.status === 2) throw new Error("User is timed out");
 
   console.log("User logged in, updating status to 1");
-  return await userModel.findByIdAndUpdate(user._id, { status: 1 }, { new: true });
+  return await userModel.findByIdAndUpdate(
+    user._id,
+    { status: 1, lastActiveAt: new Date() },
+    { new: true }
+  );
 }
 
 // logoutUser: set status back to 0
@@ -93,7 +113,80 @@ async function logoutUser(id) {
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   //new:true means return user after its updated
-  return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
+  return await userModel.findByIdAndUpdate(
+    id,
+    { status: 0, lastActiveAt: null, activeSessions: {} },
+    { new: true }
+  );
+}
+
+async function registerUserSession(id, sessionId) {
+  if (!sessionId) throw new Error("Session id is required");
+  const now = new Date();
+
+  return await userModel.findByIdAndUpdate(
+    id,
+    {
+      status: 1,
+      lastActiveAt: now,
+      [`activeSessions.${sessionId}`]: now.toISOString(),
+    },
+    { new: true }
+  );
+}
+
+async function heartbeatUser(id, sessionId) {
+  if (!sessionId) throw new Error("Session id is required");
+  const user = await userModel.findById(id);
+  if (!user) throw new Error("User not found");
+  if (user.status !== 1) throw new Error("User is not logged in");
+
+  const now = new Date();
+  const activeSessions = getActiveSessions(user);
+  activeSessions[sessionId] = now.toISOString();
+
+  return await userModel.findByIdAndUpdate(
+    id,
+    { lastActiveAt: now, activeSessions },
+    { new: true }
+  );
+}
+
+async function logoutInactiveUsers(maxInactiveMs) {
+  const cutoff = new Date(Date.now() - maxInactiveMs);
+  const users = await userModel.find({ status: 1 });
+  const updates = [];
+
+  for (const user of users) {
+    const activeSessions = getActiveSessions(user);
+    const freshSessions = {};
+
+    for (const [sessionId, lastSeenAt] of Object.entries(activeSessions)) {
+      const lastSeenTime = new Date(lastSeenAt).getTime();
+
+      if (Number.isFinite(lastSeenTime) && lastSeenTime >= cutoff.getTime()) {
+        freshSessions[sessionId] = lastSeenAt;
+      }
+    }
+
+    const freshSessionTimes = Object.values(freshSessions).map((lastSeenAt) =>
+      new Date(lastSeenAt).getTime()
+    );
+    const lastActiveAt = freshSessionTimes.length
+      ? new Date(Math.max(...freshSessionTimes))
+      : null;
+
+    updates.push(
+      userModel.findByIdAndUpdate(user._id, {
+        status: lastActiveAt ? 1 : 0,
+        lastActiveAt,
+        activeSessions: freshSessions,
+      })
+    );
+  }
+
+  await Promise.all(updates);
+  return { modifiedCount: updates.length };
 }
 
 // timeoutUser: status 2 basically soft ban
@@ -210,6 +303,9 @@ module.exports = {
   deleteUser,
   loginUser,
   logoutUser,
+  registerUserSession,
+  heartbeatUser,
+  logoutInactiveUsers,
   timeoutUser,
   unbanUser,
   addSongsToPlaylist,

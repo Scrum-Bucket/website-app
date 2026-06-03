@@ -96,6 +96,23 @@
   flex-wrap: wrap;
 }
 
+.home-room-notice {
+  width: min(680px, 100%);
+  min-height: 118px;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 26px 52px;
+  color: #1d1d1d;
+  text-align: center;
+  font-family: "Blackbeard", "Times New Roman", serif;
+  font-size: 23px;
+  line-height: 1.2;
+  background: url("../../assets/leaflet.png") center / 100% 100% no-repeat;
+  animation: noticeFade 7s ease forwards;
+}
+
 /* shared bubble skin */
 .pixel-bubble-card,
 .pixel-bubble-btn {
@@ -224,6 +241,24 @@
   }
 }
 
+@keyframes noticeFade {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  10%,
+  82% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 @media (max-width: 820px) {
   .home-header-bubble {
     margin: 0 auto;
@@ -235,5 +270,11 @@
 
   .home-card.pixel-bubble-card {
     width: min(260px, 100%);
+  }
+
+  .home-room-notice {
+    min-height: 112px;
+    padding: 24px 32px;
+    font-size: 20px;
   }
 }
