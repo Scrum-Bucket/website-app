@@ -1,0 +1,46 @@
+@media (max-width: 920px) {
+  .vote-game-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .vote-song-picker {
+    align-self: auto;
+    height: auto;
+    max-height: 500px;
+  }
+
+  .vote-song-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .vote-crab-lane {
+    max-height: 420px;
+    column-gap: 6px;
+  }
+
+  .vote-player-crab {
+    flex-basis: 84px;
+    min-width: 84px;
+  }
+
+  .vote-player-crab img {
+    width: 82px;
+    height: 82px;
+  }
+
+  .vote-round-status {
+    grid-template-columns: 1fr;
+  }
+
+  .vote-box-game {
+    padding: 12px;
+  }
+
+  .vote-box-game--stacked .vote-box-row {
+    left: 0;
+    right: 0;
+  }
+}

@@ -1,0 +1,102 @@
+.vote-arena {
+  height: var(--vote-arena-height, 500px);
+  max-height: 835px;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.vote-round-status {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.4fr) minmax(220px, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 2px solid rgba(231, 244, 255, 0.22);
+  background: rgba(8, 48, 71, 0.28);
+}
+
+.vote-round-status div {
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 10px 12px;
+}
+
+.vote-round-status .vote-timer-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  border: 2px solid rgba(247, 178, 68, 0.72);
+  background: rgba(8, 48, 71, 0.58);
+  box-shadow: 0 0 0 3px rgba(247, 178, 68, 0.16);
+}
+
+.vote-timer-card .vote-panel-kicker {
+  grid-column: 1 / -1;
+}
+
+.vote-timer-toggle {
+  align-self: center;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #2f50bd;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.vote-timer-toggle:hover,
+.vote-timer-toggle:focus-visible {
+  border-color: #f7b244;
+  outline: none;
+}
+
+.vote-round-status strong {
+  color: #ffffff;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.vote-round-status .vote-timer-value {
+  color: #f7b244;
+  font-size: 44px;
+  letter-spacing: 0;
+}
+
+.vote-round-status span {
+  color: #c8e6ff;
+  font-size: 14px;
+}
+
+.vote-box-game {
+  min-height: 0;
+  position: relative;
+  padding: 18px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.vote-box-scroll-area {
+  min-height: 100%;
+  position: relative;
+}
+
+.vote-empty-round {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(231, 244, 255, 0.42);
+  border-radius: 8px;
+  color: #c8e6ff;
+  font-size: 20px;
+  padding: 28px;
+  text-align: center;
+}

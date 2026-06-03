@@ -1,0 +1,128 @@
+.vote-box-row {
+  min-width: 0;
+  width: auto;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  color: #e7f4ff;
+}
+
+.vote-box-game--stacked .vote-box-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 86px;
+  transition: transform 0.34s ease;
+}
+
+.vote-box-bar {
+  width: 100%;
+  min-height: 84px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  justify-self: center;
+  border: 3px solid #083047;
+  border-radius: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--vote-box-start, #eefbff) 0%,
+    var(--vote-box-middle, #9fd7e4) 58%,
+    var(--vote-box-end, #4aa6dd) 100%
+  );
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.18);
+  padding: 10px;
+}
+
+.vote-box-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vote-box-score {
+  min-width: 48px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #203c9b;
+  color: #f7b244;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.vote-box-button {
+  min-width: 58px;
+  min-height: 44px;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.vote-box-button--up {
+  background: #19be35;
+  box-shadow: 0 3px 0 #0e8a22;
+}
+
+.vote-box-button--down {
+  background: #e74c3c;
+  box-shadow: 0 3px 0 #a93024;
+}
+
+.vote-box-button--delete {
+  background: #8b1e1e;
+  box-shadow: 0 3px 0 #5f1515;
+}
+
+.vote-box-button:hover {
+  transform: translateY(-1px);
+}
+
+.vote-box-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+.vote-box-button:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.vote-box-track {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  color: #083047;
+}
+
+.vote-box-track-title,
+.vote-box-track-artist {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vote-box-track-title {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.vote-box-track-artist {
+  font-size: 14px;
+  font-weight: 700;
+}

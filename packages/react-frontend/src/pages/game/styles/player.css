@@ -1,0 +1,81 @@
+.vote-current-song {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(220px, 1fr) auto;
+  gap: 14px;
+}
+
+.vote-current-song-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 2px solid rgba(247, 178, 68, 0.58);
+  border-radius: 8px;
+  background: rgba(8, 48, 71, 0.58);
+  padding: 12px 14px;
+}
+
+.vote-current-song-heading strong {
+  color: #ffffff;
+  font-size: 26px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.vote-current-song-heading span {
+  color: #c8e6ff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.vote-song-player-frame,
+.vote-song-player-missing {
+  width: 100%;
+  min-height: 300px;
+  border: 3px solid #083047;
+  border-radius: 8px;
+  background: #061927;
+  overflow: hidden;
+}
+
+.vote-song-player-frame iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  border: 0;
+  display: block;
+}
+
+.vote-song-player-missing {
+  display: grid;
+  place-items: center;
+  color: #e7f4ff;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 24px;
+  text-align: center;
+}
+
+.vote-song-player-missing a {
+  color: #f7b244;
+}
+
+.vote-finish-song-btn {
+  justify-self: start;
+  min-height: 46px;
+  border: 2px solid rgba(231, 244, 255, 0.58);
+  border-radius: 8px;
+  background: #19be35;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 10px 16px;
+}
+
+.vote-finish-song-btn:hover,
+.vote-finish-song-btn:focus-visible {
+  border-color: #f7b244;
+  outline: none;
+}
