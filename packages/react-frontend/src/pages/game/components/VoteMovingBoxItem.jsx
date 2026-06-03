@@ -2,7 +2,7 @@ import {
   STACK_CARD_GAP,
   STACK_CARD_HEIGHT,
   VOTE_BOX_COLORS,
-} from "./constants";
+} from "../config/constants";
 
 function VoteMovingBoxItem({ canDelete, entry, isVotingPaused, onDelete, onVote, stackIndex }) {
   const { song, score } = entry;

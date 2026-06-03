@@ -1,4 +1,4 @@
-import { getSongVideoId } from "../Playlist/playlistStorage";
+import { getSongVideoId } from "../../Playlist/playlistStorage";
 
 let youtubeApiPromise;
 

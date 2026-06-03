@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   getPlayableVideoId,
   loadYouTubeApi,
-} from "./youtubeApi";
+} from "../services/youtubeApi";
 
 function YouTubeSongPlayer({ onEnded, song }) {
   const playerHostRef = useRef(null);

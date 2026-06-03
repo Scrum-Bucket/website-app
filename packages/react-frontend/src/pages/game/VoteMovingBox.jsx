@@ -3,10 +3,10 @@ import "./VoteMovingBox.css";
 import { authFetch } from "../../authFetch";
 import frontendLink from "../../frontendLink";
 import { readAccountPlaylist } from "../Playlist/playlistStorage";
-import CrabLane from "./CrabLane";
-import CurrentSongPlayer from "./CurrentSongPlayer";
-import SongPicker from "./SongPicker";
-import VoteMovingBoxItem from "./VoteMovingBoxItem";
+import CrabLane from "./components/CrabLane";
+import CurrentSongPlayer from "./components/CurrentSongPlayer";
+import SongPicker from "./components/SongPicker";
+import VoteMovingBoxItem from "./components/VoteMovingBoxItem";
 import {
   MAX_SCORE,
   MIN_SCORE,
@@ -17,7 +17,7 @@ import {
   VOTE_ARENA_MAX_HEIGHT,
   VOTE_ARENA_MIN_HEIGHT,
   VOTE_PLAYBACK_ARENA_HEIGHT,
-} from "./constants";
+} from "./config/constants";
 import {
   clamp,
   formatTime,
@@ -33,7 +33,8 @@ import {
   normalizeQueueEntries,
   normalizeSongs,
   normalizeUsers,
-} from "./gameUtils";
+} from "./utils/gameUtils";
+import { createRoomActionExecutor } from "./utils/roomActionTemplate";
 
 const API = frontendLink;
 
@@ -108,11 +109,11 @@ function VoteMovingBox({
     [onRoomUpdate, roomCode]
   );
 
-  const updateRoomFromResponse = async (response) => {
+  const updateRoomFromResponse = useCallback(async (response) => {
     if (response.ok) {
       applyRoomUpdate(await response.json());
     }
-  };
+  }, [applyRoomUpdate]);
 
   const updateLocalRoom = useCallback(
     (updater) => {
@@ -120,6 +121,14 @@ function VoteMovingBox({
       applyRoomUpdate(nextRoom);
     },
     [activeRoom, applyRoomUpdate]
+  );
+  const executeRoomAction = useMemo(
+    () =>
+      createRoomActionExecutor({
+        getRoomCode: () => roomCode,
+        updateRoomFromResponse,
+      }),
+    [roomCode, updateRoomFromResponse]
   );
 
   useEffect(() => {
@@ -171,9 +180,9 @@ function VoteMovingBox({
   }, [activeRoom, activeRoomOptions, now, roomCode, timeLeft, updateLocalRoom]);
 
   const handleAddSong = async (song) => {
-    if (roomCode) {
-      await updateRoomFromResponse(
-        await authFetch(`${API}/rooms/${roomCode}/queue`, {
+    await executeRoomAction({
+      remoteAction: (activeRoomCode) =>
+        authFetch(`${API}/rooms/${activeRoomCode}/queue`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -184,29 +193,27 @@ function VoteMovingBox({
             videoId: song.videoId,
             addedBy: currentUserName,
           }),
-        })
-      );
-      return;
-    }
-
-    updateLocalRoom((currentRoom) => ({
-      ...currentRoom,
-      queue: [
-        ...(currentRoom.queue || []),
-        {
-          entryId: makeLocalEntryId(),
-          songId: song.id,
-          name: song.name,
-          artist: song.artist,
-          songLink: song.songLink,
-          videoId: song.videoId,
-          score: 0,
-          upvotes: 0,
-          colorIndex: getNextQueueColorIndex(currentRoom.queue || []),
-          addedBy: currentUserName,
-        },
-      ],
-    }));
+        }),
+      localAction: () =>
+        updateLocalRoom((currentRoom) => ({
+          ...currentRoom,
+          queue: [
+            ...(currentRoom.queue || []),
+            {
+              entryId: makeLocalEntryId(),
+              songId: song.id,
+              name: song.name,
+              artist: song.artist,
+              songLink: song.songLink,
+              videoId: song.videoId,
+              score: 0,
+              upvotes: 0,
+              colorIndex: getNextQueueColorIndex(currentRoom.queue || []),
+              addedBy: currentUserName,
+            },
+          ],
+        })),
+    });
   };
 
   const handleVote = async (entryId, amount) => {
@@ -214,29 +221,27 @@ function VoteMovingBox({
       return;
     }
 
-    if (roomCode) {
-      await updateRoomFromResponse(
-        await authFetch(`${API}/rooms/${roomCode}/vote`, {
+    await executeRoomAction({
+      remoteAction: (activeRoomCode) =>
+        authFetch(`${API}/rooms/${activeRoomCode}/vote`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ entryId, amount }),
-        })
-      );
-      return;
-    }
-
-    updateLocalRoom((currentRoom) => ({
-      ...currentRoom,
-      queue: (currentRoom.queue || []).map((entry) =>
-        (entry.entryId || entry.songId) === entryId
-          ? {
-              ...entry,
-              score: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
-              upvotes: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
-            }
-          : entry
-      ),
-    }));
+        }),
+      localAction: () =>
+        updateLocalRoom((currentRoom) => ({
+          ...currentRoom,
+          queue: (currentRoom.queue || []).map((entry) =>
+            (entry.entryId || entry.songId) === entryId
+              ? {
+                  ...entry,
+                  score: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
+                  upvotes: clamp(getQueueEntryScore(entry) + amount, MIN_SCORE, MAX_SCORE),
+                }
+              : entry
+          ),
+        })),
+    });
   };
 
   const handleDeleteSong = async (entryId) => {
@@ -246,24 +251,22 @@ function VoteMovingBox({
       return;
     }
 
-    if (roomCode) {
-      await updateRoomFromResponse(
-        await authFetch(`${API}/rooms/${roomCode}/queue/${encodeURIComponent(entryId)}`, {
+    await executeRoomAction({
+      remoteAction: (activeRoomCode) =>
+        authFetch(`${API}/rooms/${activeRoomCode}/queue/${encodeURIComponent(entryId)}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userName: currentUserName }),
-        })
-      );
-      return;
-    }
-
-    updateLocalRoom((currentRoom) => ({
-      ...currentRoom,
-      queue: (currentRoom.queue || []).filter((queuedSong) => {
-        const queuedEntryId = queuedSong.entryId || queuedSong.songId;
-        return queuedEntryId !== entryId;
-      }),
-    }));
+        }),
+      localAction: () =>
+        updateLocalRoom((currentRoom) => ({
+          ...currentRoom,
+          queue: (currentRoom.queue || []).filter((queuedSong) => {
+            const queuedEntryId = queuedSong.entryId || queuedSong.songId;
+            return queuedEntryId !== entryId;
+          }),
+        })),
+    });
   };
 
   const handleTimerToggle = async () => {
@@ -273,27 +276,25 @@ function VoteMovingBox({
 
     const paused = !isTimerPaused;
 
-    if (roomCode) {
-      await updateRoomFromResponse(
-        await authFetch(`${API}/rooms/${roomCode}/timer`, {
+    await executeRoomAction({
+      remoteAction: (activeRoomCode) =>
+        authFetch(`${API}/rooms/${activeRoomCode}/timer`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paused, userName: currentUserName }),
-        })
-      );
-      return;
-    }
-
-    updateLocalRoom((currentRoom) => ({
-      ...currentRoom,
-      timerPaused: paused,
-      timerRemainingSeconds: paused ? timeLeft : currentRoom.timerRemainingSeconds || timeLeft,
-      roundEndsAt: paused
-        ? null
-        : new Date(
-            Date.now() + (currentRoom.timerRemainingSeconds || timeLeft) * 1000
-          ).toISOString(),
-    }));
+        }),
+      localAction: () =>
+        updateLocalRoom((currentRoom) => ({
+          ...currentRoom,
+          timerPaused: paused,
+          timerRemainingSeconds: paused ? timeLeft : currentRoom.timerRemainingSeconds || timeLeft,
+          roundEndsAt: paused
+            ? null
+            : new Date(
+                Date.now() + (currentRoom.timerRemainingSeconds || timeLeft) * 1000
+              ).toISOString(),
+        })),
+    });
   };
 
   const handleCurrentSongComplete = async () => {
@@ -307,51 +308,51 @@ function VoteMovingBox({
     }
     completedPlaybackRef.current = completedKey;
 
-    if (roomCode) {
-      await updateRoomFromResponse(
-        await authFetch(`${API}/rooms/${roomCode}/current-song/complete`, {
+    await executeRoomAction({
+      remoteAction: (activeRoomCode) =>
+        authFetch(`${API}/rooms/${activeRoomCode}/current-song/complete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ entryId: nowPlaying.entryId, userName: currentUserName }),
-        })
-      );
-      return;
-    }
+        }),
+      localAction: () =>
+        updateLocalRoom((currentRoom) => ({
+          ...currentRoom,
+          timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
+          ...(() => {
+            if ((currentRoom.options || activeRoomOptions).continuousPlaylistMode !== "playQueue") {
+              return {
+                currentSong: null,
+                timerPaused: false,
+                roundEndsAt: new Date(
+                  Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
+                ).toISOString(),
+              };
+            }
 
-    updateLocalRoom((currentRoom) => ({
-      ...currentRoom,
-      timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
-      ...(() => {
-        if ((currentRoom.options || activeRoomOptions).continuousPlaylistMode !== "playQueue") {
-          return {
-            currentSong: null,
-            timerPaused: false,
-            roundEndsAt: new Date(
-              Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
-            ).toISOString(),
-          };
-        }
+            const nextEntry = getWinningQueueEntry(currentRoom.queue);
 
-        const nextEntry = getWinningQueueEntry(currentRoom.queue);
+            if (!nextEntry) {
+              return {
+                currentSong: null,
+                timerPaused: false,
+                roundEndsAt: new Date(
+                  Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
+                ).toISOString(),
+              };
+            }
 
-        if (!nextEntry) {
-          return {
-            currentSong: null,
-            timerPaused: false,
-            roundEndsAt: new Date(
-              Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
-            ).toISOString(),
-          };
-        }
-
-        return {
-          currentSong: makeCurrentSongFromQueueEntry(nextEntry),
-          queue: (currentRoom.queue || []).filter((entry) => !isSameQueueEntry(entry, nextEntry)),
-          timerPaused: true,
-          roundEndsAt: null,
-        };
-      })(),
-    }));
+            return {
+              currentSong: makeCurrentSongFromQueueEntry(nextEntry),
+              queue: (currentRoom.queue || []).filter(
+                (entry) => !isSameQueueEntry(entry, nextEntry)
+              ),
+              timerPaused: true,
+              roundEndsAt: null,
+            };
+          })(),
+        })),
+    });
   };
 
   return (

@@ -2,18 +2,18 @@ import {
   DEFAULT_USERS,
   ROUND_SECONDS,
   VOTE_BOX_COLORS,
-} from "./constants";
+} from "../config/constants";
 import {
   getSongArtist,
   getSongId,
   getSongLink,
   getSongVideoId,
   getSongTitle,
-} from "../Playlist/playlistStorage";
+} from "../../Playlist/playlistStorage";
 import {
   normalizeCrabProfile,
   readStoredCrabProfile,
-} from "../profile/crabColor";
+} from "../../profile/crabColor";
 
 export function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);

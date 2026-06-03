@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import UserCrabIcon from "../../assets/user-crab.png";
-import CrownIcon from "../../assets/hats/crown.png";
+import UserCrabIcon from "../../../assets/user-crab.png";
+import CrownIcon from "../../../assets/hats/crown.png";
 import {
   createCrabIcon,
   getHatSourceForCrab,
-} from "../profile/crabColor";
+} from "../../profile/crabColor";
 
-const hatImages = import.meta.glob("../../assets/hats/*.png", {
+const hatImages = import.meta.glob("../../../assets/hats/*.png", {
   eager: true,
   query: "?url",
   import: "default",
