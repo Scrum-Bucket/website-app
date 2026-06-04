@@ -11,7 +11,7 @@
     "dev": "concurrently \"npm run dev --prefix packages/react-frontend\" \"npm run dev --prefix packages/express-backend\"",
     "start": "npm run -w packages/express-backend start",
     "test": "jest",
-    "coverage": "jest --collectCoverage --forceExit",
+    "coverage": "jest --coverage",
     "test:acceptance": "cypress run",
     "test:acceptance:open": "cypress open",
     "lint": "eslint .",

@@ -42,11 +42,14 @@ beforeEach(() => {
     TOKEN_SECRET: process.env.TOKEN_SECRET,
     AUTH_COOKIE_SAME_SITE: process.env.AUTH_COOKIE_SAME_SITE,
     SKIP_DOTENV: process.env.SKIP_DOTENV,
+    USER_HEARTBEAT_TIMEOUT_MS: process.env.USER_HEARTBEAT_TIMEOUT_MS,
   };
 
   process.env.SKIP_DOTENV = "true";
   process.env.TOKEN_SECRET = "test-token-secret";
   process.env.BACKEND_ACCESS_TOKEN = "test-backend-access-token";
+  // make session staleness deterministic for tests (ms)
+  process.env.USER_HEARTBEAT_TIMEOUT_MS = String(120000);
 });
 
 afterEach(() => {
@@ -56,6 +59,7 @@ afterEach(() => {
   restoreEnv("TOKEN_SECRET", _savedEnv.TOKEN_SECRET);
   restoreEnv("AUTH_COOKIE_SAME_SITE", _savedEnv.AUTH_COOKIE_SAME_SITE);
   restoreEnv("SKIP_DOTENV", _savedEnv.SKIP_DOTENV);
+  restoreEnv("USER_HEARTBEAT_TIMEOUT_MS", _savedEnv.USER_HEARTBEAT_TIMEOUT_MS);
 });
 
 afterAll(() => {

@@ -69,9 +69,14 @@ describe("infrastructure helpers", () => {
     };
 
     middleware(req, res, (error) => {
-      expect(error.message).toBe("Not allowed by CORS");
-      console.warn.mockRestore();
-      done();
+      try {
+        expect(error.message).toBe("Not allowed by CORS");
+        done();
+      } catch (err) {
+        done(err);
+      } finally {
+        console.warn.mockRestore();
+      }
     });
   });
 
