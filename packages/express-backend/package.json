@@ -9,6 +9,7 @@
   "main": "backend.js",
   "scripts": {
     "test": "jest",
+    "coverage": "jest --collectCoverage --forceExit",
     "dev": "npx nodemon src/startup.js",
     "start": "node src/startup.js",
     "lint": "eslint ."
