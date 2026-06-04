@@ -87,21 +87,24 @@ async function findOrCreateSong(songData) {
   const existingSong = await song.findOne({ songLink: normalizedSongData.songLink });
 
   if (existingSong) {
-    const videoId = getSongVideoId(existingSong);
+    const existingDetails =
+      existingSong.details && typeof existingSong.details === "object"
+        ? existingSong.details
+        : {};
+    const mergedDetails = {
+      ...existingDetails,
+      ...normalizedSongData.details,
+    };
+    const hasDetailChanges = Object.keys(mergedDetails).some(
+      (key) => existingDetails[key] !== mergedDetails[key]
+    );
 
-    if (!videoId && normalizedSongData.details?.videoId) {
-      // backfill video id for older saved songs
-      existingSong.details = {
-        ...(existingSong.details && typeof existingSong.details === "object"
-          ? existingSong.details
-          : {}),
-        videoId: normalizedSongData.details.videoId,
-      };
-
-      return existingSong.save();
+    if (!hasDetailChanges || typeof existingSong.save !== "function") {
+      return existingSong;
     }
 
-    return existingSong;
+    existingSong.details = mergedDetails;
+    return existingSong.save();
   }
 
   const newSong = new song(normalizedSongData);

@@ -21,8 +21,13 @@ function VoteMovingBoxItem({ canDelete, entry, isVotingPaused, onDelete, onVote,
       <div className="vote-box-bar" aria-label={`${song.name} score ${score}`}>
         <span className="vote-box-score">{score}</span>
         <div className="vote-box-track">
-          <span className="vote-box-track-title">{song.name}</span>
-          <span className="vote-box-track-artist">{song.artist}</span>
+          {song.thumbnail && (
+            <img className="vote-song-thumbnail" src={song.thumbnail} alt="" aria-hidden="true" />
+          )}
+          <div className="vote-box-track-text">
+            <span className="vote-box-track-title">{song.name}</span>
+            <span className="vote-box-track-artist">{song.artist}</span>
+          </div>
         </div>
         <div className="vote-box-actions">
           <button

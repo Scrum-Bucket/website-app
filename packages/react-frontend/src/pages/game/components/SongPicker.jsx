@@ -56,6 +56,14 @@ function SongPicker({ isGuest, onAddSong, onLoginRequired, songs }) {
                   onClick={() => onAddSong(song)}
                   key={song.id}
                 >
+                  {song.thumbnail && (
+                    <img
+                      className="vote-song-option-thumbnail"
+                      src={song.thumbnail}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                  )}
                   <span>{song.name}</span>
                   <small>
                     {song.artist} / {song.source}

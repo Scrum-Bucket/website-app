@@ -55,7 +55,17 @@ export function getSongTitle(song) {
 }
 
 export function getSongArtist(song) {
-  return song?.details?.author || song?.details?.channelTitle || song?.artist || "";
+  return (
+    song?.details?.artist ||
+    song?.details?.author ||
+    song?.details?.channelTitle ||
+    song?.artist ||
+    ""
+  );
+}
+
+export function getSongThumbnail(song) {
+  return song?.details?.thumbnail || song?.thumbnail || "";
 }
 
 export function normalizePlayableSong(song) {
@@ -69,6 +79,7 @@ export function normalizePlayableSong(song) {
     id: videoId,
     title: getSongTitle(song),
     artist: getSongArtist(song),
+    thumbnail: getSongThumbnail(song),
     songLink: getSongLink(song) || getYouTubeWatchLink(videoId),
     videoId,
   };

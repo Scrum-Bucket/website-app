@@ -29,6 +29,7 @@ const RoomSchema = new mongoose.Schema(
           upvotes: { type: Number, default: 0 },
           colorIndex: { type: Number },
           addedBy: { type: String, default: null },
+          thumbnail: { type: String, default: "" },
         },
       ],
       default: [],
