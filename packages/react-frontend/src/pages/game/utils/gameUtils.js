@@ -2,7 +2,7 @@ import {
   DEFAULT_USERS,
   ROUND_SECONDS,
   VOTE_BOX_COLORS,
-} from "../config/constants";
+} from "../gameConfig/constants";
 import {
   getSongArtist,
   getSongId,

@@ -17,7 +17,7 @@ import {
   VOTE_ARENA_MAX_HEIGHT,
   VOTE_ARENA_MIN_HEIGHT,
   VOTE_PLAYBACK_ARENA_HEIGHT,
-} from "./config/constants";
+} from "./gameConfig/constants";
 import {
   clamp,
   formatTime,
