@@ -18,6 +18,7 @@ function createRateLimiter({
   const clients = new Map();
 
   return function rateLimiter(req, res, next) {
+    // Keep a small per-client counter for the current time window
     const now = Date.now();
     const key = keyGenerator(req);
     const current = clients.get(key);

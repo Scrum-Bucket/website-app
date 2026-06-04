@@ -22,6 +22,7 @@ export function setRoomMemberSession(roomCode, { memberName, token }) {
     return;
   }
 
+  // Keep the backend assigned nickname stable for this tab
   if (memberName) {
     sessionStorage.setItem(`roomMemberName:${roomCode}`, memberName);
   }
@@ -46,6 +47,7 @@ export function roomMemberHeaders(roomCode) {
 }
 
 export async function sendRoomMemberHeartbeat(roomCode) {
+  // Guests use the room member token instead of account auth
   const response = await authFetch(`${frontendLink}/rooms/${roomCode}/heartbeat`, {
     method: "POST",
     headers: { "Content-Type": "application/json", ...roomMemberHeaders(roomCode) },

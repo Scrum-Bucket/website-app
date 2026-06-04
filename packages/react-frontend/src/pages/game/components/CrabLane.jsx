@@ -21,6 +21,7 @@ function CrabLane({ hostName, users }) {
   );
 
   useEffect(() => {
+    // Skip canvas work when player color and hat data has not changed
     if (iconSignatureRef.current === iconSignature) {
       return undefined;
     }

@@ -18,10 +18,12 @@ function parseBoolean(value) {
 }
 
 function getTrustedMemberName(req, roomCode) {
+  // Trust room identity only when the signed member token is valid
   return getVerifiedRoomMember(req, roomCode)?.memberName || "";
 }
 
 function getRoomMutationRateLimitKey(req) {
+  // Limit room actions by member token when possible
   const roomCode = normalizeRoomCode(req.params.roomCode);
   const memberToken = req.headers["x-room-member-token"];
   const clientAddress =
@@ -98,6 +100,7 @@ function createRoomsRouter() {
     const host = (req.body.host || req.body.userName || req.body.username || "").trim() || null;
     const maxAttempts = requestedRoomCode ? 1 : 5;
 
+    // Auto-generated room codes get a few chances to avoid collisions
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const roomCode = requestedRoomCode || generateRoomCode();
 
@@ -204,6 +207,7 @@ function createRoomsRouter() {
     const memberName = getTrustedMemberName(req, roomCode);
     if (!entryId) return res.status(400).json({ error: "entryId is required." });
     if (!memberName) return res.status(403).json({ error: "Valid room member token required." });
+    // Only accept single-step votes from the client
     if (![1, -1].includes(Number(amount))) {
       return res.status(400).json({ error: "Vote amount must be 1 or -1." });
     }

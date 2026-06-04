@@ -81,6 +81,7 @@ function isWinningEntry(entry, winningEntry) {
 }
 
 function applyQueueCleanupMode(queue, winningEntry, options) {
+  // Apply the host selected cleanup rule after a round winner is picked
   let nextQueue =
     options.continuousPlaylistMode === "removeSongs"
       ? []
@@ -106,6 +107,7 @@ function makeEntryId() {
 }
 
 function getNextQueueColorIndex(queue = []) {
+  // Reuse the first open color so stacked vote cards stay readable
   const usedColorIndexes = new Set(
     queue
       .map((entry) => entry.colorIndex)
@@ -132,6 +134,7 @@ function escapeRegExp(value) {
 }
 
 function getUniqueMemberName(baseName, members = []) {
+  // Add a number when a room nickname is already taken
   const normalizedBaseName = (baseName || "Anonymous Fish").trim() || "Anonymous Fish";
   const existingNames = new Set(members.map((member, index) => getMemberName(member, index)));
 
@@ -178,6 +181,7 @@ function invalidatePublicRoomsCache() {
 }
 
 async function withRoomLock(roomCode, task) {
+  // Serialize joins per room to avoid duplicate names and capacity races
   const lockKey = roomCode || "room";
   const previousLock = roomLocks.get(lockKey) || Promise.resolve();
   let releaseLock;
@@ -272,6 +276,7 @@ function touchRoomMember(room, memberName, at = new Date()) {
 async function pruneInactiveMembers(room, now = Date.now()) {
   if (!room) return room;
 
+  // Drop members whose browser stopped sending heartbeats
   const members = Array.isArray(room.members) ? room.members : [];
   const activity = getMemberActivity(room);
   let changed = false;
@@ -321,6 +326,7 @@ async function pruneInactiveMembers(room, now = Date.now()) {
 async function attachMemberProfiles(room) {
   if (!room) return room;
 
+  // Hide internal heartbeat data before returning rooms to clients
   const roomObject = typeof room.toObject === "function" ? room.toObject() : { ...room };
   roomObject.options = getRoomOptions(roomObject);
   delete roomObject.memberActivity;
@@ -352,6 +358,7 @@ async function attachMemberProfilesToRooms(rooms) {
 async function syncRoomGameState(room) {
   if (!room) return room;
 
+  // Keep timers and playback state current on every room read
   room = await pruneInactiveMembers(room);
   if (!room) return null;
 
@@ -423,6 +430,7 @@ async function getPublicRooms() {
     return publicRoomsCache.rooms;
   }
 
+  // Cache public room browsing briefly to reduce repeated database reads
   const rooms = await Room.find({ privacy: "public" });
   const publicRooms = await attachMemberProfilesToRooms(await syncRooms(rooms));
   publicRoomsCache = {
@@ -484,6 +492,7 @@ async function joinRoom(roomCode, userName) {
 
     await syncRoomGameState(room);
 
+    // Store the assigned nickname so guests keep a stable room identity
     const assignedMemberName = getUniqueMemberName(
       getRoomMemberBaseName(userName),
       members
@@ -564,6 +573,7 @@ async function voteSong(roomCode, entryId, amount) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) throw new Error("Room not found");
 
+  // Votes are one step at a time and clamped to the game limits
   const roomOptions = getRoomOptions(room);
   if (room.timerPaused && !room.currentSong && roomOptions.pauseVotingWhenTimerPaused) {
     throw new Error("Voting is paused");

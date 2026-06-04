@@ -5,6 +5,7 @@ const { normalizeRoomCode } = require("./room-code.js");
 const ROOM_MEMBER_TOKEN_EXPIRES_IN = process.env.ROOM_MEMBER_TOKEN_EXPIRES_IN || "6h";
 
 function createRoomMemberToken({ roomCode, memberName }) {
+  // Sign the room nickname so clients cannot impersonate another member
   return jwt.sign(
     {
       type: "room-member",
@@ -24,6 +25,7 @@ function verifyRoomMemberToken(token, roomCode) {
   if (!token) return null;
 
   try {
+    // Room tokens are scoped to one room code
     const decoded = jwt.verify(token, requireEnv("TOKEN_SECRET"));
     const tokenRoomCode = normalizeRoomCode(decoded.roomCode);
 

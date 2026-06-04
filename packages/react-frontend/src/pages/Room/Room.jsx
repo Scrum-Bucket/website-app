@@ -61,6 +61,7 @@ function getRoomMemberProfiles(room, username, userId) {
 }
 
 function getRoomPollDelay(room) {
+  // Slow down polling when the room is idle or hidden
   if (typeof document !== "undefined" && document.hidden) {
     return BACKGROUND_POLL_MS;
   }
@@ -147,6 +148,7 @@ function Room({ username }) {
       await fetchRoom();
 
       if (active) {
+        // Schedule after each fetch so slow requests do not overlap
         pollId = setTimeout(pollRoom, roomPollDelay);
       }
     }
@@ -169,6 +171,7 @@ function Room({ username }) {
     async function heartbeatRoomMembership() {
       try {
         if (username === "Guest") {
+          // Guests keep membership alive with the room token
           await sendRoomMemberHeartbeat(roomCode);
         } else {
           await sendUserHeartbeat({ roomCode, roomMemberName });
@@ -215,7 +218,7 @@ function Room({ username }) {
         setRoom(updated);
       }
     } catch {
-      // Local test mode can still start without the backend.
+      // Local test mode can still start without the backend
     }
   }
 

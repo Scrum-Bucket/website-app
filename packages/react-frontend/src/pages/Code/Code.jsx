@@ -25,7 +25,6 @@ function Code({ username }) {
     setError("");
 
     try {
-      // Verify the room exists
       const checkRes = await authFetch(`${API}/rooms/${trimmed}`);
       if (!checkRes.ok) {
         const errorData = await checkRes.json().catch(() => ({}));
@@ -34,7 +33,6 @@ function Code({ username }) {
         return;
       }
 
-      // Join the room
       const joinRes = await authFetch(`${API}/rooms/${trimmed}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

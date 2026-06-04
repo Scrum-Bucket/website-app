@@ -15,6 +15,7 @@ const { createRoomMemberToken } = require("../src/utils/room-member-token.js");
 function makeApp(path, router, auth = { type: "frontend-user", userId: "user-1", sessionId: "session-1" }) {
   const app = express();
   app.use(express.json());
+  // Inject auth so router tests can focus on route behavior
   app.use((req, _res, next) => {
     req.auth = auth;
     next();

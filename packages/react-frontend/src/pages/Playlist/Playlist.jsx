@@ -58,17 +58,13 @@ function Playlist({ userId, username }) {
   const [savedSongs, setSavedSongs] = useState(() => readAccountPlaylist(username));
   const [isLoadingPlaylist, setIsLoadingPlaylist] = useState(false);
 
-  // state of error for wrong URL/ID
-  // stores current error value 'error', and a function to update it 'setError'
   const [error, setError] = useState("");
 
   async function handleAddSong() {
-    // clear previous errors
     setError("");
 
     const youtubeInput = getYoutubeInput(playlistId);
 
-    // If input is empty, show error and stop
     if (!youtubeInput.id || !youtubeInput.type) {
       setError("Please enter a valid YouTube song or playlist URL/ID.");
       return;
@@ -99,13 +95,12 @@ function Playlist({ userId, username }) {
       });
 
       if (!res.ok) {
-        setError("Invalid URL or ID."); // handle bad response from backend
+        setError("Invalid URL or ID.");
         return;
       }
 
       const data = await res.json();
 
-      // ensure backend returned expected format/list of songs
       if (!Array.isArray(data)) {
         setError("Invalid youtube response.");
         return;
@@ -114,7 +109,6 @@ function Playlist({ userId, username }) {
       setSongs(data);
     } catch (err) {
       console.error(err);
-      // handle unexpected errors
       setError("Could not load playlist. Please check the URL or ID.");
     } finally {
       setIsLoadingPlaylist(false);
@@ -235,8 +229,6 @@ function Playlist({ userId, username }) {
                   onClick={() => handleToggleAccountPlaylist(song)}
                   disabled={!playableSong}
                 >
-                  {/* Decides what text button should show: Add or Remove.
-                      If any saved song has the same id as the current song, display Remove. */}
                   {playableSong &&
                   savedSongs.some((savedSong) => savedSong.id === playableSong.id)
                     ? "Remove"
