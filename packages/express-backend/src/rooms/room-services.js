@@ -433,7 +433,9 @@ async function getPublicRooms() {
 
   // Cache public room browsing briefly to reduce repeated database reads
   const rooms = await Room.find({ privacy: "public" });
-  const publicRooms = await attachMemberProfilesToRooms(await syncRooms(rooms));
+  // Defensive: ensure only rooms explicitly marked public are returned
+  const filtered = Array.isArray(rooms) ? rooms.filter((r) => (r && r.privacy) === "public") : [];
+  const publicRooms = await attachMemberProfilesToRooms(await syncRooms(filtered));
   publicRoomsCache = {
     expiresAt: now + PUBLIC_ROOMS_CACHE_MS,
     rooms: publicRooms,
