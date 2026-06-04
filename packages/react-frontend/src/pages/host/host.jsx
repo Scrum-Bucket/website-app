@@ -5,6 +5,7 @@ import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
 import { getSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
+import { setRoomMemberSession } from "../Room/roomMemberSession";
 
 function createRoomCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -38,10 +39,13 @@ function Host({ username }) {
       }
 
       const createdRoom = await response.json();
-      sessionStorage.setItem(`roomMemberName:${roomCode}`, createdRoom.assignedMemberName || host);
+      setRoomMemberSession(roomCode, {
+        memberName: createdRoom.assignedMemberName || host,
+        token: createdRoom.roomMemberToken,
+      });
       navigate(`/home/room/${roomCode}`);
     } catch {
-      sessionStorage.setItem(`roomMemberName:${roomCode}`, host);
+      setRoomMemberSession(roomCode, { memberName: host });
       setError("Using a local test room because the backend is unavailable.");
       navigate(`/home/room/${roomCode}`, { state: { room: fallbackRoom } });
     }

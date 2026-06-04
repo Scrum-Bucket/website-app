@@ -1,4 +1,4 @@
-//user-services.js
+// user-services.js
 const bcrypt = require("bcrypt");
 const userModel = require("./user.js");
 
@@ -10,6 +10,7 @@ const CRAB_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const MAX_CRAB_HAT_LENGTH = 80;
 
 function getActiveSessions(user) {
+  // maps from mongoose need to become plain objects
   const source = user?.activeSessions || {};
 
   if (source instanceof Map) {
@@ -20,6 +21,7 @@ function getActiveSessions(user) {
 }
 
 function normalizeCrabProfile(crab = {}) {
+  // keep saved crab profiles safe and predictable
   if (!crab || typeof crab !== "object" || Array.isArray(crab)) {
     return { ...DEFAULT_CRAB_PROFILE };
   }
@@ -33,8 +35,8 @@ function normalizeCrabProfile(crab = {}) {
   return { color, hat };
 }
 
-//allows get all
 async function getUsers(userName) {
+  // no username means get all users
   if (!userName) {
     console.log("No userName provided, returning all users");
     const allUsers = await userModel.find();
@@ -49,10 +51,9 @@ async function findUserById(id) {
   return await userModel.findById(id);
 }
 
-// defaults defined in schema
 async function createUser(userName, passWord) {
   console.log("checking password: ", passWord);
-  // Validate password before hashing
+  // reject weak passwords before hashing
   if (!passWord || passWord.length < 8) {
     throw new Error("Password must be at least 8 characters long");
   }
@@ -85,14 +86,13 @@ async function createUser(userName, passWord) {
   }
 }
 
-// nukes it
 async function deleteUser(id) {
+  // remove user by mongo id
   return await userModel.findByIdAndDelete(id);
 }
 
-//if not async youd check status b4 mongoDB fetches it
-//set status to 1 if they exist and arent timed out
 async function loginUser(userName, password) {
+  // check password and mark the user active
   const user = await userModel.findOne({ userName });
   if (!user) throw new Error("User not found");
 
@@ -108,11 +108,10 @@ async function loginUser(userName, password) {
   );
 }
 
-// logoutUser: set status back to 0
 async function logoutUser(id) {
+  // clear active session state on logout
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
-  //new:true means return user after its updated
   return await userModel.findByIdAndUpdate(
     id,
     { status: 0, lastActiveAt: null, activeSessions: {} },
@@ -121,6 +120,7 @@ async function logoutUser(id) {
 }
 
 async function registerUserSession(id, sessionId) {
+  // track each tab/session separately
   if (!sessionId) throw new Error("Session id is required");
   const now = new Date();
 
@@ -136,6 +136,7 @@ async function registerUserSession(id, sessionId) {
 }
 
 async function heartbeatUser(id, sessionId) {
+  // update the last active time for this session
   if (!sessionId) throw new Error("Session id is required");
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
@@ -153,6 +154,7 @@ async function heartbeatUser(id, sessionId) {
 }
 
 async function logoutInactiveUsers(maxInactiveMs) {
+  // remove stale sessions and logout users with none left
   const cutoff = new Date(Date.now() - maxInactiveMs);
   const users = await userModel.find({ status: 1 });
   const updates = [];
@@ -189,44 +191,39 @@ async function logoutInactiveUsers(maxInactiveMs) {
   return { modifiedCount: updates.length };
 }
 
-// timeoutUser: status 2 basically soft ban
 async function timeoutUser(id) {
+  // status 2 means the user is timed out
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   return await userModel.findByIdAndUpdate(id, { status: 2 }, { new: true });
 }
 
-// unbanUser: remove timeout by setting status back to 0
 async function unbanUser(id) {
+  // reset a timed out user back to logged out
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   return await userModel.findByIdAndUpdate(id, { status: 0 }, { new: true });
 }
 
-// id is user id
 async function addSongsToPlaylist(id, playlistName, songIds) {
-  // get the user
+  // add youtube song ids to a named playlist
   const user = await userModel.findById(id);
 
-  // Cant find the user
   if (!user) {
     throw new Error("User not found");
   }
 
-  // p = one playlist (possibly multiple playlists)
   let playlist = user.playlists.find((p) => p.name === playlistName);
 
-  // if playlist doesnt exist
   if (!playlist) {
-    // add new one to user's list of playlists
+    // create the playlist when it is missing
     user.playlists.push({
       name: playlistName,
       songs: songIds,
     });
   } else {
-    // if it does exist go through each song
+    // keep existing playlists free of duplicate songs
     for (const songId of songIds) {
-      // avoid duplicates
       if (!playlist.songs.some((existingId) => existingId.toString() === songId.toString())) {
         playlist.songs.push(songId);
       }
@@ -236,8 +233,8 @@ async function addSongsToPlaylist(id, playlistName, songIds) {
   return await user.save();
 }
 
-// changePrefs: update favorite songs and/or saved crab profile
 async function changePrefs(id, { favorites, playlist, crab }) {
+  // update favorites, playlist, or crab profile
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
 
@@ -249,8 +246,8 @@ async function changePrefs(id, { favorites, playlist, crab }) {
   return await userModel.findByIdAndUpdate(id, update, { new: true });
 }
 
-// renameUser: update userName
 async function renameUser(id, newUserName) {
+  // rename only when the new username is available
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
 
@@ -262,8 +259,8 @@ async function renameUser(id, newUserName) {
   return await userModel.findByIdAndUpdate(id, { userName: newUserName }, { new: true });
 }
 
-// changePassword: update passWord after validation
 async function changePassword(id, newPassword) {
+  // validate and hash the new password
   if (!newPassword || newPassword.length < 8) {
     throw new Error("Password must be at least 8 characters long");
   }
@@ -275,22 +272,22 @@ async function changePassword(id, newPassword) {
   return await userModel.findByIdAndUpdate(id, { passWord: hashedPassword }, { new: true });
 }
 
-// promoteToAdmin: set isAdmin to true
 async function promoteToAdmin(id) {
+  // give a user admin access
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   return await userModel.findByIdAndUpdate(id, { isAdmin: true }, { new: true });
 }
 
-// demoteFromAdmin: set isAdmin to false
 async function demoteFromAdmin(id) {
+  // remove admin access
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   return await userModel.findByIdAndUpdate(id, { isAdmin: false }, { new: true });
 }
 
-// isAdmin: check if user is admin
 async function isAdmin(id) {
+  // return just the admin flag
   const user = await userModel.findById(id);
   if (!user) throw new Error("User not found");
   return user.isAdmin;

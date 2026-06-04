@@ -1,4 +1,3 @@
-// src/main.jsx
 import App from "./app/App";
 import "./background.css";
 import "./login.css";

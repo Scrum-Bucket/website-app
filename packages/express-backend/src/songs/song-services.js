@@ -1,4 +1,4 @@
-//song-services.js
+// song-services.js
 const mongoose = require("mongoose");
 const song = require("./song.js");
 
@@ -8,6 +8,7 @@ function isYouTubeVideoId(value) {
   return /^[a-zA-Z0-9_-]{11}$/.test(value || "");
 }
 
+// get a youtube video id from saved song data
 function getSongVideoId(songData = {}) {
   if (isYouTubeVideoId(songData.videoId)) return songData.videoId;
   if (isYouTubeVideoId(songData.details?.videoId)) return songData.details.videoId;
@@ -38,6 +39,7 @@ function getSongVideoId(songData = {}) {
   return "";
 }
 
+// keep song data in one consistent shape
 function normalizeSongData(songData = {}) {
   const videoId = getSongVideoId(songData);
   const songLink = songData.songLink || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : "");
@@ -57,28 +59,31 @@ function normalizeSongData(songData = {}) {
   };
 }
 
+// get all songs or filter by link
 function getSongs(songLink) {
   if (!songLink) return song.find();
   return song.find({ songLink });
 }
 
+// get song by mongo id
 function findSongById(id) {
   return song.findById(id);
 }
 
+// add a normalized song document
 function addSong(songLink, details = []) {
   const newSong = new song(normalizeSongData({ songLink, details }));
   return newSong.save();
 }
 
+// delete song by mongo id
 function deleteSong(id) {
   return song.findByIdAndDelete(id);
 }
 
-//
+// find existing song before creating a duplicate
 async function findOrCreateSong(songData) {
   const normalizedSongData = normalizeSongData(songData);
-  // returns song object
   const existingSong = await song.findOne({ songLink: normalizedSongData.songLink });
 
   if (existingSong) {
@@ -86,21 +91,27 @@ async function findOrCreateSong(songData) {
       existingSong.details && typeof existingSong.details === "object"
         ? existingSong.details
         : {};
-
-    existingSong.details = {
+    const mergedDetails = {
       ...existingDetails,
       ...normalizedSongData.details,
     };
+    const hasDetailChanges = Object.keys(mergedDetails).some(
+      (key) => existingDetails[key] !== mergedDetails[key]
+    );
 
+    if (!hasDetailChanges || typeof existingSong.save !== "function") {
+      return existingSong;
+    }
+
+    existingSong.details = mergedDetails;
     return existingSong.save();
   }
 
-  // make the song if it doesnt exist
   const newSong = new song(normalizedSongData);
   return await newSong.save();
 }
 
-// search for a song by a keyword in details array
+// search for a song by title text
 function searchSong(keyword) {
   if (!keyword) return song.find();
   return song.find({

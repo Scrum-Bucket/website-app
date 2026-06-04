@@ -1,8 +1,7 @@
-// src/MyApp.jsx
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { authFetch } from "../authFetch";
-import { setSessionUser } from "../authSession";
+import { clearStoredAuth, setSessionUser } from "../authSession";
 import frontendLink from "../frontendLink";
 import { writeStoredCrabProfile } from "../pages/profile/crabColor";
 
@@ -108,6 +107,7 @@ function MyApp({ onLogin }) {
   }
 
   async function handleGuestLogin() {
+    clearStoredAuth();
     onLogin({ username: "Guest", userId: "" });
     navigate("/home");
   }

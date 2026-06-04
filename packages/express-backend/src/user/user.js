@@ -1,11 +1,11 @@
-//user.js
+// user.js
 const mongoose = require("mongoose");
 
 const DEFAULT_CRAB_COLOR = "#e74c3c";
 
 const UserSchema = new mongoose.Schema(
   {
-    // user id just use mongoDB _id
+    // public username shown around the app
     userName: {
       type: String,
       required: true,
@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema(
       required: true,
       trim: true,
       minlength: 60,
-      maxlength: 60, //Forced to be 60 chars long by bcrypt
+      maxlength: 60, // forced to be 60 chars long by bcrypt
       unique: false,
       index: true,
     },
@@ -43,7 +43,7 @@ const UserSchema = new mongoose.Schema(
       ],
       default: [],
     },
-    // 0 = logged out, 1 = logged in, 2 = timed out
+    // 0 logged out, 1 logged in, 2 timed out
     status: {
       type: Number,
       default: 0,
@@ -53,11 +53,12 @@ const UserSchema = new mongoose.Schema(
       default: null,
     },
     activeSessions: {
+      // stores session id to last heartbeat time
       type: mongoose.Schema.Types.Mixed,
       default: () => ({}),
     },
     favorites: {
-      type: [Number], // SongIDs
+      type: [Number], // song ids
       default: [],
     },
     crab: {

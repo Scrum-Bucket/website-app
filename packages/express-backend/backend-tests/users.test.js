@@ -8,7 +8,6 @@ const bcrypt = require("bcrypt");
 const defaultCrab = { color: "#e74c3c", hat: "" };
 const pirateCrab = { color: "#3498db", hat: "pirate_captain_hat.png" };
 
-//initialize database models
 let userModel;
 let songModel;
 
@@ -18,7 +17,6 @@ beforeAll(async () => {
 
 afterAll(async () => {});
 
-//in case we need to run something before/after each test
 beforeEach(async () => {
   jest.clearAllMocks();
   mockingoose.resetAll();
@@ -27,21 +25,14 @@ beforeEach(async () => {
 afterEach(async () => {});
 
 test("get all users", async () => {
-  //Mocking up the mongoose find() call
   userModel.find = jest.fn().mockResolvedValue([]);
 
-  //Calling our getUsers() function which is our function under test
-  // That function depends on the mongoose find() function that's mocked
   const users = await userServices.getUsers();
 
-  // business-logic-related assertions
   expect(users).toBeDefined();
   expect(users.length).toBeGreaterThanOrEqual(0);
 
-  // Mock-related assertions
-  //The mocked function (mongoose find) should be called only once
   expect(userModel.find.mock.calls.length).toBe(1);
-  // and should be called with no params
   expect(userModel.find).toHaveBeenCalledWith();
 });
 
@@ -74,20 +65,17 @@ test("get users by name", async () => {
       crab: [],
     },
   ];
-  //mock the mongoose find() call with value to return
   userModel.find = jest.fn().mockResolvedValue(result);
 
   const userName = "Joe";
   const users = await userServices.getUsers(userName);
-  // business-logic-related assertions
+
   expect(users).toBeDefined();
   expect(users.length).toBeGreaterThan(0);
   users.forEach(
-    //check if returned collection is as expected
     (user) => expect(user.userName).toBe(userName)
   );
 
-  //Mock assertions
   expect(userModel.find.mock.calls.length).toBe(1);
   expect(userModel.find).toHaveBeenCalledWith({ userName: userName });
 });
@@ -132,7 +120,6 @@ test("Create user", async () => {
     crab: defaultCrab,
   };
 
-  //mock mongoose save function with mockingoose instead of jest.fn()
   mockingoose(userModel).toReturn(addedUser, "save");
   const result = await userServices.createUser(toBeAdded.userName, toBeAdded.passWord);
 

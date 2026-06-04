@@ -7,6 +7,7 @@ const MIN_SCORE = -20;
 const MAX_SCORE = 40;
 const MAX_ROOM_MEMBERS = 30;
 const MEMBER_HEARTBEAT_TIMEOUT_MS = Number(process.env.ROOM_MEMBER_HEARTBEAT_TIMEOUT_MS) || 75000;
+const PUBLIC_ROOMS_CACHE_MS = Number(process.env.PUBLIC_ROOMS_CACHE_MS) || 10000;
 const MIN_ROUND_SECONDS = 0;
 const MAX_ROUND_SECONDS = 900;
 const VOTE_BOX_COLOR_COUNT = 10;
@@ -33,6 +34,11 @@ const GUEST_MEMBER_NAMES = [
   "Anonymous Dolphin",
   "Anonymous Squid",
 ];
+const roomLocks = new Map();
+let publicRoomsCache = {
+  expiresAt: 0,
+  rooms: null,
+};
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -75,6 +81,7 @@ function isWinningEntry(entry, winningEntry) {
 }
 
 function applyQueueCleanupMode(queue, winningEntry, options) {
+  // Apply the host selected cleanup rule after a round winner is picked
   let nextQueue =
     options.continuousPlaylistMode === "removeSongs"
       ? []
@@ -100,6 +107,7 @@ function makeEntryId() {
 }
 
 function getNextQueueColorIndex(queue = []) {
+  // Reuse the first open color so stacked vote cards stay readable
   const usedColorIndexes = new Set(
     queue
       .map((entry) => entry.colorIndex)
@@ -126,6 +134,7 @@ function escapeRegExp(value) {
 }
 
 function getUniqueMemberName(baseName, members = []) {
+  // Add a number when a room nickname is already taken
   const normalizedBaseName = (baseName || "Anonymous Fish").trim() || "Anonymous Fish";
   const existingNames = new Set(members.map((member, index) => getMemberName(member, index)));
 
@@ -162,6 +171,36 @@ function attachAssignedMemberName(room, assignedMemberName) {
     ...room,
     assignedMemberName,
   };
+}
+
+function invalidatePublicRoomsCache() {
+  publicRoomsCache = {
+    expiresAt: 0,
+    rooms: null,
+  };
+}
+
+async function withRoomLock(roomCode, task) {
+  // Serialize joins per room to avoid duplicate names and capacity races
+  const lockKey = roomCode || "room";
+  const previousLock = roomLocks.get(lockKey) || Promise.resolve();
+  let releaseLock;
+  const nextLock = new Promise((resolve) => {
+    releaseLock = resolve;
+  });
+  const queueEntry = previousLock.catch(() => {}).then(() => nextLock);
+
+  roomLocks.set(lockKey, queueEntry);
+  await previousLock.catch(() => {});
+
+  try {
+    return await task();
+  } finally {
+    releaseLock();
+    if (roomLocks.get(lockKey) === queueEntry) {
+      roomLocks.delete(lockKey);
+    }
+  }
 }
 
 function getEntryScore(entry) {
@@ -238,6 +277,7 @@ function touchRoomMember(room, memberName, at = new Date()) {
 async function pruneInactiveMembers(room, now = Date.now()) {
   if (!room) return room;
 
+  // Drop members whose browser stopped sending heartbeats
   const members = Array.isArray(room.members) ? room.members : [];
   const activity = getMemberActivity(room);
   let changed = false;
@@ -287,8 +327,11 @@ async function pruneInactiveMembers(room, now = Date.now()) {
 async function attachMemberProfiles(room) {
   if (!room) return room;
 
+  // Hide internal heartbeat data before returning rooms to clients
   const roomObject = typeof room.toObject === "function" ? room.toObject() : { ...room };
   roomObject.options = getRoomOptions(roomObject);
+  delete roomObject.memberActivity;
+  delete roomObject.__v;
   const members = Array.isArray(roomObject.members) ? roomObject.members : [];
   const memberNames = members.map(getMemberName).filter(Boolean);
   const users = memberNames.length ? await User.find({ userName: { $in: memberNames } }) : [];
@@ -316,6 +359,7 @@ async function attachMemberProfilesToRooms(rooms) {
 async function syncRoomGameState(room) {
   if (!room) return room;
 
+  // Keep timers and playback state current on every room read
   room = await pruneInactiveMembers(room);
   if (!room) return null;
 
@@ -382,8 +426,20 @@ async function getRooms(roomCode) {
 }
 
 async function getPublicRooms() {
+  const now = Date.now();
+  if (publicRoomsCache.rooms && publicRoomsCache.expiresAt > now) {
+    return publicRoomsCache.rooms;
+  }
+
+  // Cache public room browsing briefly to reduce repeated database reads
   const rooms = await Room.find({ privacy: "public" });
-  return attachMemberProfilesToRooms(await syncRooms(rooms));
+  const publicRooms = await attachMemberProfilesToRooms(await syncRooms(rooms));
+  publicRoomsCache = {
+    expiresAt: now + PUBLIC_ROOMS_CACHE_MS,
+    rooms: publicRooms,
+  };
+
+  return publicRooms;
 }
 
 async function pruneInactiveRooms() {
@@ -416,30 +472,43 @@ async function addRoom(roomCode, host = null) {
     options: { ...DEFAULT_ROOM_OPTIONS },
     started: false,
   });
-  return attachAssignedMemberName(await attachMemberProfiles(await newRoom.save()), hostMemberName);
+  const createdRoom = attachAssignedMemberName(
+    await attachMemberProfiles(await newRoom.save()),
+    hostMemberName
+  );
+  invalidatePublicRoomsCache();
+  return createdRoom;
 }
 
 async function joinRoom(roomCode, userName) {
-  const room = await Room.findOne({ roomCode });
-  if (!room) return null;
+  return withRoomLock(roomCode, async () => {
+    const room = await Room.findOne({ roomCode });
+    if (!room) return null;
 
-  const members = Array.isArray(room.members) ? room.members : [];
+    const members = Array.isArray(room.members) ? room.members : [];
 
-  if (members.length >= MAX_ROOM_MEMBERS) {
-    throw new Error("Room is full.");
-  }
+    if (members.length >= MAX_ROOM_MEMBERS) {
+      throw new Error("Room is full.");
+    }
 
-  await syncRoomGameState(room);
+    await syncRoomGameState(room);
 
-  const assignedMemberName = getUniqueMemberName(
-    getRoomMemberBaseName(userName),
-    members
-  );
+    // Store the assigned nickname so guests keep a stable room identity
+    const assignedMemberName = getUniqueMemberName(
+      getRoomMemberBaseName(userName),
+      members
+    );
 
-  room.members.push(assignedMemberName);
-  touchRoomMember(room, assignedMemberName);
+    room.members.push(assignedMemberName);
+    touchRoomMember(room, assignedMemberName);
 
-  return attachAssignedMemberName(await attachMemberProfiles(await room.save()), assignedMemberName);
+    const joinedRoom = attachAssignedMemberName(
+      await attachMemberProfiles(await room.save()),
+      assignedMemberName
+    );
+    invalidatePublicRoomsCache();
+    return joinedRoom;
+  });
 }
 
 async function recordMemberHeartbeat(roomCode, memberName) {
@@ -454,9 +523,10 @@ async function recordMemberHeartbeat(roomCode, memberName) {
   return attachMemberProfiles(await syncRoomGameState(await room.save()));
 }
 
-async function startRoom(roomCode) {
+async function startRoom(roomCode, userName) {
   const room = await Room.findOne({ roomCode });
   if (!room) return null;
+  if (room.host !== userName) throw new Error("Only the host can start the room");
 
   room.started = true;
   room.currentSong = null;
@@ -467,7 +537,9 @@ async function startRoom(roomCode) {
   room.timerRemainingSeconds = room.roundSeconds;
   room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
 
-  return attachMemberProfiles(await room.save());
+  const startedRoom = await attachMemberProfiles(await room.save());
+  invalidatePublicRoomsCache();
+  return startedRoom;
 }
 
 async function addSongToQueue(
@@ -504,6 +576,7 @@ async function voteSong(roomCode, entryId, amount) {
   const room = await syncRoomGameState(await Room.findOne({ roomCode }));
   if (!room) throw new Error("Room not found");
 
+  // Votes are one step at a time and clamped to the game limits
   const roomOptions = getRoomOptions(room);
   if (room.timerPaused && !room.currentSong && roomOptions.pauseVotingWhenTimerPaused) {
     throw new Error("Voting is paused");
@@ -598,7 +671,9 @@ async function completeCurrentSong(roomCode, entryId = null, userName = null) {
         room.markModified("queue");
         room.markModified("currentSong");
 
-        return attachMemberProfiles(await room.save());
+        const nextRoom = await attachMemberProfiles(await room.save());
+        invalidatePublicRoomsCache();
+        return nextRoom;
       }
     }
 
@@ -608,7 +683,9 @@ async function completeCurrentSong(roomCode, entryId = null, userName = null) {
     room.roundEndsAt = new Date(Date.now() + room.roundSeconds * 1000);
     room.markModified("currentSong");
 
-    return attachMemberProfiles(await room.save());
+    const nextRoom = await attachMemberProfiles(await room.save());
+    invalidatePublicRoomsCache();
+    return nextRoom;
   }
 
   return attachMemberProfiles(await syncRoomGameState(room));
@@ -638,7 +715,9 @@ async function updateRoomOptions(roomCode, userName, nextOptions = {}) {
     }
   }
 
-  return attachMemberProfiles(await room.save());
+  const updatedRoom = await attachMemberProfiles(await room.save());
+  invalidatePublicRoomsCache();
+  return updatedRoom;
 }
 
 async function leaveRoom(roomCode, userName) {
@@ -647,6 +726,7 @@ async function leaveRoom(roomCode, userName) {
 
   if (room.host === userName) {
     await Room.findOneAndDelete({ roomCode });
+    invalidatePublicRoomsCache();
 
     return {
       roomCode,
@@ -661,7 +741,9 @@ async function leaveRoom(roomCode, userName) {
   delete activity[userName];
   setMemberActivity(room, activity);
 
-  return attachMemberProfiles(await room.save());
+  const updatedRoom = await attachMemberProfiles(await room.save());
+  invalidatePublicRoomsCache();
+  return updatedRoom;
 }
 
 function deleteRoom(id) {

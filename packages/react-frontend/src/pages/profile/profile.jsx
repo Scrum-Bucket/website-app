@@ -76,13 +76,11 @@ function Profile({ username }) {
     const userId = getSessionUser().userId;
 
     if (!userId) {
-      // If no userId, just navigate to login
       navigate("/");
       return;
     }
 
     try {
-      // Call backend logout endpoint
       const response = await authFetch(`${frontendLink}/users/me/logout`, {
         method: "POST",
         headers: {
@@ -96,11 +94,9 @@ function Profile({ username }) {
 
       clearStoredAuth();
 
-      // Navigate to login screen
       navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
-      // Clear localStorage anyway and navigate to login on error
       clearStoredAuth();
       navigate("/");
     }
@@ -118,15 +114,12 @@ function Profile({ username }) {
       return;
     }
 
-    // Prompt user for new username
     const newUsername = prompt("Enter your new username:", currentUsername);
 
-    // User cancelled the prompt
     if (newUsername === null) {
       return;
     }
 
-    // Check if username is empty or unchanged
     const trimmedUsername = newUsername.trim();
     if (!trimmedUsername) {
       alert("Username cannot be empty");
@@ -139,7 +132,6 @@ function Profile({ username }) {
     }
 
     try {
-      // Call backend rename endpoint
       const response = await authFetch(`${frontendLink}/users/me/rename`, {
         method: "PATCH",
         headers: {
@@ -153,11 +145,9 @@ function Profile({ username }) {
         throw new Error(errorData.error || "Rename failed");
       }
 
-      // Update localStorage with new username
       sessionStorage.setItem("username", trimmedUsername);
       localStorage.setItem("username", trimmedUsername);
 
-      // Update the display name state to show the new username immediately
       setDisplayName(trimmedUsername);
     } catch (error) {
       console.error("Rename error:", error);
@@ -213,7 +203,6 @@ function Profile({ username }) {
       return;
     }
 
-    // Ask for confirmation
     const confirmed = window.confirm(
       "Are you sure you want to delete your account? This action cannot be undone."
     );
@@ -223,7 +212,6 @@ function Profile({ username }) {
     }
 
     try {
-      // Call backend delete endpoint
       const response = await authFetch(`${frontendLink}/users/me`, {
         method: "DELETE",
         headers: {
@@ -237,7 +225,6 @@ function Profile({ username }) {
 
       clearStoredAuth();
 
-      // Navigate to login screen
       navigate("/");
     } catch (error) {
       console.error("Delete error:", error);

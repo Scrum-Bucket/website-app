@@ -28,9 +28,9 @@ function mulberry32(seed) {
   };
 }
 
-function shuffledImages(images) {
+function shuffledImages(images, rand) {
   return images
-    .map((image) => ({ image, sort: Math.random() }))
+    .map((image) => ({ image, sort: rand() }))
     .sort((a, b) => a.sort - b.sort)
     .map(({ image }) => image);
 }
@@ -54,6 +54,7 @@ export default function HomeBackground() {
     let animationFrameId;
     let fishImages = [];
     let fishImageQueue = [];
+    let shuffleRand = mulberry32(4217);
     let lastFrameTime = 0;
     let isActive = true;
 
@@ -137,7 +138,7 @@ export default function HomeBackground() {
     function nextFishImage() {
       if (!fishImages.length) return null;
       if (!fishImageQueue.length) {
-        fishImageQueue = shuffledImages(fishImages);
+        fishImageQueue = shuffledImages(fishImages, shuffleRand);
       }
 
       return fishImageQueue.pop();
@@ -187,7 +188,7 @@ export default function HomeBackground() {
     function populateCreatures() {
       const fishCount = fishImages.length ? Math.min(8, fishImages.length) : 8;
 
-      fishImageQueue = shuffledImages(fishImages);
+      fishImageQueue = shuffledImages(fishImages, shuffleRand);
       fish = Array.from({ length: fishCount }, createFish);
       crabs = Array.from({ length: 6 }, (_, index) => createCrab(index));
     }

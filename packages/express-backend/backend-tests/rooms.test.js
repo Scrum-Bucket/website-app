@@ -180,6 +180,30 @@ test("inactive participant is removed from the room", async () => {
   expect(result.members).toStrictEqual(["Captain"]);
 });
 
+test("room member heartbeat refreshes guest activity", async () => {
+  const staleActivity = new Date(Date.now() - 60000).toISOString();
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    members: ["Captain", "Anonymous Fish"],
+    memberActivity: {
+      Captain: new Date().toISOString(),
+      "Anonymous Fish": staleActivity,
+    },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  // ensure save is a Jest mock so the assertion is reliable
+  room.save = jest.fn().mockResolvedValue(room);
+
+  await roomServices.recordMemberHeartbeat("PLAY1", "Anonymous Fish");
+
+  expect(room.save).toHaveBeenCalled();
+  expect(new Date(room.memberActivity["Anonymous Fish"]).getTime()).toBeGreaterThan(
+    new Date(staleActivity).getTime()
+  );
+});
+
 test("inactive host closes the room", async () => {
   const room = makeRoom({
     host: "Captain",
@@ -225,6 +249,155 @@ test("host can update room options", async () => {
     pauseVotingWhenTimerPaused: true,
   });
   expect(result.roundSeconds).toBe(21);
+});
+
+test("only host can start room", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.startRoom("PLAY1", "Sailor")).rejects.toThrow(
+    "Only the host can start the room"
+  );
+  expect(room.save).not.toHaveBeenCalled();
+});
+
+test("vote amount is applied one step at a time", async () => {
+  const room = makeRoom({
+    started: false,
+    roundEndsAt: null,
+    queue: [
+      {
+        entryId: "entry-1",
+        songId: "song-1",
+        name: "Hellfire",
+        score: 8,
+      },
+    ],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.voteSong("PLAY1", "entry-1", 1);
+
+  expect(result.queue[0].score).toBe(9);
+  expect(room.save).toHaveBeenCalled();
+});
+
+test("adding songs assigns missing color indexes and member names", async () => {
+  const room = makeRoom({
+    started: false,
+    roundEndsAt: null,
+    queue: [{ entryId: "entry-1", songId: "song-1", name: "Existing", colorIndex: 0 }],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.addSongToQueue(
+    "PLAY1",
+    "song-2",
+    "Sail Away",
+    "The Bells",
+    "Captain",
+    "https://youtu.be/dQw4w9WgXcQ",
+    "dQw4w9WgXcQ"
+  );
+
+  expect(result.queue[1]).toMatchObject({
+    songId: "song-2",
+    name: "Sail Away",
+    addedBy: "Captain",
+    colorIndex: 1,
+  });
+  expect(room.save).toHaveBeenCalled();
+});
+
+test("deleting queue entries requires host or song owner", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    roundEndsAt: null,
+    queue: [{ entryId: "entry-1", songId: "song-1", name: "Existing", addedBy: "Sailor" }],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.deleteSongFromQueue("PLAY1", "entry-1", "Stowaway")).rejects.toThrow(
+    "Only the host or the user who added this song can delete it"
+  );
+
+  room.save.mockClear();
+  const result = await roomServices.deleteSongFromQueue("PLAY1", "entry-1", "Sailor");
+  expect(result.queue).toStrictEqual([]);
+  expect(room.save).toHaveBeenCalled();
+});
+
+test("timer pause and resume preserve remaining time", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: true,
+    currentSong: null,
+    roundSeconds: 120,
+    roundEndsAt: new Date(Date.now() + 45000),
+    timerPaused: false,
+    timerRemainingSeconds: 120,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const pausedRoom = await roomServices.setTimerPaused("PLAY1", true, "Captain");
+  expect(pausedRoom.timerPaused).toBe(true);
+  expect(pausedRoom.roundEndsAt).toBeNull();
+  expect(pausedRoom.timerRemainingSeconds).toBeGreaterThan(0);
+
+  room.save.mockClear();
+  const resumedRoom = await roomServices.setTimerPaused("PLAY1", false, "Captain");
+  expect(resumedRoom.timerPaused).toBe(false);
+  expect(resumedRoom.roundEndsAt).toBeInstanceOf(Date);
+  expect(room.save).toHaveBeenCalled();
+});
+
+test("timer cannot be changed while a song is playing", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    currentSong: { entryId: "entry-1", name: "Now Playing" },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.setTimerPaused("PLAY1", true, "Captain")).rejects.toThrow(
+    "Cannot change the voting timer while a song is playing"
+  );
+});
+
+test("room options clamp invalid inputs and reject non-host updates", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: true,
+    currentSong: null,
+    roundEndsAt: null,
+    timerPaused: true,
+    timerRemainingSeconds: 60,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.updateRoomOptions("PLAY1", "Sailor", {})).rejects.toThrow(
+    "Only the host can change room options"
+  );
+
+  const result = await roomServices.updateRoomOptions("PLAY1", "Captain", {
+    roundSeconds: 9999,
+    continuousPlaylistMode: "invalid-mode",
+    removeSelectedSong: "yes",
+    playOnAllDevices: false,
+    pauseVotingWhenTimerPaused: true,
+  });
+
+  expect(result.options).toStrictEqual({
+    roundSeconds: 900,
+    continuousPlaylistMode: "removeSongs",
+    removeSelectedSong: false,
+    playOnAllDevices: false,
+    pauseVotingWhenTimerPaused: true,
+  });
+  expect(result.timerRemainingSeconds).toBe(900);
 });
 
 test("voting can be locked while the host pauses the timer", async () => {
@@ -396,4 +569,290 @@ test("completing a song in queue playback starts the next queued song before vot
   expect(result.queue).toStrictEqual([]);
   expect(result.timerPaused).toBe(true);
   expect(result.roundEndsAt).toBeNull();
+});
+
+test("joining handles missing rooms and blank guest names", async () => {
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.joinRoom("MISSING", "Guest")).resolves.toBeNull();
+
+  jest.spyOn(Math, "random").mockReturnValue(0);
+  const room = makeRoom({
+    started: false,
+    members: [],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.joinRoom("PLAY1", "   ");
+
+  expect(result.assignedMemberName).toBe("Anonymous Fish");
+  Math.random.mockRestore();
+});
+
+test("activity pruning initializes missing activity and profiles object members", async () => {
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    members: ["Captain", { id: "member-2", name: "Sailor", crab: { color: "#3498db", hat: "" } }],
+    memberActivity: new Map([["Captain", new Date().toISOString()]]),
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.findRoomByCode("PLAY1");
+
+  expect(room.save).toHaveBeenCalled();
+  expect(result.memberProfiles[1]).toMatchObject({
+    id: "member-2",
+    name: "Sailor",
+    crab: { color: "#3498db", hat: "" },
+  });
+});
+
+test("room lookup helpers cover public cache, all rooms, ids, and cleanup", async () => {
+  const room = makeRoom({
+    started: false,
+    members: [],
+    privacy: "public",
+  });
+  Room.find = jest.fn().mockResolvedValue([room]);
+  Room.findById = jest.fn().mockResolvedValue(room);
+  Room.findByIdAndDelete = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.getRooms()).resolves.toHaveLength(1);
+  await expect(roomServices.getPublicRooms()).resolves.toHaveLength(1);
+  await expect(roomServices.getPublicRooms()).resolves.toHaveLength(1);
+  await roomServices.pruneInactiveRooms();
+  await expect(roomServices.findRoomById("room-id")).resolves.toBe(room);
+  await expect(roomServices.deleteRoom("room-id")).resolves.toBe(room);
+});
+
+test("starting rooms handles missing rooms and normalizes options", async () => {
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.startRoom("MISSING", "Captain")).resolves.toBeNull();
+
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    options: {
+      roundSeconds: 30,
+      continuousPlaylistMode: "keepAll",
+      removeSelectedSong: true,
+      playOnAllDevices: false,
+      pauseVotingWhenTimerPaused: true,
+    },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.startRoom("PLAY1", "Captain");
+
+  expect(result.started).toBe(true);
+  expect(result.roundSeconds).toBe(30);
+  expect(result.timerRemainingSeconds).toBe(30);
+});
+
+test("queue and vote services handle missing rooms, missing songs, and score clamps", async () => {
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.addSongToQueue("MISSING", "song-1", "Song", "Artist")).resolves.toBeNull();
+
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.voteSong("MISSING", "entry-1", 1)).rejects.toThrow("Room not found");
+
+  const room = makeRoom({
+    started: false,
+    roundEndsAt: null,
+    queue: [{ entryId: "entry-1", songId: "song-1", name: "Song", score: 40 }],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const upvoted = await roomServices.upvoteSong("PLAY1", "entry-1");
+  expect(upvoted.queue[0].score).toBe(40);
+
+  room.queue[0].score = -20;
+  const downvoted = await roomServices.voteSong("PLAY1", "entry-1", -1);
+  expect(downvoted.queue[0].score).toBe(-20);
+
+  await expect(roomServices.voteSong("PLAY1", "missing-entry", 1)).rejects.toThrow(
+    "Song not in queue"
+  );
+});
+
+test("deleting queue entries handles missing rooms, missing entries, and songId fallback", async () => {
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.deleteSongFromQueue("MISSING", "entry-1", "Captain")).rejects.toThrow(
+    "Room not found"
+  );
+
+  const room = makeRoom({
+    host: "Captain",
+    started: false,
+    roundEndsAt: null,
+    queue: [{ songId: "song-1", name: "Existing", addedBy: "Sailor" }],
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.deleteSongFromQueue("PLAY1", "missing", "Captain")).rejects.toThrow(
+    "Song not in queue"
+  );
+
+  const result = await roomServices.deleteSongFromQueue("PLAY1", "song-1", "Captain");
+  expect(result.queue).toStrictEqual([]);
+});
+
+test("timer handles missing rooms, non-hosts, and no-op states", async () => {
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.setTimerPaused("MISSING", true, "Captain")).rejects.toThrow(
+    "Room not found"
+  );
+
+  const room = makeRoom({
+    host: "Captain",
+    currentSong: null,
+    timerPaused: true,
+    roundEndsAt: null,
+    timerRemainingSeconds: 45,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  await expect(roomServices.setTimerPaused("PLAY1", true, "Sailor")).rejects.toThrow(
+    "Only the host can pause the timer"
+  );
+
+  const result = await roomServices.setTimerPaused("PLAY1", true, "Captain");
+  expect(result.timerPaused).toBe(true);
+  expect(result.timerRemainingSeconds).toBe(45);
+});
+
+test("room options handle missing rooms, inactive rooms, and live timer restarts", async () => {
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.updateRoomOptions("MISSING", "Captain", {})).resolves.toBeNull();
+
+  const inactiveRoom = makeRoom({
+    host: "Captain",
+    started: false,
+    roundEndsAt: null,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(inactiveRoom);
+  const inactiveResult = await roomServices.updateRoomOptions("PLAY1", "Captain", {
+    roundSeconds: 45,
+  });
+  expect(inactiveResult.roundSeconds).toBe(45);
+  expect(inactiveResult.timerRemainingSeconds).toBe(45);
+
+  const liveRoom = makeRoom({
+    host: "Captain",
+    started: true,
+    currentSong: null,
+    timerPaused: false,
+    roundEndsAt: new Date(Date.now() + 30000),
+    timerRemainingSeconds: 30,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(liveRoom);
+  const liveResult = await roomServices.updateRoomOptions("PLAY1", "Captain", {
+    roundSeconds: 60,
+  });
+  expect(liveResult.roundSeconds).toBe(60);
+  expect(liveResult.roundEndsAt).toBeInstanceOf(Date);
+});
+
+test("complete current song handles missing rooms, host mismatch, stale completion, and idle rooms", async () => {
+  Room.findOne = jest.fn().mockResolvedValueOnce(null);
+  await expect(roomServices.completeCurrentSong("MISSING", null, "Captain")).resolves.toBeNull();
+
+  const hostRoom = makeRoom({
+    host: "Captain",
+    currentSong: { entryId: "entry-1", name: "Song" },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(hostRoom);
+  await expect(roomServices.completeCurrentSong("PLAY1", "entry-1", "Sailor")).rejects.toThrow(
+    "Only the host can restart voting after playback"
+  );
+
+  const staleRoom = makeRoom({
+    host: "Captain",
+    currentSong: { entryId: "entry-1", name: "Song" },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(staleRoom);
+  const staleResult = await roomServices.completeCurrentSong("PLAY1", "other-entry", "Captain");
+  expect(staleResult.currentSong.entryId).toBe("entry-1");
+
+  const idleRoom = makeRoom({
+    host: "Captain",
+    currentSong: null,
+    started: false,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(idleRoom);
+  const idleResult = await roomServices.completeCurrentSong("PLAY1", null, "Captain");
+  expect(idleResult.currentSong).toBeNull();
+});
+
+test("room creation supports host and hostless rooms", async () => {
+  const originalSave = Room.prototype.save;
+  Room.prototype.save = jest.fn().mockImplementation(function saveMock() {
+    return Promise.resolve(this);
+  });
+
+  try {
+    const hostRoom = await roomServices.addRoom("PLAY1", "Captain");
+
+    expect(hostRoom.host).toBe("Captain");
+    expect(hostRoom.members).toStrictEqual(["Captain"]);
+    expect(hostRoom.assignedMemberName).toBe("Captain");
+
+    const hostlessRoom = await roomServices.addRoom("PLAY2");
+    expect(hostlessRoom.host).toBeNull();
+    expect(hostlessRoom.members).toStrictEqual([]);
+    expect(hostlessRoom.assignedMemberName).toBeNull();
+  } finally {
+    Room.prototype.save = originalSave;
+  }
+});
+
+test("expired rounds without queued songs restart the timer", async () => {
+  const room = makeRoom({
+    started: true,
+    currentSong: null,
+    queue: [],
+    roundSeconds: 120,
+    roundEndsAt: new Date(Date.now() - 1000),
+    timerPaused: false,
+    timerRemainingSeconds: 0,
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.findRoomByCode("PLAY1");
+
+  expect(result.currentSong).toBeNull();
+  expect(result.timerRemainingSeconds).toBe(120);
+  expect(result.roundEndsAt).toBeInstanceOf(Date);
+});
+
+test("queue color assignment wraps after all colors are used", async () => {
+  const room = makeRoom({
+    started: false,
+    roundEndsAt: null,
+    queue: Array.from({ length: 10 }, (_, index) => ({
+      entryId: `entry-${index}`,
+      songId: `song-${index}`,
+      name: `Song ${index}`,
+      colorIndex: index,
+    })),
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.addSongToQueue("PLAY1", "song-11", "Song 11", "Artist");
+
+  expect(result.queue[10].colorIndex).toBe(0);
+});
+
+test("heartbeat for non-members syncs room state without adding activity", async () => {
+  const room = makeRoom({
+    started: false,
+    members: ["Captain"],
+    memberActivity: { Captain: new Date().toISOString() },
+  });
+  Room.findOne = jest.fn().mockResolvedValue(room);
+
+  const result = await roomServices.recordMemberHeartbeat("PLAY1", "Stowaway");
+
+  expect(result.members).toStrictEqual(["Captain"]);
+  expect(room.memberActivity.Stowaway).toBeUndefined();
 });

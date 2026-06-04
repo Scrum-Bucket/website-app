@@ -6,6 +6,7 @@ import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
 import { getSessionUser } from "../../authSession";
 import frontendLink from "../../frontendLink";
+import { setRoomMemberSession } from "../Room/roomMemberSession";
 
 const publicRooms = [];
 
@@ -41,7 +42,7 @@ function Join() {
       const formattedRooms = publicRooms.map(formatPublicRoom);
 
       if (active) {
-        setRooms((roomList) => [...roomList, ...formattedRooms]);
+        setRooms(formattedRooms);
       }
     }
 
@@ -66,10 +67,10 @@ function Join() {
     }
 
     const joinedRoom = await response.json();
-    sessionStorage.setItem(
-      `roomMemberName:${normalizedCode}`,
-      joinedRoom.assignedMemberName || currentUsername
-    );
+    setRoomMemberSession(normalizedCode, {
+      memberName: joinedRoom.assignedMemberName || currentUsername,
+      token: joinedRoom.roomMemberToken,
+    });
 
     return normalizedCode;
   }
