@@ -108,12 +108,21 @@ test("unauthenticated room listing cannot enumerate private rooms", async () => 
 });
 
 test("unauthenticated public room listing is limited to public rooms", async () => {
+  // simulate a datastore that accidentally contains both public and private rooms
   mockingoose(roomModel).toReturn(
     [
       {
         _id: "507f1f77bcf86cd799439031",
         roomCode: "PUB123",
         privacy: "public",
+        members: [],
+        queue: [],
+        started: false,
+      },
+      {
+        _id: "507f1f77bcf86cd799439032",
+        roomCode: "PRV999",
+        privacy: "private",
         members: [],
         queue: [],
         started: false,
@@ -127,8 +136,10 @@ test("unauthenticated public room listing is limited to public rooms", async () 
     .set("Accept", "application/json")
     .expect(200);
 
+  // ensure the API filters out non-public rooms even if the DB returned them
   expect(result.body).toHaveLength(1);
-  expect(result.body[0].roomCode).toBe("PUB123");
+  expect(result.body.every((r) => r.privacy === "public")).toBe(true);
+  expect(result.body.map((r) => r.roomCode)).not.toContain("PRV999");
 });
 
 test("room host actions require a signed room member token even with backend auth", async () => {

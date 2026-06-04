@@ -193,6 +193,9 @@ test("room member heartbeat refreshes guest activity", async () => {
   });
   Room.findOne = jest.fn().mockResolvedValue(room);
 
+  // ensure save is a Jest mock so the assertion is reliable
+  room.save = jest.fn().mockResolvedValue(room);
+
   await roomServices.recordMemberHeartbeat("PLAY1", "Anonymous Fish");
 
   expect(room.save).toHaveBeenCalled();
