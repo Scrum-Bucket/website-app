@@ -205,8 +205,25 @@ test("rooms router covers queue, vote, timer, completion, leave, delete, and err
   await supertest(app)
     .post("/rooms/PLAY1/queue")
     .set(memberHeaders())
-    .send({ songId: "song-1", name: "Song" })
+    .send({
+      songId: "song-1",
+      name: "Song",
+      artist: "Artist",
+      songLink: "https://www.youtube.com/watch?v=VIDEOID1234",
+      videoId: "VIDEOID1234",
+      thumbnail: "https://img.youtube.com/vi/VIDEOID1234/default.jpg",
+    })
     .expect(200);
+  expect(roomServices.addSongToQueue).toHaveBeenCalledWith(
+    "PLAY1",
+    "song-1",
+    "Song",
+    "Artist",
+    "Captain",
+    "https://www.youtube.com/watch?v=VIDEOID1234",
+    "VIDEOID1234",
+    "https://img.youtube.com/vi/VIDEOID1234/default.jpg"
+  );
 
   await supertest(app).post("/rooms/PLAY1/vote").set(memberHeaders()).send({ amount: 1 }).expect(400);
   await supertest(app).post("/rooms/PLAY1/vote").set(memberHeaders()).send({ entryId: "e", amount: 9 }).expect(400);

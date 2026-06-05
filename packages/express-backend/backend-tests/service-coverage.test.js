@@ -344,8 +344,11 @@ test("youtube services compile valid songs, skip invalid videos, and follow pagi
     json: jest.fn().mockResolvedValue({
       items: [
         {
+          id: "playlist-item-next",
           snippet: {
             title: "Next Page Song",
+            channelTitle: "Next Page Channel - Topic",
+            thumbnails: { medium: { url: "https://img.youtube.com/next.jpg" } },
             resourceId: { videoId: "NEXTVIDEO12" },
           },
         },
@@ -357,14 +360,22 @@ test("youtube services compile valid songs, skip invalid videos, and follow pagi
     {
       items: [
         {
+          id: "playlist-item-first",
           snippet: {
             title: "First Song",
+            videoOwnerChannelTitle: "First Artist - Topic",
+            channelTitle: "First Channel",
+            thumbnails: {
+              default: { url: "https://img.youtube.com/default.jpg" },
+              high: { url: "https://img.youtube.com/high.jpg" },
+            },
             resourceId: { videoId: "FIRSTVIDEO1" },
           },
         },
         {
           snippet: {
             title: "Private video",
+            thumbnails: { default: { url: "https://img.youtube.com/private.jpg" } },
             resourceId: { videoId: "PRIVATEVID1" },
           },
         },
@@ -376,6 +387,17 @@ test("youtube services compile valid songs, skip invalid videos, and follow pagi
 
   expect(result).toHaveLength(2);
   expect(result.map((song) => song.details.title)).toStrictEqual(["First Song", "Next Page Song"]);
+  expect(result.map((song) => song.details.artist)).toStrictEqual([
+    "First Artist",
+    "Next Page Channel",
+  ]);
+  expect(result.map((song) => song.details.videoId)).toStrictEqual(["FIRSTVIDEO1", "NEXTVIDEO12"]);
+  expect(result.map((song) => song.songLink)).toStrictEqual([
+    "https://www.youtube.com/watch?v=FIRSTVIDEO1",
+    "https://www.youtube.com/watch?v=NEXTVIDEO12",
+  ]);
+  expect(result[0].details.thumbnail).toBe("https://img.youtube.com/high.jpg");
+  expect(result[1].details.thumbnail).toBe("https://img.youtube.com/next.jpg");
   expect(global.fetch).toHaveBeenCalledWith(
     expect.stringContaining("pageToken=next-token"),
     { method: "GET" }
@@ -386,12 +408,30 @@ test("youtube helpers compile single songs and surface fetch failures", async ()
   expect(
     youtubeServices.compileSingleSong({
       id: "VIDEOID1234",
-      snippet: { title: "Single Song" },
+      snippet: {
+        title: "Single Song",
+        channelTitle: "Single Artist",
+        thumbnails: { standard: { url: "https://img.youtube.com/single.jpg" } },
+      },
     })
   ).toStrictEqual({
     songLink: "https://www.youtube.com/watch?v=VIDEOID1234",
-    details: { title: "Single Song", videoId: "VIDEOID1234" },
+    details: {
+      title: "Single Song",
+      videoId: "VIDEOID1234",
+      artist: "Single Artist",
+      thumbnail: "https://img.youtube.com/single.jpg",
+    },
   });
+  expect(
+    youtubeServices.compileSong({
+      id: "NOARTIST123",
+      snippet: { title: "Mystery Song" },
+    }).details.artist
+  ).toBe("Unknown Artist");
+  expect(youtubeServices.normalizeArtistName("King Gizzard & The Lizard Wizard - Topic")).toBe(
+    "King Gizzard & The Lizard Wizard"
+  );
   expect(youtubeServices.isValidSong({ snippet: { title: "Deleted video" } })).toBe(false);
 
   global.fetch = jest.fn().mockRejectedValue(new Error("network down"));

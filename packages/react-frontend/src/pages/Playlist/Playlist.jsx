@@ -7,6 +7,7 @@ import frontendLink from "../../frontendLink";
 
 import {
   getSongArtist,
+  getSongThumbnail,
   getSongTitle,
   normalizePlayableSong,
   readAccountPlaylist,
@@ -21,7 +22,13 @@ function getYoutubeInput(input) {
   }
 
   try {
-    const url = new URL(trimmedInput);
+    const inputWithProtocol =
+      /^(?:https?:)?\/\//i.test(trimmedInput) ||
+      /^(?:www\.)?(?:music\.)?youtube\.com\//i.test(trimmedInput) ||
+      /^youtu\.be\//i.test(trimmedInput)
+        ? trimmedInput.replace(/^\/\//, "https://").replace(/^(?!https?:\/\/)/i, "https://")
+        : trimmedInput;
+    const url = new URL(inputWithProtocol);
     const playlistId = url.searchParams.get("list");
     const videoId = url.searchParams.get("v");
 
@@ -196,7 +203,7 @@ function Playlist({ userId, username }) {
             type="text"
             value={playlistId}
             onChange={(event) => setPlaylistId(event.target.value)}
-            placeholder="Enter YouTube song or playlist URL/ID"
+            placeholder="Enter YouTube or YouTube Music song/playlist URL or ID"
           />
           <button type="button" onClick={handleAddSong} disabled={isLoadingPlaylist}>
             {isLoadingPlaylist ? "Loading..." : "Load"}
@@ -219,6 +226,14 @@ function Playlist({ userId, username }) {
 
             return (
               <article className="playlist-song-row" key={playableSong?.id || index}>
+                {getSongThumbnail(song) && (
+                  <img
+                    className="playlist-song-thumbnail"
+                    src={getSongThumbnail(song)}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                )}
                 <div className="playlist-song-meta">
                   <span>{getSongTitle(song)}</span>
                   {getSongArtist(song) && <small>{getSongArtist(song)}</small>}

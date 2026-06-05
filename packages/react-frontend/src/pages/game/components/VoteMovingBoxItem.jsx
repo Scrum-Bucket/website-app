@@ -1,21 +1,48 @@
-import {
-  STACK_CARD_GAP,
-  STACK_CARD_HEIGHT,
-  VOTE_BOX_COLORS,
-} from "../gameConfig/constants";
+import { useEffect, useRef } from "react";
+import { VOTE_BOX_COLORS } from "../gameConfig/constants";
 
-function VoteMovingBoxItem({ canDelete, entry, isVotingPaused, onDelete, onVote, stackIndex }) {
+function VoteMovingBoxItem({
+  canDelete,
+  entry,
+  isVotingPaused,
+  onDelete,
+  onHeightChange,
+  onVote,
+  topOffset,
+}) {
+  const rowRef = useRef(null);
   const { song, score } = entry;
   const color = VOTE_BOX_COLORS[entry.colorIndex % VOTE_BOX_COLORS.length];
+
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row || !onHeightChange) return undefined;
+
+    const measure = () => {
+      onHeightChange(entry.entryId, Math.ceil(row.getBoundingClientRect().height));
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+
+    return () => observer.disconnect();
+  }, [entry.entryId, onHeightChange]);
 
   return (
     <article
       className="vote-box-row"
+      ref={rowRef}
       style={{
         "--vote-box-start": color.start,
         "--vote-box-middle": color.middle,
         "--vote-box-end": color.end,
-        transform: `translateY(${stackIndex * (STACK_CARD_HEIGHT + STACK_CARD_GAP)}px)`,
+        transform: `translateY(${topOffset}px)`,
       }}
     >
       <div className="vote-box-bar" aria-label={`${song.name} score ${score}`}>

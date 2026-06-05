@@ -12,17 +12,16 @@
   position: absolute;
   left: 0;
   right: 0;
-  height: 86px;
   transition: transform 0.34s ease;
 }
 
 .vote-box-bar {
   width: 100%;
-  min-height: 84px;
+  min-height: 96px;
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+  align-items: start;
+  gap: 12px;
   justify-self: center;
   border: 3px solid #083047;
   border-radius: 12px;
@@ -41,6 +40,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .vote-box-score {
@@ -104,14 +104,14 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 12px;
   color: #083047;
 }
 
 .vote-song-thumbnail {
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   object-fit: cover;
   border-radius: 6px;
   flex-shrink: 0;
@@ -128,9 +128,9 @@
 .vote-box-track-title,
 .vote-box-track-artist {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .vote-box-track-title {

@@ -17,6 +17,7 @@
 }
 
 .vote-round-status div {
+  min-width: 0;
   min-height: 64px;
   display: flex;
   flex-direction: column;
@@ -60,9 +61,12 @@
 }
 
 .vote-round-status strong {
+  min-width: 0;
   color: #ffffff;
   font-size: 24px;
   line-height: 1.1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .vote-round-status .vote-timer-value {
@@ -72,8 +76,11 @@
 }
 
 .vote-round-status span {
+  min-width: 0;
   color: #c8e6ff;
   font-size: 14px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .vote-box-game {

@@ -17,16 +17,41 @@ async function getSongs(id, pageToken) {
     });
 }
 
-function compileSingleSong(videoItem) {
-  const videoId = videoItem.id;
+function compileSong(item) {
+  const snippet = item.snippet || {};
+  const videoId = snippet.resourceId?.videoId || item.id;
+  const artist = normalizeArtistName(
+    snippet.videoOwnerChannelTitle || snippet.channelTitle || "Unknown Artist"
+  );
 
   return {
     songLink: `https://www.youtube.com/watch?v=${videoId}`,
     details: {
-      title: videoItem.snippet.title,
+      title: snippet.title,
       videoId,
+      artist,
+      thumbnail: getBestThumbnailUrl(snippet.thumbnails),
     },
   };
+}
+
+function normalizeArtistName(artist = "") {
+  return String(artist).replace(/\s*-\s*topic$/i, "").trim() || "Unknown Artist";
+}
+
+function compileSingleSong(videoItem) {
+  return compileSong(videoItem);
+}
+
+function getBestThumbnailUrl(thumbnails = {}) {
+  return (
+    thumbnails.maxres?.url ||
+    thumbnails.standard?.url ||
+    thumbnails.high?.url ||
+    thumbnails.medium?.url ||
+    thumbnails.default?.url ||
+    ""
+  );
 }
 
 function isValidSong(item) {
@@ -38,47 +63,29 @@ async function compileSongs(playlistItems, playlistId) {
   const songs = [];
   for (const item of playlistItems["items"]) {
     if (isValidSong(item)) {
-      const videoId = item.snippet.resourceId.videoId;
-
-      songs.push({
-        songLink: `https://www.youtube.com/watch?v=${videoId}`,
-        details: {
-          title: item.snippet.title,
-          videoId,
-        },
-      });
+      songs.push(compileSong(item));
     }
   }
 
   while (playlistItems["nextPageToken"] !== undefined) {
-    console.log("Next Page Token:", playlistItems["nextPageToken"]);
-    console.log("Current Songs Count:", songs.length);
     const nextPageResponse = await getSongs(playlistId, playlistItems["nextPageToken"]);
-    console.log("Next Page token", nextPageResponse["nextPageToken"]);
 
     for (const item of nextPageResponse["items"]) {
       if (isValidSong(item)) {
-        const videoId = item.snippet.resourceId.videoId;
-
-        songs.push({
-          songLink: `https://www.youtube.com/watch?v=${videoId}`,
-          details: {
-            title: item.snippet.title,
-            videoId,
-          },
-        });
+        songs.push(compileSong(item));
       }
     }
 
     playlistItems = nextPageResponse;
   }
-  console.log("Extracted Songs:", songs);
   return songs;
 }
 
 module.exports = {
+  compileSong,
   compileSingleSong,
   compileSongs,
   getSongs,
   isValidSong,
+  normalizeArtistName,
 };

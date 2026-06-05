@@ -55,17 +55,26 @@ export function getSongTitle(song) {
 }
 
 export function getSongArtist(song) {
-  return (
+  const artist =
     song?.details?.artist ||
     song?.details?.author ||
     song?.details?.channelTitle ||
     song?.artist ||
-    ""
-  );
+    "";
+
+  return normalizeArtistName(artist);
+}
+
+function normalizeArtistName(artist = "") {
+  return String(artist).replace(/\s*-\s*topic$/i, "").trim();
 }
 
 export function getSongThumbnail(song) {
-  return song?.details?.thumbnail || song?.thumbnail || "";
+  const savedThumbnail = song?.details?.thumbnail || song?.thumbnail || "";
+  if (savedThumbnail) return savedThumbnail;
+
+  const videoId = getSongVideoId(song);
+  return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : "";
 }
 
 export function normalizePlayableSong(song) {

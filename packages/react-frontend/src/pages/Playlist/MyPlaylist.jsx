@@ -49,6 +49,14 @@ function MyPlaylist({ username }) {
           ) : (
             songs.map((song) => (
               <article className="playlist-song-row" key={song.id}>
+                {song.thumbnail && (
+                  <img
+                    className="playlist-song-thumbnail"
+                    src={song.thumbnail}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                )}
                 <div className="playlist-song-meta">
                   <span>{song.title}</span>
                   {song.artist && <small>{song.artist}</small>}

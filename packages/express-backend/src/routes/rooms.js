@@ -180,7 +180,7 @@ function createRoomsRouter() {
 
   router.post("/:roomCode/queue", async (req, res) => {
     const roomCode = normalizeRoomCode(req.params.roomCode);
-    const { songId, name, artist, songLink, videoId } = req.body;
+    const { songId, name, artist, songLink, thumbnail, videoId } = req.body;
     const memberName = getTrustedMemberName(req, roomCode);
     if (!songId) return res.status(400).json({ error: "songId is required." });
     if (!memberName) return res.status(403).json({ error: "Valid room member token required." });
@@ -192,7 +192,8 @@ function createRoomsRouter() {
         artist || "Unknown",
         memberName,
         songLink || "",
-        videoId || ""
+        videoId || "",
+        thumbnail || ""
       )
       .then((room) => {
         if (!room) return res.status(404).json({ error: "Room not found." });

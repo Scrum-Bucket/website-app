@@ -62,6 +62,7 @@ function VoteMovingBox({
   );
   const [localRoom, setLocalRoom] = useState(room);
   const [now, setNow] = useState(null);
+  const [entryHeights, setEntryHeights] = useState({});
   const completedPlaybackRef = useRef(null);
   const isCurrentUserHost = hostName === currentUserName;
   const shouldPlayAudio = playOnAllDevices || isCurrentUserHost;
@@ -77,9 +78,29 @@ function VoteMovingBox({
   const isVotingPaused =
     Boolean(activeRoomOptions.pauseVotingWhenTimerPaused) && isTimerPaused && !nowPlaying;
   const rankedEntries = useMemo(() => [...entries].sort((a, b) => b.score - a.score), [entries]);
-  const stackHeight = entries.length
-    ? entries.length * STACK_CARD_HEIGHT + (entries.length - 1) * STACK_CARD_GAP
-    : 260;
+  const stackLayout = useMemo(() => {
+    if (!rankedEntries.length) {
+      return { height: 260, offsets: {} };
+    }
+
+    const offsets = {};
+    let nextOffset = 0;
+
+    rankedEntries.forEach((entry, index) => {
+      offsets[entry.entryId] = nextOffset;
+      nextOffset += entryHeights[entry.entryId] || STACK_CARD_HEIGHT;
+
+      if (index < rankedEntries.length - 1) {
+        nextOffset += STACK_CARD_GAP;
+      }
+    });
+
+    return {
+      height: Math.max(nextOffset, STACK_CARD_HEIGHT),
+      offsets,
+    };
+  }, [entryHeights, rankedEntries]);
+  const stackHeight = stackLayout.height;
   const voteArenaHeight = clamp(
     nowPlaying ? VOTE_PLAYBACK_ARENA_HEIGHT : stackHeight + VOTE_ARENA_CHROME_HEIGHT,
     VOTE_ARENA_MIN_HEIGHT,
@@ -95,6 +116,26 @@ function VoteMovingBox({
     const timerId = setInterval(updateNow, 1000);
 
     return () => clearInterval(timerId);
+  }, []);
+
+  useEffect(() => {
+    const entryIds = new Set(entries.map((entry) => entry.entryId));
+
+    setEntryHeights((currentHeights) => {
+      const nextHeights = Object.fromEntries(
+        Object.entries(currentHeights).filter(([entryId]) => entryIds.has(entryId))
+      );
+
+      return Object.keys(nextHeights).length === Object.keys(currentHeights).length
+        ? currentHeights
+        : nextHeights;
+    });
+  }, [entries]);
+
+  const handleEntryHeightChange = useCallback((entryId, height) => {
+    setEntryHeights((currentHeights) =>
+      currentHeights[entryId] === height ? currentHeights : { ...currentHeights, [entryId]: height }
+    );
   }, []);
 
   const applyRoomUpdate = useCallback(
@@ -410,18 +451,15 @@ function VoteMovingBox({
             ) : (
               <div className="vote-box-scroll-area" style={{ minHeight: stackHeight }}>
                 {entries.map((entry) => {
-                  const stackIndex = rankedEntries.findIndex(
-                    (rankedEntry) => rankedEntry.entryId === entry.entryId
-                  );
-
                   return (
                     <VoteMovingBoxItem
                       canDelete={isCurrentUserHost || entry.addedBy === currentUserName}
                       entry={entry}
                       isVotingPaused={isVotingPaused}
                       onDelete={handleDeleteSong}
-                      stackIndex={stackIndex}
+                      onHeightChange={handleEntryHeightChange}
                       onVote={handleVote}
+                      topOffset={stackLayout.offsets[entry.entryId] || 0}
                       key={entry.entryId}
                     />
                   );

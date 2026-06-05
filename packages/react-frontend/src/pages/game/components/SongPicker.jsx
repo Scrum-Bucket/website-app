@@ -64,10 +64,10 @@ function SongPicker({ isGuest, onAddSong, onLoginRequired, songs }) {
                       aria-hidden="true"
                     />
                   )}
-                  <span>{song.name}</span>
-                  <small>
-                    {song.artist} / {song.source}
-                  </small>
+                  <div className="vote-song-option-text">
+                    <span>{song.name}</span>
+                    {song.artist && <small>{song.artist}</small>}
+                  </div>
                 </button>
               ))}
             </div>
