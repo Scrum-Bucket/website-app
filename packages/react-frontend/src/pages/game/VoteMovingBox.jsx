@@ -118,20 +118,6 @@ function VoteMovingBox({
     return () => clearInterval(timerId);
   }, []);
 
-  useEffect(() => {
-    const entryIds = new Set(entries.map((entry) => entry.entryId));
-
-    setEntryHeights((currentHeights) => {
-      const nextHeights = Object.fromEntries(
-        Object.entries(currentHeights).filter(([entryId]) => entryIds.has(entryId))
-      );
-
-      return Object.keys(nextHeights).length === Object.keys(currentHeights).length
-        ? currentHeights
-        : nextHeights;
-    });
-  }, [entries]);
-
   const handleEntryHeightChange = useCallback((entryId, height) => {
     setEntryHeights((currentHeights) =>
       currentHeights[entryId] === height ? currentHeights : { ...currentHeights, [entryId]: height }
