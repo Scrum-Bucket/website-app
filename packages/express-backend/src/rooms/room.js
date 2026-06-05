@@ -73,6 +73,11 @@ const RoomSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    privacy: {
+      type: String,
+      enum: ["public", "private"],
+      default: "private",
+    },
   },
   {
     collection: "rooms",

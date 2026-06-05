@@ -349,6 +349,11 @@ async function attachMemberProfiles(room) {
     };
   });
 
+  // Preserve privacy field so room filtering can work correctly downstream
+  if (room.privacy) {
+    roomObject.privacy = room.privacy;
+  }
+
   return roomObject;
 }
 
@@ -433,8 +438,9 @@ async function getPublicRooms() {
 
   // Cache public room browsing briefly to reduce repeated database reads
   const rooms = await Room.find({ privacy: "public" });
-  // Defensive: ensure only rooms explicitly marked public are returned
-  const filtered = Array.isArray(rooms) ? rooms.filter((r) => (r && r.privacy) === "public") : [];
+  // Defensive: filter to ensure only explicitly public rooms are included
+  // This protects against mocks or buggy DBs that ignore the query filter
+  const filtered = Array.isArray(rooms) ? rooms.filter((r) => r && r.privacy === "public") : [];
   const publicRooms = await attachMemberProfilesToRooms(await syncRooms(filtered));
   publicRoomsCache = {
     expiresAt: now + PUBLIC_ROOMS_CACHE_MS,
