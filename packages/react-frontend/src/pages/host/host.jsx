@@ -31,7 +31,7 @@ function Host({ username }) {
       const response = await authFetch(`${frontendLink}/rooms`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roomCode, host }),
+        body: JSON.stringify({ roomCode, host, privacy: "public" }),
       });
 
       if (!response.ok) {

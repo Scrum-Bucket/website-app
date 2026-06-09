@@ -5,6 +5,8 @@ import LoginRequiredModal from "./LoginRequiredModal";
 import Home from "../pages/Home/Home";
 import { HEARTBEAT_MS, getSessionUser, sendUserHeartbeat } from "../authSession";
 
+const RICKROLL_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
 const Host = lazy(() => import("../pages/host/host"));
 const Join = lazy(() => import("../pages/Join/Join"));
 const Code = lazy(() => import("../pages/Code/Code"));
@@ -17,6 +19,14 @@ const EditCrab = lazy(() => import("../pages/profile/edit-crab"));
 
 function RouteFallback() {
   return <div className="app-route-loading">Loading...</div>;
+}
+
+function ExternalRedirect({ to }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+
+  return <div className="app-route-loading">Redirecting...</div>;
 }
 
 export function GuestGuard({ username, children }) {
@@ -86,6 +96,7 @@ export function App() {
             />
           }
         />
+        <Route path="/login" element={<ExternalRedirect to={RICKROLL_URL} />} />
         <Route
           path="/home"
           element={isLoggedIn ? <Home username={username} /> : <Navigate to="/" replace />}

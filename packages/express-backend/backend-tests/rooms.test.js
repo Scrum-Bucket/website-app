@@ -796,11 +796,13 @@ test("room creation supports host and hostless rooms", async () => {
     expect(hostRoom.host).toBe("Captain");
     expect(hostRoom.members).toStrictEqual(["Captain"]);
     expect(hostRoom.assignedMemberName).toBe("Captain");
+    expect(hostRoom.privacy).toBe("public");
 
-    const hostlessRoom = await roomServices.addRoom("PLAY2");
+    const hostlessRoom = await roomServices.addRoom("PLAY2", null, "private");
     expect(hostlessRoom.host).toBeNull();
     expect(hostlessRoom.members).toStrictEqual([]);
     expect(hostlessRoom.assignedMemberName).toBeNull();
+    expect(hostlessRoom.privacy).toBe("private");
   } finally {
     Room.prototype.save = originalSave;
   }

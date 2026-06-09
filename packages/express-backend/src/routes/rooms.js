@@ -98,6 +98,7 @@ function createRoomsRouter() {
   router.post("/", async (req, res) => {
     const requestedRoomCode = normalizeRoomCode(req.body.roomCode);
     const host = (req.body.host || req.body.userName || req.body.username || "").trim() || null;
+    const privacy = req.body.privacy;
     const maxAttempts = requestedRoomCode ? 1 : 5;
 
     // Auto-generated room codes get a few chances to avoid collisions
@@ -113,7 +114,7 @@ function createRoomsRouter() {
           continue;
         }
 
-        const created = await roomServices.addRoom(roomCode, host);
+        const created = await roomServices.addRoom(roomCode, host, privacy);
         return res
           .status(201)
           .json(attachRoomMemberToken(created, roomCode, created.assignedMemberName));

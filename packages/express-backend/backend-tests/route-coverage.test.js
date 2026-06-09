@@ -179,7 +179,11 @@ test("rooms router covers create, listing, lookup, join, heartbeat, start, and o
 
   roomServices.findRoomByCode.mockResolvedValueOnce(null);
   jest.spyOn(roomServices, "addRoom").mockResolvedValueOnce(room);
-  await supertest(app).post("/rooms").send({ roomCode: "PLAY1", host: "Captain" }).expect(201);
+  await supertest(app)
+    .post("/rooms")
+    .send({ roomCode: "PLAY1", host: "Captain", privacy: "public" })
+    .expect(201);
+  expect(roomServices.addRoom).toHaveBeenCalledWith("PLAY1", "Captain", "public");
 
   jest.spyOn(roomServices, "joinRoom").mockResolvedValueOnce(room);
   await supertest(app).post("/rooms/PLAY1/join").send({ userName: "Captain" }).expect(200);

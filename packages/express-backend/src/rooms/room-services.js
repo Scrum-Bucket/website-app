@@ -24,6 +24,7 @@ const CONTINUOUS_PLAYLIST_MODES = new Set([
   "keepAll",
   "playQueue",
 ]);
+const ROOM_PRIVACY_MODES = new Set(["public", "private"]);
 const GUEST_MEMBER_NAMES = [
   "Anonymous Fish",
   "Anonymous Crab",
@@ -72,6 +73,10 @@ function normalizeRoomOptions(options = {}) {
 
 function getRoomOptions(room) {
   return normalizeRoomOptions(room?.options);
+}
+
+function normalizeRoomPrivacy(privacy) {
+  return ROOM_PRIVACY_MODES.has(privacy) ? privacy : "public";
 }
 
 function isWinningEntry(entry, winningEntry) {
@@ -464,7 +469,7 @@ async function findRoomByCode(roomCode) {
   return attachMemberProfiles(await syncRoomGameState(room));
 }
 
-async function addRoom(roomCode, host = null) {
+async function addRoom(roomCode, host = null, privacy = "public") {
   const hostMemberName = host ? getUniqueMemberName(getRoomMemberBaseName(host), []) : null;
   const newRoom = new Room({
     roomCode,
@@ -479,6 +484,7 @@ async function addRoom(roomCode, host = null) {
     timerRemainingSeconds: ROUND_SECONDS,
     options: { ...DEFAULT_ROOM_OPTIONS },
     started: false,
+    privacy: normalizeRoomPrivacy(privacy),
   });
   const createdRoom = attachAssignedMemberName(
     await attachMemberProfiles(await newRoom.save()),

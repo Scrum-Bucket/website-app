@@ -173,6 +173,10 @@ export function isSameQueueEntry(entry, targetEntry) {
   return (entry.entryId || entry.songId) === (targetEntry.entryId || targetEntry.songId);
 }
 
+export function getConfiguredRoundSeconds(room) {
+  return room?.options?.roundSeconds ?? room?.roundSeconds ?? ROUND_SECONDS;
+}
+
 export function getQueueAfterWinnerStarts(queue, winningEntry, options = {}) {
   const sourceQueue = Array.isArray(queue) ? queue : [];
 
@@ -184,7 +188,7 @@ export function getQueueAfterWinnerStarts(queue, winningEntry, options = {}) {
 }
 
 export function getRoomTimeLeft(room, now) {
-  const roundSeconds = room?.roundSeconds ?? ROUND_SECONDS;
+  const roundSeconds = getConfiguredRoundSeconds(room);
 
   if (room?.timerPaused) {
     return clamp(room.timerRemainingSeconds ?? roundSeconds, 0, roundSeconds);

@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import "./code.css";
 import OtherBackground from "../../../animationFiles/other-background.jsx";
 import { authFetch } from "../../authFetch";
+import logoImage from "../../assets/logo.png";
+import roomImage from "../../assets/room.png";
+import crabImage from "../../assets/user-crab.png";
+import houseImage from "../../assets/House.PNG";
 import frontendLink from "../../frontendLink";
 import { setRoomMemberSession } from "../Room/roomMemberSession";
 
@@ -59,45 +63,66 @@ function Code({ username }) {
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === "Enter") handleJoin();
+  function handleKeyDown(event) {
+    if (event.key === "Enter") handleJoin();
   }
 
   return (
     <div className="code-page">
       <OtherBackground />
-      <p className="code-title">Join by Code</p>
 
-      <div className="code-panel">
-        <div className="code-logo" aria-label="logo">
-          <span>J</span>
-        </div>
+      <div className="code-layout">
+        <main className="code-window">
+          <header className="code-header">
+            <div className="code-brand-lockup">
+              <img className="code-logo" src={logoImage} alt="Crab Rave logo" />
+              <h1>Join by Code</h1>
+            </div>
+            <button
+              className="code-home-btn"
+              type="button"
+              onClick={() => navigate("/home")}
+              aria-label="Back to home"
+            >
+              <img src={houseImage} alt="" aria-hidden="true" />
+            </button>
+          </header>
 
-        <section className="code-join-box">
-          <input
-            className="code-input"
-            type="text"
-            placeholder="Enter room code"
-            value={code}
-            maxLength={12}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            onKeyDown={handleKeyDown}
-            aria-label="Room code"
-          />
-          <button className="code-join-btn" type="button" onClick={handleJoin} disabled={loading}>
-            {loading ? "…" : "Join by\ncode"}
-          </button>
-        </section>
+          <div className="code-panel pixel-bubble-card">
+            <img className="code-side-icon" src={roomImage} alt="" aria-hidden="true" />
+            <section className="code-join-box" aria-label="Room code entry">
+              <input
+                className="code-input"
+                type="text"
+                placeholder="ROOM CODE"
+                value={code}
+                maxLength={12}
+                onChange={(event) => setCode(event.target.value.toUpperCase())}
+                onKeyDown={handleKeyDown}
+                aria-label="Room code"
+              />
+              <button
+                className="code-join-btn"
+                type="button"
+                onClick={handleJoin}
+                disabled={loading}
+              >
+                {loading ? "..." : "Join"}
+              </button>
+            </section>
+            <img className="code-side-icon" src={crabImage} alt="" aria-hidden="true" />
 
-        {error && <p className="code-error">{error}</p>}
+            {error && <p className="code-error">{error}</p>}
 
-        <button className="code-browse-btn" type="button" onClick={() => navigate("/home/join")}>
-          Browse public rooms
-        </button>
-
-        <button className="code-browse-btn" type="button" onClick={() => navigate("/home")}>
-          Back to Home
-        </button>
+            <button
+              className="code-secondary-btn"
+              type="button"
+              onClick={() => navigate("/home/join")}
+            >
+              Browse public rooms
+            </button>
+          </div>
+        </main>
       </div>
     </div>
   );

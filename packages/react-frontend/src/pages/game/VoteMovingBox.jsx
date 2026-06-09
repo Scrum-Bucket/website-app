@@ -10,7 +10,6 @@ import VoteMovingBoxItem from "./components/VoteMovingBoxItem";
 import {
   MAX_SCORE,
   MIN_SCORE,
-  ROUND_SECONDS,
   STACK_CARD_GAP,
   STACK_CARD_HEIGHT,
   VOTE_ARENA_CHROME_HEIGHT,
@@ -21,6 +20,7 @@ import {
 import {
   clamp,
   formatTime,
+  getConfiguredRoundSeconds,
   getNextQueueColorIndex,
   getQueueAfterWinnerStarts,
   getQueueEntryScore,
@@ -189,17 +189,17 @@ function VoteMovingBox({
               currentRoom.options || activeRoomOptions
             ),
             timerPaused: true,
-            timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
+            timerRemainingSeconds: getConfiguredRoundSeconds(currentRoom),
             roundEndsAt: null,
           };
         }
 
+        const currentRoundSeconds = getConfiguredRoundSeconds(currentRoom);
+
         return {
           ...currentRoom,
-          timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
-          roundEndsAt: new Date(
-            Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
-          ).toISOString(),
+          timerRemainingSeconds: currentRoundSeconds,
+          roundEndsAt: new Date(Date.now() + currentRoundSeconds * 1000).toISOString(),
         };
       });
     }, 0);
@@ -347,15 +347,15 @@ function VoteMovingBox({
       localAction: () =>
         updateLocalRoom((currentRoom) => ({
           ...currentRoom,
-          timerRemainingSeconds: currentRoom.roundSeconds ?? ROUND_SECONDS,
+          timerRemainingSeconds: getConfiguredRoundSeconds(currentRoom),
           ...(() => {
+            const currentRoundSeconds = getConfiguredRoundSeconds(currentRoom);
+
             if ((currentRoom.options || activeRoomOptions).continuousPlaylistMode !== "playQueue") {
               return {
                 currentSong: null,
                 timerPaused: false,
-                roundEndsAt: new Date(
-                  Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
-                ).toISOString(),
+                roundEndsAt: new Date(Date.now() + currentRoundSeconds * 1000).toISOString(),
               };
             }
 
@@ -365,9 +365,7 @@ function VoteMovingBox({
               return {
                 currentSong: null,
                 timerPaused: false,
-                roundEndsAt: new Date(
-                  Date.now() + (currentRoom.roundSeconds ?? ROUND_SECONDS) * 1000
-                ).toISOString(),
+                roundEndsAt: new Date(Date.now() + currentRoundSeconds * 1000).toISOString(),
               };
             }
 
